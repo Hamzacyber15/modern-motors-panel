@@ -1,4 +1,4 @@
-package com.example.modern_motors_panel
+package com.modernmotorspanel.app_motors_panel
 
 import io.flutter.embedding.android.FlutterActivity
 
