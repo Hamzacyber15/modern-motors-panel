@@ -313,14 +313,23 @@ class SaleCard extends StatelessWidget {
                         ),
                         borderRadius: BorderRadius.circular(4),
                       ),
-                      child: Text(
-                        '${"MM"}-${sale.invoice}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                      child: sale.status == "draft"
+                          ? Text(
+                              '${"Draft"}-${sale.invoice}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            )
+                          : Text(
+                              '${"MM"}-${sale.invoice}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                     ),
 
               const SizedBox(width: 20),
@@ -1811,7 +1820,12 @@ class _SalesListViewState extends State<SalesListView> {
   }
 
   Future<void> getList() async {
-    salesList = await DataFetchService.fetchSales();
+    if (widget.type == "estimation") {
+      salesList = await DataFetchService.fetchEstimates();
+    } else {
+      salesList = await DataFetchService.fetchSales();
+    }
+
     setState(() {
       _filteredSales = salesList;
     });

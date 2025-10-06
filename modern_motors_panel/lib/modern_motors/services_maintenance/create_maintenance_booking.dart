@@ -862,7 +862,7 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                             'depositType': selectedDepositType.id,
                             'depositAmount': depositAmount,
                             'depositPercentage': depositPercentage,
-                            'depositAlreadyPaid': depositAlreadyPaid,
+                            //'depositAlreadyPaid': depositAlreadyPaid,
                             'nextPaymentAmount': nextPaymentAmount,
                           };
                           final paymentData = isAlreadyPaid
@@ -946,7 +946,7 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                             'depositType': selectedDepositType.id,
                             'depositAmount': depositAmount,
                             'depositPercentage': depositPercentage,
-                            'depositAlreadyPaid': depositAlreadyPaid,
+                            //'depositAlreadyPaid': depositAlreadyPaid,
                             'nextPaymentAmount': nextPaymentAmount,
                           };
                           final paymentData = isAlreadyPaid
@@ -981,7 +981,7 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                             context: context,
                             onBack: widget.onBack!.call, //close,
                             isEdit: widget.sale != null,
-                            total: p.total,
+                            total: p.grandTotal,
                             discount: d,
                             taxAmount: p.taxAmount,
                             paymentData: paymentData,
@@ -1905,7 +1905,7 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                         'depositType': selectedDepositType.id,
                         'depositAmount': depositAmount,
                         'depositPercentage': depositPercentage,
-                        'depositAlreadyPaid': depositAlreadyPaid,
+                        //'depositAlreadyPaid': depositAlreadyPaid,
                         'nextPaymentAmount': nextPaymentAmount,
                       };
 

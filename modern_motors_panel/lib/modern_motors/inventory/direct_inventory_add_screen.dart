@@ -328,8 +328,8 @@ import 'package:modern_motors_panel/modern_motors/widgets/form_validation.dart';
 
 class DirectInventoryAddScreen extends StatefulWidget {
   final ProductModel? product;
-
-  const DirectInventoryAddScreen({super.key, this.product});
+  final VoidCallback? onBack;
+  const DirectInventoryAddScreen({super.key, this.product, this.onBack});
 
   @override
   State<DirectInventoryAddScreen> createState() =>
@@ -419,6 +419,7 @@ class _DirectInventoryAddScreenState extends State<DirectInventoryAddScreen> {
           ? quantity.toDouble()
           : -quantity.toDouble();
       Navigator.of(context).pop(q);
+      // widget.onBack?.call();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

@@ -2728,7 +2728,7 @@ class _ProductListViewState extends State<ProductListView> {
   }
 
   Future<void> updateStatus() async {
-    await Future.delayed(const Duration(milliseconds: 500));
+    await Future.delayed(const Duration(milliseconds: 1000));
     await widget.tapped!();
     if (mounted) {
       setState(() {});
@@ -2802,15 +2802,30 @@ class _ProductListViewState extends State<ProductListView> {
       //   break;
       case ProductAction.addNew:
         try {
-          double? q = await Navigator.push(
+          await Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => DirectInventoryAddScreen(product: product),
+              builder: (context) => DirectInventoryAddScreen(
+                product: product,
+                // onBack: () {
+                //   Navigator.of(context).pop();
+                //   if (widget.tapped != null) {
+                //     widget.tapped!(); // ✅ This actually calls the function
+                //   }
+                // },
+              ),
             ),
-          );
-          await WidgetsBinding.instance.endOfFrame;
-          //changeStatus(product, q);
-          await updateStatus();
+          ).then((value) async {
+            //Navigator.of(context).pop();
+            if (widget.tapped != null) {
+              // widget.tapped!(); // ✅ This actually calls the function
+              await updateStatus();
+            }
+          });
+
+          // await WidgetsBinding.instance.endOfFrame;
+          // //changeStatus(product, q);
+          // await updateStatus();
           debugPrint('Add inventory: ${product.productName}');
         } catch (e) {
           debugPrint('Error in addNew: $e');

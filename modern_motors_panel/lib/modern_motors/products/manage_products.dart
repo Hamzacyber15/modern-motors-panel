@@ -1092,6 +1092,7 @@ import 'package:modern_motors_panel/modern_motors/products/add_edit_product.dart
 import 'package:modern_motors_panel/modern_motors/products/product_card.dart';
 import 'package:modern_motors_panel/modern_motors/services/data_fetch_service.dart';
 import 'package:modern_motors_panel/modern_motors/widgets/delete_helper.dart';
+import 'package:modern_motors_panel/modern_motors/widgets/mmLoading_widget.dart';
 import 'package:modern_motors_panel/modern_motors/widgets/page_header_widget.dart';
 import 'package:modern_motors_panel/modern_motors/widgets/pagination_widget.dart';
 import 'package:modern_motors_panel/provider/selected_inventories_provider.dart';
@@ -1399,7 +1400,7 @@ class _ManageProductsState extends State<ManageProducts> {
         .toList();
 
     if (isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: MmloadingWidget());
     } else {
       return Consumer<SelectedInventoriesProvider>(
         builder: (context, selectedInventories, child) {

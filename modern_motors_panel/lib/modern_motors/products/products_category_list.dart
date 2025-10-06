@@ -423,7 +423,7 @@ class _ProductCategoryListState extends State<ProductCategoryList> {
                 children: [
                   PageHeaderWidget(
                     title: "Product Category List".tr(),
-                    buttonText: "Add Product".tr(),
+                    buttonText: "Add Product Category".tr(),
                     subTitle: "Manage your products category".tr(),
                     selectedItems: selectedProductIds.toList(),
                     buttonWidth: 0.24,
