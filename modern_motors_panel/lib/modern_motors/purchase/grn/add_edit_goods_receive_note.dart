@@ -35,7 +35,7 @@ class _AddEditGoodsReceiveNoteState extends State<AddEditGoodsReceiveNote> {
   TextEditingController searchController = TextEditingController();
   PurchaseOrderModel? purchaseOrderBeingEdited;
   List<ProductCategoryModel> productsCategories = [];
-  List<ProductSubCatorymodel> subCategories = [];
+  List<ProductSubCategoryModel> subCategories = [];
   List<ProductModel> allProducts = [];
   List<VendorModel> vendors = [];
 
@@ -94,7 +94,7 @@ class _AddEditGoodsReceiveNoteState extends State<AddEditGoodsReceiveNote> {
         allPurchaseOrders = results[0] as List<PurchaseOrderModel>;
         displayedPurchaseOrders = results[0] as List<PurchaseOrderModel>;
         productsCategories = results[1] as List<ProductCategoryModel>;
-        subCategories = results[2] as List<ProductSubCatorymodel>;
+        subCategories = results[2] as List<ProductSubCategoryModel>;
         vendors = results[3] as List<VendorModel>;
         allProducts = results[4] as List<ProductModel>;
         isLoading = false;
@@ -184,7 +184,7 @@ class _AddEditGoodsReceiveNoteState extends State<AddEditGoodsReceiveNote> {
                   (v) => subCategories
                       .firstWhere(
                         (cat) => cat.id == v.subCatId,
-                        orElse: () => ProductSubCatorymodel(name: 'N/A'),
+                        orElse: () => ProductSubCategoryModel(name: 'N/A'),
                       )
                       .name,
                   (v) => vendors

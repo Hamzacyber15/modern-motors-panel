@@ -34,7 +34,7 @@ class _GoodsReceiveNotesState extends State<GoodsReceiveNotes> {
   List<GrnModel> allGrns = [];
   List<PurchaseOrderModel> displayedPurchaseOrders = [];
   List<ProductCategoryModel> productsCategories = [];
-  List<ProductSubCatorymodel> subCategories = [];
+  List<ProductSubCategoryModel> subCategories = [];
   List<VendorModel> vendors = [];
   List<ProductModel> allProducts = [];
 
@@ -74,7 +74,7 @@ class _GoodsReceiveNotesState extends State<GoodsReceiveNotes> {
       );
       final subCat = subCategories.firstWhere(
         (s) => s.catId!.first == v.productId,
-        orElse: () => ProductSubCatorymodel(name: ''),
+        orElse: () => ProductSubCategoryModel(name: ''),
       );
       final vendor = vendors.firstWhere(
         (ven) => ven.id == v.vendorId,
@@ -145,7 +145,7 @@ class _GoodsReceiveNotesState extends State<GoodsReceiveNotes> {
         allPurchaseOrders = results[0] as List<PurchaseOrderModel>;
         displayedPurchaseOrders = results[0] as List<PurchaseOrderModel>;
         productsCategories = results[1] as List<ProductCategoryModel>;
-        subCategories = results[2] as List<ProductSubCatorymodel>;
+        subCategories = results[2] as List<ProductSubCategoryModel>;
         vendors = results[3] as List<VendorModel>;
         allGrns = results[4] as List<GrnModel>;
         allProducts = results[5] as List<ProductModel>;
@@ -235,7 +235,7 @@ class _GoodsReceiveNotesState extends State<GoodsReceiveNotes> {
                               .firstWhere(
                                 (cat) => cat.catId!.contains(v.productId),
                                 orElse: () =>
-                                    ProductSubCatorymodel(name: 'N/A'),
+                                    ProductSubCategoryModel(name: 'N/A'),
                               )
                               .name,
                           (v) => vendors

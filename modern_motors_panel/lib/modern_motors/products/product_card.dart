@@ -15,7 +15,7 @@
 // //   final ProductModel product;
 // //   final BrandModel brand;
 // //   final ProductCategoryModel category;
-// //   final ProductSubCatorymodel subCategory;
+// //   final ProductSubCategoryModel subCategory;
 // //   final bool isSelected;
 // //   final VoidCallback? onTap;
 // //   final VoidCallback? onEdit;
@@ -461,7 +461,7 @@
 // //   final List<ProductModel> products;
 // //   final List<BrandModel> brands;
 // //   final List<ProductCategoryModel> categories;
-// //   final List<ProductSubCatorymodel> subCategories;
+// //   final List<ProductSubCategoryModel> subCategories;
 // //   final Set<String> selectedIds;
 // //   final Function(ProductModel) onView;
 // //   final Function(ProductModel) onEdit;
@@ -496,7 +496,7 @@
 // //         );
 // //         final subCategory = subCategories.firstWhere(
 // //           (s) => s.id == product.subCategoryId,
-// //           orElse: () => ProductSubCatorymodel(name: 'Unknown Sub Category'),
+// //           orElse: () => ProductSubCategoryModel(name: 'Unknown Sub Category'),
 // //         );
 
 // //         return ProductCard(
@@ -643,7 +643,7 @@
 // //   final ProductModel product;
 // //   final BrandModel brand;
 // //   final ProductCategoryModel category;
-// //   final ProductSubCatorymodel subCategory;
+// //   final ProductSubCategoryModel subCategory;
 // //   final bool isSelected;
 // //   final VoidCallback? onTap;
 // //   final VoidCallback? onEdit;
@@ -1004,7 +1004,7 @@
 // //   final List<ProductModel> products;
 // //   final List<BrandModel> brands;
 // //   final List<ProductCategoryModel> categories;
-// //   final List<ProductSubCatorymodel> subCategories;
+// //   final List<ProductSubCategoryModel> subCategories;
 // //   final Set<String> selectedIds;
 // //   final Function(ProductModel) onView;
 // //   final Function(ProductModel) onEdit;
@@ -1116,7 +1116,7 @@
 // //               final subCategory = subCategories.firstWhere(
 // //                 (s) => s.id == product.subCategoryId,
 // //                 orElse: () =>
-// //                     ProductSubCatorymodel(name: 'Unknown Sub Category'),
+// //                     ProductSubCategoryModel(name: 'Unknown Sub Category'),
 // //               );
 
 // //               return ProductCard(
@@ -1163,7 +1163,7 @@
 //   final ProductModel product;
 //   final BrandModel brand;
 //   final ProductCategoryModel category;
-//   final ProductSubCatorymodel subCategory;
+//   final ProductSubCategoryModel subCategory;
 //   final bool isSelected;
 //   final VoidCallback? onTap;
 //   final Function(ProductAction)? onActionSelected;
@@ -1611,7 +1611,7 @@
 //   final List<ProductModel> products;
 //   final List<BrandModel> brands;
 //   final List<ProductCategoryModel> categories;
-//   final List<ProductSubCatorymodel> subCategories;
+//   final List<ProductSubCategoryModel> subCategories;
 //   final Set<String> selectedIds;
 // //  final Function(ProductModel, ProductAction) onActionSelected;
 //   final Function(bool?, ProductModel) onSelectChanged;
@@ -1681,7 +1681,7 @@
 //         // Get subcategory name
 //         final subCategory = widget.subCategories.firstWhere(
 //           (s) => s.id == product.subCategoryId,
-//           orElse: () => ProductSubCatorymodel(name: ''),
+//           orElse: () => ProductSubCategoryModel(name: ''),
 //         );
 
 //         return (product.productName?.toLowerCase().contains(searchLower) ??
@@ -1935,7 +1935,7 @@
 //                     final subCategory = widget.subCategories.firstWhere(
 //                       (s) => s.id == product.subCategoryId,
 //                       orElse: () =>
-//                           ProductSubCatorymodel(name: 'Unknown Sub Category'),
+//                           ProductSubCategoryModel(name: 'Unknown Sub Category'),
 //                     );
 
 //                     return ProductCard(
@@ -2061,7 +2061,7 @@ class ProductCard extends StatelessWidget {
   final ProductModel product;
   final BrandModel brand;
   final ProductCategoryModel category;
-  final ProductSubCatorymodel subCategory;
+  final ProductSubCategoryModel subCategory;
   final bool isSelected;
   final VoidCallback? onTap;
   final Function(ProductAction)? onActionSelected;
@@ -2640,7 +2640,7 @@ class ProductListView extends StatefulWidget {
   final List<ProductModel> products;
   final List<BrandModel> brands;
   final List<ProductCategoryModel> categories;
-  final List<ProductSubCatorymodel> subCategories;
+  final List<ProductSubCategoryModel> subCategories;
   final Set<String> selectedIds;
   final Function(bool?, ProductModel) onSelectChanged;
   final bool enableSearch;
@@ -2710,7 +2710,7 @@ class _ProductListViewState extends State<ProductListView> {
         // Get subcategory name
         final subCategory = widget.subCategories.firstWhere(
           (s) => s.id == product.subCategoryId,
-          orElse: () => ProductSubCatorymodel(name: ''),
+          orElse: () => ProductSubCategoryModel(name: ''),
         );
 
         return (product.productName?.toLowerCase().contains(searchLower) ??
@@ -3046,7 +3046,7 @@ class _ProductListViewState extends State<ProductListView> {
                     final subCategory = widget.subCategories.firstWhere(
                       (s) => s.id == product.subCategoryId,
                       orElse: () =>
-                          ProductSubCatorymodel(name: 'Unknown Sub Category'),
+                          ProductSubCategoryModel(name: 'Unknown Sub Category'),
                     );
 
                     return ProductCard(

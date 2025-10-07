@@ -51,8 +51,8 @@ class _AddPurchaseRequisitionPageState
   List<BrandModel> brands = [];
   List<ProductModel> productList = [];
   List<ProductCategoryModel> productsCategories = [];
-  List<ProductSubCatorymodel> subCategories = [];
-  List<ProductSubCatorymodel> associatedSubCategories = [];
+  List<ProductSubCategoryModel> subCategories = [];
+  List<ProductSubCategoryModel> associatedSubCategories = [];
   ProductModel? selectedProduct;
   String? selectedBrandId;
   String? selectedProductId;
@@ -75,7 +75,7 @@ class _AddPurchaseRequisitionPageState
       DataFetchService.fetchProducts(),
     ]).then((results) {
       // final productList = results[0] as List<ProductCategoryModel>;
-      // final subCategoriesList = results[1] as List<ProductSubCatorymodel>;
+      // final subCategoriesList = results[1] as List<ProductSubCategoryModel>;
       final brandsList = results[0] as List<BrandModel>;
       final pList = results[1] as List<ProductModel>;
 

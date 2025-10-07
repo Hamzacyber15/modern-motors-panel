@@ -39,7 +39,7 @@ class _PurchaseOrdersState extends State<PurchaseOrders> {
   List<PurchaseOrderModel> displayedPurchaseOrders = [];
   List<ProductModel> allProducts = [];
   List<ProductCategoryModel> productsCategories = [];
-  List<ProductSubCatorymodel> subCategories = [];
+  List<ProductSubCategoryModel> subCategories = [];
   List<VendorModel> vendors = [];
 
   int currentPage = 0;
@@ -77,7 +77,7 @@ class _PurchaseOrdersState extends State<PurchaseOrders> {
       );
       final subCat = subCategories.firstWhere(
         (s) => s.id == v.subCatId,
-        orElse: () => ProductSubCatorymodel(name: ''),
+        orElse: () => ProductSubCategoryModel(name: ''),
       );
       final vendor = vendors.firstWhere(
         (ven) => ven.id == v.vendorId,
@@ -148,7 +148,7 @@ class _PurchaseOrdersState extends State<PurchaseOrders> {
         allPurchaseOrders = results[0] as List<PurchaseOrderModel>;
         displayedPurchaseOrders = results[0] as List<PurchaseOrderModel>;
         productsCategories = results[1] as List<ProductCategoryModel>;
-        subCategories = results[2] as List<ProductSubCatorymodel>;
+        subCategories = results[2] as List<ProductSubCategoryModel>;
         vendors = results[3] as List<VendorModel>;
         allProducts = results[4] as List<ProductModel>;
         isLoading = false;
@@ -235,7 +235,7 @@ class _PurchaseOrdersState extends State<PurchaseOrders> {
                               .firstWhere(
                                 (cat) => cat.id == v.subCatId,
                                 orElse: () =>
-                                    ProductSubCatorymodel(name: 'N/A'),
+                                    ProductSubCategoryModel(name: 'N/A'),
                               )
                               .name,
                           (v) => vendors

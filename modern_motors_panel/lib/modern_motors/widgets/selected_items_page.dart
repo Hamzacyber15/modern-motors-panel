@@ -270,7 +270,7 @@ class _SelectItemsPageState extends State<SelectItemsPage> {
   List<ProductModel> products = [];
   List<ProductCategoryModel> productsCategories = [];
   List<UnitModel> units = [];
-  List<ProductSubCatorymodel> subCategories = [];
+  List<ProductSubCategoryModel> subCategories = [];
   List<BranchModel> branches = [];
   List<VendorModel> vendors = [];
 
@@ -300,7 +300,7 @@ class _SelectItemsPageState extends State<SelectItemsPage> {
       displayedInventories = allInventories;
       units = results[1] as List<UnitModel>;
       productsCategories = results[2] as List<ProductCategoryModel>;
-      subCategories = results[3] as List<ProductSubCatorymodel>;
+      subCategories = results[3] as List<ProductSubCategoryModel>;
       brands = results[4] as List<BrandModel>;
       branches = results[5] as List<BranchModel>;
       vendors = results[6] as List<VendorModel>;

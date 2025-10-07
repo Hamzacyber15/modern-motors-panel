@@ -17,7 +17,7 @@ import 'package:modern_motors_panel/widgets/overlay_loader.dart';
 
 class SubCategoryFormWidget extends StatefulWidget {
   final VoidCallback? onBack;
-  final ProductSubCatorymodel? subCategoryModel;
+  final ProductSubCategoryModel? subCategoryModel;
   final bool isEdit;
 
   const SubCategoryFormWidget({
@@ -94,7 +94,7 @@ class _SubCategoryFormWidgetState extends State<SubCategoryFormWidget> {
       final selectedCategoryIds = _selectedCategoryList
           .map((e) => e.key)
           .toList();
-      final catData = ProductSubCatorymodel(
+      final catData = ProductSubCategoryModel(
         name: _subCategoryNameController.text,
         catId: selectedCategoryIds,
         status: status ? 'active' : 'inactive',

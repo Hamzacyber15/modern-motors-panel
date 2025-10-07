@@ -63,8 +63,8 @@ class _AddInventoryPageState extends State<AddEditProduct> {
   List<BrandModel> brands = [];
   List<ProductCategoryModel> productsCategories = [];
   List<UnitModel> units = [];
-  List<ProductSubCatorymodel> subCategories = [];
-  List<ProductSubCatorymodel> associatedSubCategories = [];
+  List<ProductSubCategoryModel> subCategories = [];
+  List<ProductSubCategoryModel> associatedSubCategories = [];
   String? selectedBrand;
   String? selectedBrandId;
   String? selectedUnitId;
@@ -95,7 +95,7 @@ class _AddInventoryPageState extends State<AddEditProduct> {
     ]).then((results) {
       final unitList = results[0] as List<UnitModel>;
       final productList = results[1] as List<ProductCategoryModel>;
-      final subCategoriesList = results[2] as List<ProductSubCatorymodel>;
+      final subCategoriesList = results[2] as List<ProductSubCategoryModel>;
       final brandsList = results[3] as List<BrandModel>;
 
       setState(() {

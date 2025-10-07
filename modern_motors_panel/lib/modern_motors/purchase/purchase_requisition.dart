@@ -36,7 +36,7 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
   List<BrandModel> brands = [];
   List<ProductModel> allProducts = [];
   List<ProductCategoryModel> productsCategories = [];
-  List<ProductSubCatorymodel> subCategories = [];
+  List<ProductSubCategoryModel> subCategories = [];
   ProductModel? product;
   PurchaseRequisitionModel? productBeingEdited;
   int currentPage = 0;
@@ -114,7 +114,7 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
           allRequesitions,
         ); // for searching/filtering
         productsCategories = results[1] as List<ProductCategoryModel>;
-        subCategories = results[2] as List<ProductSubCatorymodel>;
+        subCategories = results[2] as List<ProductSubCategoryModel>;
         brands = results[3] as List<BrandModel>;
         allProducts = results[4] as List<ProductModel>;
         isLoading = false;
@@ -145,7 +145,7 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
       final subCategoryName = subCategories
           .firstWhere(
             (cat) => cat.id == r.subCatId,
-            orElse: () => ProductSubCatorymodel(name: 'Unknown'),
+            orElse: () => ProductSubCategoryModel(name: 'Unknown'),
           )
           .name;
 
@@ -333,7 +333,7 @@ class _PurchaseRequisitionPageState extends State<PurchaseRequisitionPage> {
                               .firstWhere(
                                 (cat) => cat.id == b.subCatId,
                                 orElse: () =>
-                                    ProductSubCatorymodel(name: 'Unknown'),
+                                    ProductSubCategoryModel(name: 'Unknown'),
                               )
                               .name,
                           (b) => brands

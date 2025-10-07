@@ -43,7 +43,7 @@ class _QoutationsState extends State<Qoutations> {
   List<BrandModel> brands = [];
   List<ProductModel> allProducts = [];
   List<ProductCategoryModel> productsCategories = [];
-  List<ProductSubCatorymodel> subCategories = [];
+  List<ProductSubCategoryModel> subCategories = [];
   int currentPage = 0;
   int itemsPerPage = 10;
   Set<String> selectedProductIds = {};
@@ -101,7 +101,7 @@ class _QoutationsState extends State<Qoutations> {
     ]);
     setState(() {
       productsCategories = results[0] as List<ProductCategoryModel>;
-      subCategories = results[1] as List<ProductSubCatorymodel>;
+      subCategories = results[1] as List<ProductSubCategoryModel>;
       allQuotations = products;
       allProducts = results[2] as List<ProductModel>;
       //allQuotations = products;
@@ -808,7 +808,7 @@ class _QoutationsState extends State<Qoutations> {
                               .firstWhere(
                                 (cat) => cat.id == v.productSubcategoryId,
                                 orElse: () =>
-                                    ProductSubCatorymodel(name: 'Unknown'),
+                                    ProductSubCategoryModel(name: 'Unknown'),
                               )
                               .name,
                           (v) =>

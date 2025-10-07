@@ -45,7 +45,7 @@ class _InventoryPageState extends State<InventoryPage> {
   List<ProductModel> products = [];
   List<ProductCategoryModel> productsCategories = [];
   List<UnitModel> units = [];
-  List<ProductSubCatorymodel> subCategories = [];
+  List<ProductSubCategoryModel> subCategories = [];
   List<BranchModel> branches = [];
   List<VendorModel> vendors = [];
 
@@ -84,7 +84,7 @@ class _InventoryPageState extends State<InventoryPage> {
             products
                 .firstWhere((product) => product.id == product.subCategoryId)
                 .subCategoryId,
-        orElse: () => ProductSubCatorymodel(name: ''),
+        orElse: () => ProductSubCategoryModel(name: ''),
       );
       final vendor = vendors.firstWhere(
         (ven) => ven.id == v.vendorId,
@@ -159,7 +159,7 @@ class _InventoryPageState extends State<InventoryPage> {
         displayedInventories = results[0] as List<InventoryModel>;
         units = results[1] as List<UnitModel>;
         productsCategories = results[2] as List<ProductCategoryModel>;
-        subCategories = results[3] as List<ProductSubCatorymodel>;
+        subCategories = results[3] as List<ProductSubCategoryModel>;
         brands = results[4] as List<BrandModel>;
         branches = results[5] as List<BranchModel>;
         vendors = results[6] as List<VendorModel>;

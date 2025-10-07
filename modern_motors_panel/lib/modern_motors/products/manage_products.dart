@@ -41,7 +41,7 @@
 //   List<BrandModel> brands = [];
 //   List<ProductCategoryModel> productsCategories = [];
 //   List<UnitModel> units = [];
-//   List<ProductSubCatorymodel> subCategories = [];
+//   List<ProductSubCategoryModel> subCategories = [];
 //   List<BranchModel> branches = [];
 //   List<VendorModel> vendors = [];
 
@@ -70,7 +70,7 @@
 //       );
 //       final subCat = subCategories.firstWhere(
 //         (s) => s.id == v.subCategoryId,
-//         orElse: () => ProductSubCatorymodel(name: ''),
+//         orElse: () => ProductSubCategoryModel(name: ''),
 //       );
 
 //       return [
@@ -146,7 +146,7 @@
 //         displayedProducts = results[0] as List<ProductModel>;
 //         units = results[1] as List<UnitModel>;
 //         productsCategories = results[2] as List<ProductCategoryModel>;
-//         subCategories = results[3] as List<ProductSubCatorymodel>;
+//         subCategories = results[3] as List<ProductSubCategoryModel>;
 //         brands = results[4] as List<BrandModel>;
 //         branches = results[5] as List<BranchModel>;
 //         vendors = results[6] as List<VendorModel>;
@@ -541,7 +541,7 @@
 //   List<BrandModel> brands = [];
 //   List<ProductCategoryModel> productsCategories = [];
 //   List<UnitModel> units = [];
-//   List<ProductSubCatorymodel> subCategories = [];
+//   List<ProductSubCategoryModel> subCategories = [];
 //   List<BranchModel> branches = [];
 //   List<VendorModel> vendors = [];
 
@@ -579,7 +579,7 @@
 //       );
 //       final subCat = subCategories.firstWhere(
 //         (s) => s.id == v.subCategoryId,
-//         orElse: () => ProductSubCatorymodel(name: ''),
+//         orElse: () => ProductSubCategoryModel(name: ''),
 //       );
 
 //       return [
@@ -643,7 +643,7 @@
 //         displayedProducts = allProducts; // Initially show all products
 //         units = results[1] as List<UnitModel>;
 //         productsCategories = results[2] as List<ProductCategoryModel>;
-//         subCategories = results[3] as List<ProductSubCatorymodel>;
+//         subCategories = results[3] as List<ProductSubCategoryModel>;
 //         brands = results[4] as List<BrandModel>;
 //         branches = results[5] as List<BranchModel>;
 //         vendors = results[6] as List<VendorModel>;
@@ -1122,7 +1122,7 @@ class _ManageProductsState extends State<ManageProducts> {
   List<BrandModel> brands = [];
   List<ProductCategoryModel> productsCategories = [];
   List<UnitModel> units = [];
-  List<ProductSubCatorymodel> subCategories = [];
+  List<ProductSubCategoryModel> subCategories = [];
   List<BranchModel> branches = [];
   List<VendorModel> vendors = [];
 
@@ -1170,7 +1170,7 @@ class _ManageProductsState extends State<ManageProducts> {
       );
       final subCat = subCategories.firstWhere(
         (s) => s.id == v.subCategoryId,
-        orElse: () => ProductSubCatorymodel(name: ''),
+        orElse: () => ProductSubCategoryModel(name: ''),
       );
 
       return [
@@ -1253,7 +1253,7 @@ class _ManageProductsState extends State<ManageProducts> {
         // Get subcategory name
         final subCategory = subCategories.firstWhere(
           (s) => s.id == product.subCategoryId,
-          orElse: () => ProductSubCatorymodel(name: ''),
+          orElse: () => ProductSubCategoryModel(name: ''),
         );
 
         return (product.productName?.toLowerCase().contains(searchLower) ??
@@ -1289,7 +1289,7 @@ class _ManageProductsState extends State<ManageProducts> {
         displayedProducts = allProducts;
         units = results[1] as List<UnitModel>;
         productsCategories = results[2] as List<ProductCategoryModel>;
-        subCategories = results[3] as List<ProductSubCatorymodel>;
+        subCategories = results[3] as List<ProductSubCategoryModel>;
         brands = results[4] as List<BrandModel>;
         branches = results[5] as List<BranchModel>;
         vendors = results[6] as List<VendorModel>;
@@ -1762,7 +1762,7 @@ class _ManageProductsState extends State<ManageProducts> {
 class ProductFilterDialog extends StatefulWidget {
   final ProductFilters currentFilters;
   final List<ProductCategoryModel> categories;
-  final List<ProductSubCatorymodel> subCategories;
+  final List<ProductSubCategoryModel> subCategories;
   final List<BrandModel> brands;
   final Function(ProductFilters) onApplyFilters;
   final VoidCallback onClearFilters;

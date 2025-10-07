@@ -1047,7 +1047,7 @@ class MaintenanceBookingProvider extends ChangeNotifier {
           "saleData": saleData,
         });
         debugPrint(results.data.toString());
-      } else {
+      } else if (isEdit) {
         HttpsCallable callable = FirebaseFunctions.instance.httpsCallable(
           'editSale',
         );

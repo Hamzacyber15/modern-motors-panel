@@ -184,7 +184,7 @@ class SaleCard extends StatelessWidget {
   final SaleModel sale;
   final String type;
   final ProductCategoryModel category;
-  final ProductSubCatorymodel subCategory;
+  final ProductSubCategoryModel subCategory;
   final BrandModel brand;
   final bool isSelected;
   final VoidCallback? onTap;
@@ -1120,7 +1120,7 @@ Widget _buildPaymentDepositSummary(SaleModel sale) {
 class SalesFilterDialog extends StatefulWidget {
   final SalesFilter currentFilter;
   final List<ProductCategoryModel> categories;
-  final List<ProductSubCatorymodel> subCategories;
+  final List<ProductSubCategoryModel> subCategories;
   final List<BrandModel> brands;
   final List<String> createdByUsers;
   final List<CustomerModel> customers; // Add customers list
@@ -1804,7 +1804,7 @@ class _SalesListViewState extends State<SalesListView> {
   String _searchQuery = '';
   SalesFilter _currentFilter = SalesFilter();
   List<ProductCategoryModel> _categories = [];
-  List<ProductSubCatorymodel> _subCategories = [];
+  List<ProductSubCategoryModel> _subCategories = [];
   List<BrandModel> _brands = [];
   List<String> _createdByUsers = [];
   List<CustomerModel> _customers = [];
@@ -2468,7 +2468,7 @@ class _SalesListViewState extends State<SalesListView> {
 
                     final subCategory = _subCategories.firstWhere(
                       (s) => s.id == sale.id,
-                      orElse: () => ProductSubCatorymodel(
+                      orElse: () => ProductSubCategoryModel(
                         id: '',
                         name: 'Unknown Sub Category',
                       ),
@@ -2567,7 +2567,7 @@ class _SalesListViewState extends State<SalesListView> {
       final subCategory = _subCategories.firstWhere(
         (s) => s.id == _currentFilter.subCategoryId,
         orElse: () =>
-            ProductSubCatorymodel(id: '', name: 'Unknown Sub Category'),
+            ProductSubCategoryModel(id: '', name: 'Unknown Sub Category'),
       );
       chips.add(
         _buildFilterChip('Sub Category: ${subCategory.name}', () {
@@ -2582,7 +2582,7 @@ class _SalesListViewState extends State<SalesListView> {
     if (_currentFilter.subCategoryId != null) {
       final subCategory = _subCategories.firstWhere(
         (s) => s.id == _currentFilter.subCategoryId,
-        orElse: () => ProductSubCatorymodel(name: 'Unknown'),
+        orElse: () => ProductSubCategoryModel(name: 'Unknown'),
       );
       chips.add(
         _buildFilterChip('Sub Category: ${subCategory.name}', () {

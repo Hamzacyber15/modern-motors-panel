@@ -32,7 +32,7 @@ class MmResourceProvider with ChangeNotifier {
   List<CategoryModel> categoryList = [];
   List<ProductModel> productsList = [];
   List<ProductCategoryModel> productCategoryList = [];
-  List<ProductSubCatorymodel> productSubCategoryList = [];
+  List<ProductSubCategoryModel> productSubCategoryList = [];
   List<RoleModel> designationsList = [];
   VendorLogosListModel? logosList;
   List<EstimationTemplatePreviewModel> estimationTemplatePreviewModel = [];
@@ -388,12 +388,12 @@ class MmResourceProvider with ChangeNotifier {
     return productCategory;
   }
 
-  static Future<List<ProductSubCatorymodel>> fetchSubCategories() async {
+  static Future<List<ProductSubCategoryModel>> fetchSubCategories() async {
     final querySnapshot = await FirebaseFirestore.instance
         .collection('subCategory')
         .get();
     return querySnapshot.docs.map((doc) {
-      return ProductSubCatorymodel.fromDoc(doc);
+      return ProductSubCategoryModel.fromDoc(doc);
     }).toList();
   }
 
@@ -403,7 +403,9 @@ class MmResourceProvider with ChangeNotifier {
         value,
       ) async {
         for (QueryDocumentSnapshot<Map<String, dynamic>> doc in value.docs) {
-          ProductSubCatorymodel subproduct = ProductSubCatorymodel.fromDoc(doc);
+          ProductSubCategoryModel subproduct = ProductSubCategoryModel.fromDoc(
+            doc,
+          );
           if (subproduct.id!.isNotEmpty) {
             productSubCategoryList.add(subproduct);
           }
@@ -416,8 +418,8 @@ class MmResourceProvider with ChangeNotifier {
     }
   }
 
-  ProductSubCatorymodel getProductSubCategoryByID(String id) {
-    ProductSubCatorymodel productSubCategory;
+  ProductSubCategoryModel getProductSubCategoryByID(String id) {
+    ProductSubCategoryModel productSubCategory;
     productSubCategory = productSubCategoryList.firstWhere(
       (element) => element.id == id,
     );

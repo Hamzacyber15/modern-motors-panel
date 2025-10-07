@@ -278,12 +278,12 @@ class DataFetchService {
   //   }).toList();
   // }
 
-  static Future<List<ProductSubCatorymodel>> fetchSubCategories() async {
+  static Future<List<ProductSubCategoryModel>> fetchSubCategories() async {
     final querySnapshot = await FirebaseFirestore.instance
         .collection('subCategory')
         .get();
     return querySnapshot.docs.map((doc) {
-      return ProductSubCatorymodel.fromDoc(doc);
+      return ProductSubCategoryModel.fromDoc(doc);
     }).toList();
   }
 
