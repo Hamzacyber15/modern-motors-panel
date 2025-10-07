@@ -3,6 +3,7 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/services.dart';
 import 'package:modern_motors_panel/app_theme.dart';
 import 'package:modern_motors_panel/constants.dart';
 import 'package:modern_motors_panel/extensions.dart';
@@ -2756,21 +2757,43 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
       key: widget.productRow.quantityKey,
       initialValue: widget.productRow.quantity.toString(),
       focusNode: _qtyFocusNode,
+      autovalidateMode: AutovalidateMode.onUserInteraction,
       decoration: const InputDecoration(
         labelText: 'Qty',
         border: OutlineInputBorder(),
         contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       ),
+      inputFormatters: [
+        FilteringTextInputFormatter.digitsOnly,
+        LengthLimitingTextInputFormatter(5),
+      ],
+      //validator:
+      validator: (value) {
+        // Debug print to check if validator is called
+        debugPrint('Validator called with value: $value');
+        final error = ValidationUtils.quantity(value);
+        debugPrint('Validation error: $error');
+        return error;
+      }, //ValidationUtils.quantity,
       keyboardType: TextInputType.number,
       onChanged: (value) {
         if (value.isNotEmpty) {
           final quantity = int.tryParse(value) ?? 1;
-          if (mounted) {
-            setState(() {
-              widget.productRow.quantity = quantity;
-              widget.productRow.calculateTotals();
-              widget.onUpdate(widget.productRow);
-            });
+          // if (mounted) {
+          //   setState(() {
+          //     widget.productRow.quantity = quantity;
+          //     widget.productRow.calculateTotals();
+          //     widget.onUpdate(widget.productRow);
+          //   });
+          // }
+          if (quantity > 0 && quantity <= 999999) {
+            if (mounted) {
+              setState(() {
+                widget.productRow.quantity = quantity;
+                widget.productRow.calculateTotals();
+                widget.onUpdate(widget.productRow);
+              });
+            }
           }
         }
       },
@@ -2790,6 +2813,18 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
         contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         suffixText: '%',
       ),
+      autovalidateMode: AutovalidateMode.onUserInteraction,
+      inputFormatters: [
+        FilteringTextInputFormatter.digitsOnly,
+        LengthLimitingTextInputFormatter(2),
+      ],
+      validator: (value) {
+        // Debug print to check if validator is called
+        debugPrint('Validator called with value: $value');
+        final error = ValidationUtils.discount(value);
+        debugPrint('Validation error: $error');
+        return error;
+      },
       keyboardType: TextInputType.numberWithOptions(decimal: true),
       onChanged: (value) {
         if (value.isNotEmpty) {

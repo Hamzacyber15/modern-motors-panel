@@ -2620,6 +2620,7 @@ class _MmAdminMainPageState extends State<MmAdminMainPage> {
         MainContainer.createEstimate,
         MainContainer.creditNotes,
         MainContainer.refundReceipts,
+        MainContainer.salesSettings,
       ],
       // 'Create Bookings'.tr(): [
       //   MainContainer.manageBookings,

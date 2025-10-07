@@ -366,9 +366,39 @@ class ValidationUtils {
   }
 
   static String? quantity(String? value) {
+    debugPrint('=== ValidationUtils.quantity called with: $value ===');
+
     if (value == null || value.isEmpty) {
-      return "Quantity is required.".tr();
+      debugPrint('Returning: Quantity is required');
+      return "Quantity is required.";
     }
+
+    // Check if value contains only digits
+    if (!RegExp(r'^\d+$').hasMatch(value)) {
+      debugPrint('Returning: Only digits are allowed');
+      return "Only digits are allowed for quantity.";
+    }
+
+    // Check if value is a valid positive number
+    final quantity = int.tryParse(value);
+    if (quantity == null) {
+      debugPrint('Returning: Please enter a valid number');
+      return "Please enter a valid number.";
+    }
+
+    // Check if quantity is positive
+    if (quantity <= 0) {
+      debugPrint('Returning: Quantity must be greater than zero');
+      return "Quantity must be greater than zero.";
+    }
+
+    // Check for reasonable maximum limit
+    if (quantity > 999999) {
+      debugPrint('Returning: Quantity is too large');
+      return "Quantity is too large.";
+    }
+
+    debugPrint('Returning: null (no error)');
     return null;
   }
 
@@ -994,7 +1024,9 @@ class ValidationUtils {
 
   // Add these methods to your ValidationUtils class
   static String? sellingPriceWithMinValidation(
-      String? value, TextEditingController minPriceController) {
+    String? value,
+    TextEditingController minPriceController,
+  ) {
     if (value == null || value.isEmpty) {
       return 'Selling price is required'.tr();
     }
@@ -1020,7 +1052,9 @@ class ValidationUtils {
   }
 
   static String? minimumPriceWithMaxValidation(
-      String? value, TextEditingController sellingPriceController) {
+    String? value,
+    TextEditingController sellingPriceController,
+  ) {
     if (value == null || value.isEmpty) {
       return null; // Minimum price is optional
     }

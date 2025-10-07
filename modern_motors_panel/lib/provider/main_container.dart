@@ -32,6 +32,13 @@ enum MainContainer {
       iconPath: "assets/images/invoices.png",
     ),
   ),
+  salesSettings(
+    ContainerData(
+      key: "salesSettings",
+      label: 'Sales Settings',
+      iconPath: "assets/images/invoices.png",
+    ),
+  ),
   createInvoice(
     ContainerData(
       key: "createInvoices",

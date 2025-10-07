@@ -32,6 +32,7 @@ import 'package:modern_motors_panel/model/purchase_models/purchase_model.dart';
 import 'package:modern_motors_panel/model/purchase_models/purchase_order_model.dart';
 import 'package:modern_motors_panel/model/purchase_models/purchase_requisition_model.dart';
 import 'package:modern_motors_panel/model/purchase_models/quotation_procurement_model.dart';
+import 'package:modern_motors_panel/model/sales_model/credit_days_model.dart';
 import 'package:modern_motors_panel/model/sales_model/sale_model.dart';
 import 'package:modern_motors_panel/model/services_model/services_model.dart';
 import 'package:modern_motors_panel/model/terms/terms_of_sale_model.dart';
@@ -83,6 +84,44 @@ class DataFetchService {
     //         .toList();
     // return termsList;
     return VendorLogosListModel.fromDoc(doc.docs.first);
+  }
+
+  static Future<CreditDaysModel> getCreditDays() async {
+    try {
+      // Assuming single document for credit days configuration
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection("creditDays")
+          .orderBy('updatedAt', descending: true)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isEmpty) {
+        // Create initial document if none exists
+        return await _createInitialCreditDays();
+      }
+
+      final doc = querySnapshot.docs.first;
+      return CreditDaysModel.fromFirestore(doc.data(), doc.id);
+    } catch (e) {
+      throw Exception('Failed to fetch credit days: $e');
+    }
+  }
+
+  static Future<CreditDaysModel> _createInitialCreditDays() async {
+    const initialDays = [0, 7, 15, 30, 45, 60];
+
+    final docRef = FirebaseFirestore.instance.collection("creditDays").doc();
+
+    final initialDoc = CreditDaysModel(
+      id: docRef.id,
+      creditDays: initialDays,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+      updatedBy: 'system',
+    );
+
+    await docRef.set(initialDoc.toFirestore());
+    return initialDoc;
   }
 
   static Future<List<SaleModel>> fetchSales() async {

@@ -15,6 +15,7 @@ import 'package:modern_motors_panel/modern_motors/products/manage_products.dart'
 import 'package:modern_motors_panel/modern_motors/products/products_category_list.dart';
 import 'package:modern_motors_panel/modern_motors/products/sub_category/sub_category_page.dart';
 import 'package:modern_motors_panel/modern_motors/sales/sales_main_page.dart';
+import 'package:modern_motors_panel/modern_motors/sales/sales_settings.dart';
 import 'package:modern_motors_panel/modern_motors/services_maintenance/create_booking_main_page.dart';
 import 'package:modern_motors_panel/modern_motors/services_maintenance/create_maintenance_booking.dart';
 import 'package:modern_motors_panel/modern_motors/services_maintenance/services_main_page.dart';
@@ -45,6 +46,8 @@ Widget getSelectedPageWidget({
           // onProduct?.call(MainContainer.createInvoice);
         },
       );
+    case MainContainer.salesSettings:
+      return SalesSettings();
     case MainContainer.estimation:
       return EstimationsMainPage(); //ManageEstimation();
     case MainContainer.createEstimate:

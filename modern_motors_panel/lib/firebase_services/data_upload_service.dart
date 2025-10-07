@@ -14,6 +14,7 @@ import 'package:modern_motors_panel/model/purchase_models/grn/grn_model.dart';
 import 'package:modern_motors_panel/model/purchase_models/purchase_model.dart';
 import 'package:modern_motors_panel/model/purchase_models/purchase_order_model.dart';
 import 'package:modern_motors_panel/model/purchase_models/purchase_requisition_model.dart';
+import 'package:modern_motors_panel/model/sales_model/credit_days_model.dart';
 import 'package:modern_motors_panel/model/trucks/mm_trucks_models.dart/mmtruck_model.dart';
 
 class DataUploadService {
@@ -182,6 +183,45 @@ class DataUploadService {
     } catch (e) {
       print('Error processing sale: $e');
       rethrow;
+    }
+  }
+
+  static Future<CreditDaysModel> getCreditDays() async {
+    try {
+      // Assuming single document for credit days configuration
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection("creditDays")
+          .orderBy('updatedAt', descending: true)
+          .limit(1)
+          .get();
+      final doc = querySnapshot.docs.first;
+      return CreditDaysModel.fromFirestore(doc.data(), doc.id);
+    } catch (e) {
+      throw Exception('Failed to fetch credit days: $e');
+    }
+  }
+
+  static Future<CreditDaysModel> updateCreditDays(
+    List<int> creditDays, {
+    required String updatedBy,
+  }) async {
+    try {
+      final currentDoc = await getCreditDays();
+
+      final updatedDoc = currentDoc.copyWith(
+        creditDays: creditDays,
+        updatedAt: DateTime.now(),
+        updatedBy: updatedBy,
+      );
+
+      await FirebaseFirestore.instance
+          .collection("creditDays")
+          .doc(currentDoc.id)
+          .update(updatedDoc.toFirestore());
+
+      return updatedDoc;
+    } catch (e) {
+      throw Exception('Failed to update credit days: $e');
     }
   }
 
