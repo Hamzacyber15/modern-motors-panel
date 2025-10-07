@@ -301,6 +301,19 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
           //   //  productsGrandTotal + widget.sale!.discount;
           // }
           _applyDiscount(p, productsGrandTotal);
+          if (widget.sale!.paymentData.paymentMethods.isNotEmpty) {
+            isAlreadyPaid = true;
+            for (var element in widget.sale!.paymentData.paymentMethods) {
+              paymentRows.add(
+                PaymentRow(
+                  method: PaymentMethod(
+                    id: element.reference,
+                    name: element.method,
+                  ),
+                ),
+              );
+            }
+          }
           // p.setSelectedInventoryFromItems(selectedInvs);
           // if (widget.sale!.customerName.isNotEmpty) {
           //   final cust = allCustomers.firstWhere(
