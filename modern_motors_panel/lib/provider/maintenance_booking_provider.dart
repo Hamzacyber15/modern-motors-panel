@@ -53,6 +53,7 @@ class MaintenanceBookingProvider extends ChangeNotifier {
   double get discountAmount => _discountAmount;
   double _discountPercent = 0;
   double get discountPercent => _discountPercent;
+  DateTime? paymentDate;
 
   // void updateServiceLines(List<ServiceLineItem> serviceLines) {
   //   _selectedServiceLines = serviceLines;
@@ -68,6 +69,15 @@ class MaintenanceBookingProvider extends ChangeNotifier {
   void setServicesTotal(double value) {
     _servicesTotal = value;
     notifyListeners();
+  }
+
+  DateTime getDateAfterDays(int days) {
+    DateTime today = DateTime.now();
+    return today.add(Duration(days: days));
+  }
+
+  void setPaymentDate(int d) {
+    paymentDate = getDateAfterDays(d);
   }
 
   void setProductsTotal(double value) {

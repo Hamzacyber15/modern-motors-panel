@@ -13,6 +13,7 @@ import 'package:modern_motors_panel/model/discount_models/discount_model.dart';
 import 'package:modern_motors_panel/model/hr_models/employees/commissions_model/employees_commision_model.dart';
 import 'package:modern_motors_panel/model/inventory_models/inventory_model.dart';
 import 'package:modern_motors_panel/model/product_models/product_model.dart';
+import 'package:modern_motors_panel/model/sales_model/credit_days_model.dart';
 import 'package:modern_motors_panel/model/sales_model/sale_model.dart';
 import 'package:modern_motors_panel/model/services_model/services_model.dart';
 import 'package:modern_motors_panel/model/trucks/mm_trucks_models.dart/mmtruck_model.dart';
@@ -39,7 +40,7 @@ class PaymentMethod {
   static List<PaymentMethod> get methods => [
     PaymentMethod(id: 'cash', name: 'Cash'),
     PaymentMethod(id: 'credit_card', name: 'Credit Card'),
-    PaymentMethod(id: 'debit_card', name: 'Debit Card'),
+    PaymentMethod(id: 'Debit Card', name: 'Debit Card'),
     PaymentMethod(id: 'bank_transfer', name: 'Bank Transfer'),
     PaymentMethod(id: 'pos', name: 'POS'),
     PaymentMethod(id: 'multiple', name: 'Multiple'),
@@ -166,6 +167,7 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
   List<ServiceTypeModel> allServices = [];
   List<DiscountModel> allDiscounts = [];
   List<ProductModel> allProducts = [];
+  CreditDaysModel? creditDays;
   List<ProductRow> productRows = [
     //ProductRow()
   ];
@@ -188,6 +190,7 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
   double nextPaymentAmount = 0;
   List<AttachmentModel> displayPicture = [];
   double invNumber = 0;
+  int? selectedCreditDays;
 
   @override
   void initState() {
@@ -247,12 +250,14 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
         DataFetchService.fetchTrucks(),
         DataFetchService.fetchServiceTypes(),
         DataFetchService.fetchProducts(),
+        DataFetchService.getCreditDays(),
       ]);
       allDiscounts = results[0] as List<DiscountModel>;
       allCustomers = results[1] as List<CustomerModel>;
       allTrucks = results[2] as List<MmtrucksModel>;
       allServices = results[3] as List<ServiceTypeModel>;
       allProducts = results[4] as List<ProductModel>;
+      creditDays = results[5] as CreditDaysModel;
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         if (widget.sale != null) {
           CustomerModel? customer;
@@ -302,17 +307,77 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
           //   //  productsGrandTotal + widget.sale!.discount;
           // }
           _applyDiscount(p, productsGrandTotal);
+          // if (widget.sale!.paymentData.paymentMethods.isNotEmpty) {
+          //   isAlreadyPaid = true;
+          //   paymentRows.clear();
+          //   if (widget.sale!.paymentData.paymentMethods.length > 1) {
+          //     isMultiple = true;
+          //   }
+          //   for (var element in widget.sale!.paymentData.paymentMethods) {
+          //     paymentRows.add(
+          //       PaymentRow(
+          //         method: PaymentMethod(
+          //           id: element.method,
+          //           name: element.method,
+          //         ),
+          //         amount: element.amount,
+          //       ),
+          //     );
+          //   }
+          // }
           if (widget.sale!.paymentData.paymentMethods.isNotEmpty) {
             isAlreadyPaid = true;
-            for (var element in widget.sale!.paymentData.paymentMethods) {
-              paymentRows.add(
-                PaymentRow(
-                  method: PaymentMethod(
-                    id: element.reference,
-                    name: element.method,
-                  ),
+            paymentRows.clear();
+
+            debugPrint('Loading payment data from sale:');
+            debugPrint(
+              'Number of payment methods: ${widget.sale!.paymentData.paymentMethods.length}',
+            );
+            debugPrint(
+              'Is multiple: ${widget.sale!.paymentData.paymentMethods.length > 1}',
+            );
+
+            isMultiple = widget.sale!.paymentData.paymentMethods.length > 1;
+
+            for (
+              var i = 0;
+              i < widget.sale!.paymentData.paymentMethods.length;
+              i++
+            ) {
+              final element = widget.sale!.paymentData.paymentMethods[i];
+              debugPrint(
+                'Payment method $i: ${element.method}, Reference: ${element.reference}, Amount: ${element.amount}',
+              );
+
+              // Map the method string to our PaymentMethod object
+              PaymentMethod? paymentMethod;
+
+              // Try to find exact match in our static methods
+              paymentMethod = PaymentMethod.methods.firstWhere(
+                (method) =>
+                    method.id.toLowerCase() == element.method?.toLowerCase(),
+                orElse: () => PaymentMethod(
+                  id: element.method ?? 'unknown',
+                  name: element.method ?? 'Unknown',
                 ),
               );
+
+              final newPaymentRow = PaymentRow(
+                method: paymentMethod,
+                reference: element.reference ?? '',
+                amount: element.amount ?? 0.0,
+              );
+
+              paymentRows.add(newPaymentRow);
+
+              debugPrint(
+                'Added PaymentRow: ${newPaymentRow.method?.name}, ${newPaymentRow.reference}, ${newPaymentRow.amount}',
+              );
+            }
+
+            // Force UI update
+            if (mounted) {
+              setState(() {});
             }
           }
           // p.setSelectedInventoryFromItems(selectedInvs);
@@ -1141,11 +1206,67 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                     onChanged: (val) => p.setTruckId(val),
                   ),
                 ),
+                12.w,
+
+                Expanded(
+                  child: CustomSearchableDropdown(
+                    key: const ValueKey('Due Date'),
+                    hintText: 'Due Date',
+                    value: p.truckId,
+                    items: {
+                      for (var t in allTrucks.where(
+                        (t) => t.id == p.customerId,
+                      ))
+                        t.id!: '${t.code}-${t.plateNumber}',
+                    },
+                    onChanged: (val) => p.setTruckId(val),
+                  ),
+                ),
+
+                Expanded(child: _buildCreditDropdown(p)),
               ],
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildCreditDropdown(MaintenanceBookingProvider provider) {
+    // Check if creditDays is null or not loaded yet
+    if (creditDays == null || creditDays!.creditDays.isEmpty) {
+      return CustomSearchableDropdown(
+        hintText: 'Loading credit days...',
+        items: {},
+        value: null,
+        onChanged: (value) {},
+      );
+    }
+
+    // Create a map for credit days selection
+    final Map<String, String> creditDaysMap = {};
+
+    for (var days in creditDays!.creditDays) {
+      creditDaysMap[days.toString()] = '$days days';
+    }
+
+    return CustomSearchableDropdown(
+      key: ValueKey('credit_days_${creditDaysMap.length}'),
+      hintText: 'Select Credit Days',
+      items: creditDaysMap,
+      value: selectedCreditDays?.toString(),
+      onChanged: (value) {
+        if (value.isNotEmpty) {
+          if (mounted) {
+            setState(() {
+              selectedCreditDays = int.parse(value);
+              //  provider.setTruckId(selectedCreditDays);
+              // You can also update the provider if needed
+              // context.read<MaintenanceBookingProvider>().setCreditDays(selectedCreditDays);
+            });
+          }
+        }
+      },
     );
   }
 
@@ -1896,9 +2017,34 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                         p.orderLoading = true;
                       });
                       double d = double.tryParse(discountController.text) ?? 0;
-                      final productsData = Constants.buildProductsData(
-                        productRows,
-                      ); // final productsData = productRows.map((row) {
+                      List<Map<String, dynamic>> productsData = [];
+                      try {
+                        // This will throw exceptions if validation fails
+                        productsData = Constants.buildProductsData(productRows);
+                        if (productsData.isEmpty) {
+                          Constants.showValidationError(
+                            context,
+                            "Items cannot be empty",
+                          );
+                          setState(() {
+                            p.orderLoading = false;
+                          });
+                          return;
+                        }
+                        // If we get here, validation passed - proceed with API call
+                        // _sendToBackend(productsData);
+                      } catch (e) {
+                        setState(() {
+                          p.orderLoading = false;
+                        });
+                        Constants.showValidationError(context, e);
+                        return
+                        // Log technical error for debugging
+                        debugPrint('Invoice submission error: $e');
+                      }
+                      // final productsData = Constants.buildProductsData(
+                      //   productRows,
+                      // ); // final productsData = productRows.map((row) {
                       //   return {
                       //     'type': row.saleItem!.type,
                       //     'productId': row.saleItem!.productId,
@@ -2359,7 +2505,7 @@ class ProductRowWidget extends StatefulWidget {
 
 class _ProductRowWidgetState extends State<ProductRowWidget> {
   final TextEditingController _priceController = TextEditingController();
-  //final TextEditingController _marginController = TextEditingController();
+  final TextEditingController _qtyController = TextEditingController();
   final FocusNode _priceFocusNode = FocusNode();
   final FocusNode _marginFocusNode = FocusNode();
   final FocusNode _qtyFocusNode = FocusNode();
@@ -2370,8 +2516,11 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
     super.initState();
     _updateControllers();
     _priceFocusNode.addListener(_onPriceFocusChange);
+    _priceFocusNode.addListener(_handlePriceFocusChange);
     _marginFocusNode.addListener(_onMarginFocusChange);
     _qtyFocusNode.addListener((_onQtyFocusChange));
+    _qtyFocusNode.addListener(_handleQtyFocusChange);
+    _qtyController.text = widget.productRow.quantity.toString();
     if (widget.productRow.type == 'service') {
       _priceController.text =
           widget.productRow.selectedPrice?.toStringAsFixed(2) ?? '0';
@@ -2384,12 +2533,79 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
   @override
   void dispose() {
     _priceFocusNode.removeListener(_onPriceFocusChange);
+    _priceFocusNode.removeListener(_handlePriceFocusChange);
     _marginFocusNode.dispose();
     _marginFocusNode.removeListener(_onMarginFocusChange);
     _priceController.dispose();
+    _qtyController.dispose();
     _qtyFocusNode.removeListener(_onQtyFocusChange);
+    _qtyFocusNode.removeListener((_handleQtyFocusChange));
     _qtyFocusNode.dispose();
     super.dispose();
+  }
+
+  void _handlePriceFocusChange() {
+    if (!_priceFocusNode.hasFocus && _isEditingPrice) {
+      _validateAndSavePrice();
+    }
+  }
+
+  // void _validateAndSavePrice() {
+  //   final newPrice = double.tryParse(_priceController.text) ?? 0;
+  //   final minimumPrice = widget.productRow.saleItem?.minimumPrice ?? 0;
+
+  //   if (newPrice < minimumPrice) {
+  //     _showMinimumPriceError(minimumPrice);
+
+  //     // Reset to current selling price
+  //     final currentPrice = widget.productRow.type == 'service'
+  //         ? (widget.productRow.selectedPrice ?? minimumPrice)
+  //         : (widget.productRow.sellingPrice ?? minimumPrice);
+
+  //     _priceController.text = currentPrice.toStringAsFixed(2);
+
+  //     setState(() {
+  //       _isEditingPrice = false;
+  //     });
+  //   } else {
+  //     _savePriceChanges();
+  //   }
+  // }
+
+  void _validateAndSavePrice() {
+    final newPrice = double.tryParse(_priceController.text) ?? 0;
+    final minimumPrice = widget.productRow.saleItem?.minimumPrice ?? 0;
+    final currentSellingPrice = widget.productRow.type == 'service'
+        ? (widget.productRow.selectedPrice ?? 0)
+        : (widget.productRow.sellingPrice ?? 0);
+
+    debugPrint(
+      'Price unfocused - New: $newPrice, Min: $minimumPrice, Current: $currentSellingPrice',
+    );
+
+    if (newPrice < minimumPrice) {
+      debugPrint('Price below minimum - resetting to selling price');
+      _showMinimumPriceError(minimumPrice);
+
+      // Reset to current selling price
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _priceController.text = currentSellingPrice.toStringAsFixed(2);
+        setState(() {
+          _isEditingPrice = false;
+        });
+      });
+    } else {
+      debugPrint('Price valid - saving changes');
+      // Price is valid - save changes
+      _savePriceChanges();
+    }
+  }
+
+  void _handleQtyFocusChange() {
+    if (!_qtyFocusNode.hasFocus) {
+      // Field lost focus and we were editing
+      _savePriceChanges();
+    }
   }
 
   void _focusOnQuantity() {
@@ -2417,39 +2633,51 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
     if (!_isEditingPrice) return;
 
     final newPrice = double.tryParse(_priceController.text) ?? 0;
-    final minimumPrice = widget.productRow.saleItem?.minimumPrice ?? 0;
-
-    // Validate minimum price
-    if (newPrice < minimumPrice) {
-      _showMinimumPriceError(minimumPrice);
-      _priceController.text = _originalPrice.toStringAsFixed(2);
-      setState(() {
-        _isEditingPrice = false;
-      });
-      return;
-    }
 
     setState(() {
       _isEditingPrice = false;
-
       if (widget.productRow.type == 'service') {
         widget.productRow.selectedPrice = newPrice;
       } else {
         widget.productRow.sellingPrice = newPrice;
-
-        // Recalculate margin for products
-        if (widget.productRow.cost > 0) {
-          widget.productRow.margin =
-              ((newPrice - widget.productRow.cost) / widget.productRow.cost) *
-              100;
-        }
       }
-
       // Recalculate all totals
       widget.productRow.calculateTotals();
       widget.onUpdate(widget.productRow);
     });
   }
+
+  // void _savePriceChanges() {
+  //   if (!_isEditingPrice) return;
+
+  //   double newPrice = double.tryParse(_priceController.text) ?? 0;
+  //   double minimumPrice = widget.productRow.saleItem?.minimumPrice ?? 0;
+
+  //   // Validate minimum price
+  //   if (newPrice < minimumPrice) {
+  //     _showMinimumPriceError(minimumPrice);
+  //     _priceController.clear();
+  //     _priceController.text = minimumPrice.toStringAsFixed(
+  //       2,
+  //     ); //_originalPrice.toStringAsFixed(2);
+  //     setState(() {
+  //       _isEditingPrice = false;
+  //     });
+  //     return;
+  //   }
+
+  //   setState(() {
+  //     _isEditingPrice = false;
+  //     if (widget.productRow.type == 'service') {
+  //       widget.productRow.selectedPrice = newPrice;
+  //     } else {
+  //       widget.productRow.sellingPrice = newPrice;
+  //     }
+  //     // Recalculate all totals
+  //     widget.productRow.calculateTotals();
+  //     widget.onUpdate(widget.productRow);
+  //   });
+  // }
 
   void _showMinimumPriceError(double minimumPrice) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -2609,34 +2837,38 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
             labelText: 'Price (OMR)',
             border: OutlineInputBorder(),
             contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            suffixIcon: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: Icon(Icons.check, size: 16, color: Colors.green),
-                  onPressed: _savePriceChanges,
-                  padding: EdgeInsets.zero,
-                  constraints: BoxConstraints(),
-                ),
-                IconButton(
-                  icon: Icon(Icons.close, size: 16, color: Colors.red),
-                  onPressed: _cancelEditingPrice,
-                  padding: EdgeInsets.zero,
-                  constraints: BoxConstraints(),
-                ),
-              ],
-            ),
+            // suffixIcon: Row(
+            //   mainAxisSize: MainAxisSize.min,
+            //   children: [
+            //     IconButton(
+            //       icon: Icon(Icons.check, size: 16, color: Colors.green),
+            //       onPressed: _savePriceChanges,
+            //       padding: EdgeInsets.zero,
+            //       constraints: BoxConstraints(),
+            //     ),
+            //     IconButton(
+            //       icon: Icon(Icons.close, size: 16, color: Colors.red),
+            //       onPressed: _cancelEditingPrice,
+            //       padding: EdgeInsets.zero,
+            //       constraints: BoxConstraints(),
+            //     ),
+            //   ],
+            // ),
             // : widget.hasPriceEditPermission
             //     ? Icon(Icons.edit, size: 16, color: Colors.grey)
             //     : null,
           ),
           keyboardType: TextInputType.numberWithOptions(decimal: true),
           textInputAction: TextInputAction.done,
-          onEditingComplete: () {
-            _savePriceChanges();
-            _focusOnQuantity();
-          },
-
+          // onEditingComplete: () {
+          //   //_savePriceChanges();
+          //   _validateAndSavePrice();
+          //   _focusOnQuantity();
+          // },
+          // onFieldSubmitted: (value) {
+          //   _savePriceChanges();
+          //   //_focusOnQuantity();
+          // },
           onTap: () {
             _startEditingPrice();
           },
@@ -2752,10 +2984,67 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
     );
   }
 
+  // Widget _buildQuantityInput() {
+  //   return TextFormField(
+  //     key: widget.productRow.quantityKey,
+  //     initialValue: widget.productRow.quantity.toString(),
+  //     focusNode: _qtyFocusNode,
+  //     autovalidateMode: AutovalidateMode.onUserInteraction,
+  //     decoration: const InputDecoration(
+  //       labelText: 'Qty',
+  //       border: OutlineInputBorder(),
+  //       contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+  //     ),
+  //     inputFormatters: [
+  //       FilteringTextInputFormatter.digitsOnly,
+  //       LengthLimitingTextInputFormatter(5),
+  //     ],
+  //     //validator:
+  //     validator: (value) {
+  //       // Debug print to check if validator is called
+  //       debugPrint('Validator called with value: $value');
+  //       final error = ValidationUtils.quantity(value);
+  //       debugPrint('Validation error: $error');
+  //       return error;
+  //     }, //ValidationUtils.quantity,
+  //     keyboardType: TextInputType.number,
+  //     onChanged: (value) {
+  //       if (value.isNotEmpty) {
+  //         final quantity = int.tryParse(value) ?? 0;
+  //         // if (mounted) {
+  //         //   setState(() {
+  //         //     widget.productRow.quantity = quantity;
+  //         //     widget.productRow.calculateTotals();
+  //         //     widget.onUpdate(widget.productRow);
+  //         //   });
+  //         // }
+  //         if (quantity > 0 && quantity <= 999999) {
+  //           if (mounted) {
+  //             setState(() {
+  //               widget.productRow.quantity = quantity;
+  //               widget.productRow.calculateTotals();
+  //               widget.onUpdate(widget.productRow);
+  //             });
+  //           }
+  //         } else if (quantity == 0) {
+  //           if (mounted) {
+  //             setState(() {
+  //               widget.productRow.quantity = 1;
+  //             });
+  //           }
+  //         }
+  //       }
+  //     },
+  //     onEditingComplete: () {
+  //       _qtyFocusNode.unfocus();
+  //     },
+  //   );
+  // }
+
   Widget _buildQuantityInput() {
     return TextFormField(
       key: widget.productRow.quantityKey,
-      initialValue: widget.productRow.quantity.toString(),
+      controller: _qtyController, // Use controller instead of initialValue
       focusNode: _qtyFocusNode,
       autovalidateMode: AutovalidateMode.onUserInteraction,
       decoration: const InputDecoration(
@@ -2767,26 +3056,23 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
         FilteringTextInputFormatter.digitsOnly,
         LengthLimitingTextInputFormatter(5),
       ],
-      //validator:
       validator: (value) {
-        // Debug print to check if validator is called
         debugPrint('Validator called with value: $value');
         final error = ValidationUtils.quantity(value);
         debugPrint('Validation error: $error');
         return error;
-      }, //ValidationUtils.quantity,
+      },
       keyboardType: TextInputType.number,
       onChanged: (value) {
         if (value.isNotEmpty) {
-          final quantity = int.tryParse(value) ?? 1;
-          // if (mounted) {
-          //   setState(() {
-          //     widget.productRow.quantity = quantity;
-          //     widget.productRow.calculateTotals();
-          //     widget.onUpdate(widget.productRow);
-          //   });
-          // }
+          final quantity = int.tryParse(value) ?? 0;
+          if (quantity == 0) {
+            _qtyController.text = "1";
+            widget.productRow.quantity = 1;
+          }
+
           if (quantity > 0 && quantity <= 999999) {
+            // Valid quantity - update the model
             if (mounted) {
               setState(() {
                 widget.productRow.quantity = quantity;
@@ -2794,10 +3080,39 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
                 widget.onUpdate(widget.productRow);
               });
             }
+          } else {
+            // Invalid quantity (0 or out of range) - don't update model
+            // The field will show the invalid input but model keeps last valid value
+          }
+        } else {
+          _qtyController.text = "1";
+          widget.productRow.quantity = 1;
+          if (mounted) {
+            setState(() {
+              widget.productRow.quantity = 1;
+              widget.productRow.calculateTotals();
+              widget.onUpdate(widget.productRow);
+            });
           }
         }
       },
       onEditingComplete: () {
+        // Final cleanup when user finishes editing
+        final value = _qtyController.text;
+        final quantity = int.tryParse(value) ?? 0;
+
+        if (quantity < 1) {
+          // Reset to minimum 1
+          if (mounted) {
+            setState(() {
+              widget.productRow.quantity = 1;
+              _qtyController.text = '1';
+              widget.productRow.calculateTotals();
+              widget.onUpdate(widget.productRow);
+            });
+          }
+        }
+
         _qtyFocusNode.unfocus();
       },
     );

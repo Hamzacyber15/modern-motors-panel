@@ -29,6 +29,50 @@ import 'package:modern_motors_panel/model/sales_model/sale_model.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+class ProductValidationException implements Exception {
+  final String userMessage;
+  final String technicalMessage;
+
+  ProductValidationException({
+    required this.userMessage,
+    this.technicalMessage = '',
+  });
+
+  @override
+  String toString() => technicalMessage;
+}
+
+class EmptyProductsException extends ProductValidationException {
+  EmptyProductsException()
+    : super(
+        userMessage: "Please add at least one product to proceed",
+        technicalMessage: "Product list cannot be empty",
+      );
+}
+
+class InvalidQuantityException extends ProductValidationException {
+  InvalidQuantityException(int rowNumber, String productName)
+    : super(
+        userMessage: "Quantity for '$productName' must be at least 1",
+        technicalMessage:
+            "Quantity in row $rowNumber cannot be less than 1 for product: $productName",
+      );
+}
+
+class PriceBelowMinimumException extends ProductValidationException {
+  PriceBelowMinimumException(
+    int rowNumber,
+    String productName,
+    double sellingPrice,
+    double minimumPrice,
+  ) : super(
+        userMessage:
+            "Price for '$productName' cannot be less than ${minimumPrice.toStringAsFixed(2)} OMR",
+        technicalMessage:
+            "Selling price in row $rowNumber ($sellingPrice) cannot be less than minimum price ($minimumPrice) for product: $productName",
+      );
+}
+
 class Constants {
   static String collectionPrefix = "test_";
   static String businessId = "";
@@ -1340,9 +1384,120 @@ class Constants {
     }
   }
 
+  // static List<Map<String, dynamic>> buildProductsData(
+  //   List<dynamic> productRows,
+  // ) {
+  //   return productRows.map((row) {
+  //     return {
+  //       'type': row.saleItem?.type,
+  //       'productId': row.saleItem?.productId,
+  //       'productName': row.saleItem?.productName,
+  //       'sellingPrice': row.sellingPrice,
+  //       'quantity': row.quantity,
+  //       'discount': row.discount,
+  //       'applyVat': row.applyVat,
+  //       'subtotal': row.subtotal,
+  //       'vatAmount': row.vatAmount,
+  //       'total': row.total,
+  //       'profit': row.profit,
+  //     };
+  //   }).toList();
+  // }
+
+  // static List<Map<String, dynamic>> buildProductsData(
+  //   List<dynamic> productRows,
+  // ) {
+  //   // Check if productRows is empty
+  //   if (productRows.isEmpty) {
+  //     throw Exception("Product list cannot be empty");
+  //   }
+
+  //   // Validate each row before processing
+  //   for (int i = 0; i < productRows.length; i++) {
+  //     final row = productRows[i];
+  //     final rowNumber = i + 1;
+
+  //     // Check if row is null
+  //     if (row == null) {
+  //       throw Exception("Row $rowNumber is null");
+  //     }
+
+  //     // Check quantity cannot be less than 1
+  //     if (row.quantity < 1) {
+  //       throw Exception("Quantity in row $rowNumber cannot be less than 1");
+  //     }
+
+  //     // Check if sellingPrice is less than minimumPrice
+  //     final minimumPrice = row.saleItem?.minimumPrice ?? 0;
+  //     if (row.sellingPrice < minimumPrice) {
+  //       throw Exception(
+  //         "Selling price in row $rowNumber (${row.sellingPrice}) cannot be less than minimum price ($minimumPrice) for product: ${row.saleItem?.productName ?? 'Unknown'}",
+  //       );
+  //     }
+
+  //     // Additional validation for required fields
+  //     if (row.saleItem?.productId == null || row.saleItem?.productId.isEmpty) {
+  //       throw Exception("Product ID is missing in row $rowNumber");
+  //     }
+
+  //     if (row.saleItem?.productName == null ||
+  //         row.saleItem?.productName.isEmpty) {
+  //       throw Exception("Product name is missing in row $rowNumber");
+  //     }
+  //   }
+
+  //   // If all validations pass, build the data
+  //   return productRows.map((row) {
+  //     return {
+  //       'type': row.saleItem?.type,
+  //       'productId': row.saleItem?.productId,
+  //       'productName': row.saleItem?.productName,
+  //       'sellingPrice': row.sellingPrice,
+  //       'quantity': row.quantity,
+  //       'discount': row.discount,
+  //       'applyVat': row.applyVat,
+  //       'subtotal': row.subtotal,
+  //       'vatAmount': row.vatAmount,
+  //       'total': row.total,
+  //       'profit': row.profit,
+  //     };
+  //   }).toList();
+  // }
+
   static List<Map<String, dynamic>> buildProductsData(
     List<dynamic> productRows,
   ) {
+    if (productRows.isEmpty) {
+      throw EmptyProductsException();
+    }
+
+    for (int i = 0; i < productRows.length; i++) {
+      final row = productRows[i];
+      final rowNumber = i + 1;
+      final productName = row.saleItem?.productName ?? 'Unknown Product';
+
+      if (row == null) {
+        throw ProductValidationException(
+          userMessage: "Invalid product in row $rowNumber",
+          technicalMessage: "Row $rowNumber is null",
+        );
+      }
+
+      if (row.quantity < 1 || row.quantity == 0) {
+        throw InvalidQuantityException(rowNumber, productName);
+      }
+
+      final minimumPrice = row.saleItem?.minimumPrice ?? 0;
+      if (row.sellingPrice < minimumPrice) {
+        throw PriceBelowMinimumException(
+          rowNumber,
+          productName,
+          row.sellingPrice,
+          minimumPrice,
+        );
+      }
+    }
+
     return productRows.map((row) {
       return {
         'type': row.saleItem?.type,
@@ -1358,6 +1513,57 @@ class Constants {
         'profit': row.profit,
       };
     }).toList();
+  }
+
+  static void showValidationError(BuildContext context, dynamic error) {
+    String userMessage;
+
+    if (error is ProductValidationException) {
+      userMessage = error.userMessage;
+    } else if (error is Exception) {
+      // Handle generic exceptions
+      userMessage = _getUserFriendlyMessage(error.toString());
+    } else {
+      userMessage = "An unexpected error occurred. Please try again.";
+    }
+
+    _showErrorDialog(context, userMessage);
+  }
+
+  static String _getUserFriendlyMessage(String technicalMessage) {
+    if (technicalMessage.contains('Product list cannot be empty')) {
+      return "Please add at least one product to proceed";
+    } else if (technicalMessage.contains('Quantity') &&
+        technicalMessage.contains('less than 1')) {
+      return "Product quantity must be at least 1";
+    } else if (technicalMessage.contains('Selling price') &&
+        technicalMessage.contains('less than minimum price')) {
+      return "Product price is below the minimum allowed price";
+    } else {
+      return "Please check all product information and try again";
+    }
+  }
+
+  static void _showErrorDialog(BuildContext context, String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.error_outline, color: Colors.red),
+            SizedBox(width: 8),
+            Text('Validation Error', style: TextStyle(color: Colors.red)),
+          ],
+        ),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   static SaleModel parseToSaleModel({

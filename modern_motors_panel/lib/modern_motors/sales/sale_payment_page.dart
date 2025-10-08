@@ -251,6 +251,7 @@ class _PaymentPageState extends State<PaymentPage> {
       final results = await callable({
         'saleId': widget.sale.id, //'000testSale',
         "payment": {
+          "reference": _referenceController.text.trim(),
           "method": _selectedPaymentMethod,
           "amount": d,
           "date":
