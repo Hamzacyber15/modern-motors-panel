@@ -3501,6 +3501,11 @@
 
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:modern_motors_panel/model/admin_model/brands_model.dart';
+import 'package:modern_motors_panel/model/branches/branch_model.dart';
+import 'package:modern_motors_panel/model/chartoAccounts_model.dart';
+import 'package:modern_motors_panel/modern_motors/chart_of_account_service.dart';
+import 'package:modern_motors_panel/provider/modern_motors/mm_resource_provider.dart';
 import 'package:provider/provider.dart';
 
 // =====================================================
@@ -3657,1642 +3662,465 @@ class ChartOfAccount {
 // DEFAULT CHART OF ACCOUNTS DATA
 // =====================================================
 
-class DefaultChartOfAccounts {
-  static List<ChartOfAccount> getDefaultAccounts() {
-    final now = DateTime.now();
-
-    return [
-      // ==================== ASSETS ====================
-      // Current Assets
-      ChartOfAccount(
-        id: 'default_1101',
-        accountCode: '1101',
-        accountName: 'Cash and Bank',
-        accountType: AccountType.asset,
-        accountSubType: AccountSubType.currentAsset,
-        isDefault: true,
-        createdAt: now,
-        level: 0,
-      ),
-      ChartOfAccount(
-        id: 'default_1201',
-        accountCode: '1201',
-        accountName: 'Accounts Receivable',
-        accountType: AccountType.asset,
-        accountSubType: AccountSubType.currentAsset,
-        isDefault: true,
-        createdAt: now,
-        level: 0,
-      ),
-      ChartOfAccount(
-        id: 'default_1301',
-        accountCode: '1301',
-        accountName: 'Inventory - Raw Materials',
-        accountType: AccountType.asset,
-        accountSubType: AccountSubType.currentAsset,
-        isDefault: true,
-        createdAt: now,
-        level: 0,
-      ),
-      ChartOfAccount(
-        id: 'default_1302',
-        accountCode: '1302',
-        accountName: 'Inventory - Finished Goods',
-        accountType: AccountType.asset,
-        accountSubType: AccountSubType.currentAsset,
-        isDefault: true,
-        createdAt: now,
-        level: 0,
-      ),
-      ChartOfAccount(
-        id: 'default_1401',
-        accountCode: '1401',
-        accountName: 'Prepaid Expenses',
-        accountType: AccountType.asset,
-        accountSubType: AccountSubType.currentAsset,
-        isDefault: true,
-        createdAt: now,
-        level: 0,
-      ),
-
-      // Fixed Assets
-      ChartOfAccount(
-        id: 'default_1501',
-        accountCode: '1501',
-        accountName: 'Property, Plant & Equipment',
-        accountType: AccountType.asset,
-        accountSubType: AccountSubType.fixedAsset,
-        isDefault: true,
-        createdAt: now,
-        level: 0,
-      ),
-      ChartOfAccount(
-        id: 'default_1601',
-        accountCode: '1601',
-        accountName: 'Accumulated Depreciation',
-        accountType: AccountType.asset,
-        accountSubType: AccountSubType.fixedAsset,
-        isDefault: true,
-        createdAt: now,
-        level: 0,
-      ),
-
-      // ==================== LIABILITIES ====================
-      // Current Liabilities
-      ChartOfAccount(
-        id: 'default_2101',
-        accountCode: '2101',
-        accountName: 'Accounts Payable',
-        accountType: AccountType.liability,
-        accountSubType: AccountSubType.currentLiability,
-        isDefault: true,
-        createdAt: now,
-        level: 0,
-      ),
-      ChartOfAccount(
-        id: 'default_2201',
-        accountCode: '2201',
-        accountName: 'GST/VAT Payable',
-        accountType: AccountType.liability,
-        accountSubType: AccountSubType.currentLiability,
-        isDefault: true,
-        createdAt: now,
-        level: 0,
-      ),
-      ChartOfAccount(
-        id: 'default_2301',
-        accountCode: '2301',
-        accountName: 'Accrued Expenses',
-        accountType: AccountType.liability,
-        accountSubType: AccountSubType.currentLiability,
-        isDefault: true,
-        createdAt: now,
-        level: 0,
-      ),
-      ChartOfAccount(
-        id: 'default_2401',
-        accountCode: '2401',
-        accountName: 'Short Term Loans',
-        accountType: AccountType.liability,
-        accountSubType: AccountSubType.currentLiability,
-        isDefault: true,
-        createdAt: now,
-        level: 0,
-      ),
-
-      // Long Term Liabilities
-      ChartOfAccount(
-        id: 'default_2501',
-        accountCode: '2501',
-        accountName: 'Long Term Debt',
-        accountType: AccountType.liability,
-        accountSubType: AccountSubType.longTermLiability,
-        isDefault: true,
-        createdAt: now,
-        level: 0,
-      ),
-
-      // ==================== EQUITY ====================
-      ChartOfAccount(
-        id: 'default_3101',
-        accountCode: '3101',
-        accountName: 'Owner\'s Capital',
-        accountType: AccountType.equity,
-        accountSubType: AccountSubType.capital,
-        isDefault: true,
-        createdAt: now,
-        level: 0,
-      ),
-      ChartOfAccount(
-        id: 'default_3201',
-        accountCode: '3201',
-        accountName: 'Retained Earnings',
-        accountType: AccountType.equity,
-        accountSubType: AccountSubType.retainedEarnings,
-        isDefault: true,
-        createdAt: now,
-        level: 0,
-      ),
-
-      // ==================== INCOME ====================
-      ChartOfAccount(
-        id: 'default_4101',
-        accountCode: '4101',
-        accountName: 'Sales Revenue',
-        accountType: AccountType.income,
-        accountSubType: AccountSubType.revenue,
-        isDefault: true,
-        createdAt: now,
-        level: 0,
-      ),
-      ChartOfAccount(
-        id: 'default_4201',
-        accountCode: '4201',
-        accountName: 'Other Income',
-        accountType: AccountType.income,
-        accountSubType: AccountSubType.otherIncome,
-        isDefault: true,
-        createdAt: now,
-        level: 0,
-      ),
-
-      // ==================== EXPENSES ====================
-      // Cost of Goods Sold
-      ChartOfAccount(
-        id: 'default_5101',
-        accountCode: '5101',
-        accountName: 'Cost of Goods Sold',
-        accountType: AccountType.expense,
-        accountSubType: AccountSubType.costOfGoodsSold,
-        isDefault: true,
-        createdAt: now,
-        level: 0,
-      ),
-
-      // Operating Expenses
-      ChartOfAccount(
-        id: 'default_5201',
-        accountCode: '5201',
-        accountName: 'Purchase Expenses',
-        accountType: AccountType.expense,
-        accountSubType: AccountSubType.operatingExpense,
-        isDefault: true,
-        createdAt: now,
-        level: 0,
-      ),
-      ChartOfAccount(
-        id: 'default_5301',
-        accountCode: '5301',
-        accountName: 'Salaries & Wages',
-        accountType: AccountType.expense,
-        accountSubType: AccountSubType.operatingExpense,
-        isDefault: true,
-        createdAt: now,
-        level: 0,
-      ),
-      ChartOfAccount(
-        id: 'default_5401',
-        accountCode: '5401',
-        accountName: 'Rent Expense',
-        accountType: AccountType.expense,
-        accountSubType: AccountSubType.operatingExpense,
-        isDefault: true,
-        createdAt: now,
-        level: 0,
-      ),
-      ChartOfAccount(
-        id: 'default_5501',
-        accountCode: '5501',
-        accountName: 'Utilities Expense',
-        accountType: AccountType.expense,
-        accountSubType: AccountSubType.operatingExpense,
-        isDefault: true,
-        createdAt: now,
-        level: 0,
-      ),
-      ChartOfAccount(
-        id: 'default_5601',
-        accountCode: '5601',
-        accountName: 'Depreciation Expense',
-        accountType: AccountType.expense,
-        accountSubType: AccountSubType.operatingExpense,
-        isDefault: true,
-        createdAt: now,
-        level: 0,
-      ),
-    ];
-  }
+// default_accounts_config.dart
+class DefaultAccountsConfig {
+  static const Map<String, List<Map<String, dynamic>>> defaultAccounts = {
+    'asset': [
+      {
+        'code': '1000',
+        'name': 'Current Assets',
+        'sub_type': 'currentAssets',
+        'level': 0,
+      },
+      {
+        'code': '1100',
+        'name': 'Cash and Bank',
+        'sub_type': 'cashBank',
+        'level': 1,
+        'parent': '1000',
+      },
+      {
+        'code': '1200',
+        'name': 'Accounts Receivable',
+        'sub_type': 'accountsReceivable',
+        'level': 1,
+        'parent': '1000',
+      },
+    ],
+    'liability': [
+      {
+        'code': '2000',
+        'name': 'Current Liabilities',
+        'sub_type': 'currentLiabilities',
+        'level': 0,
+      },
+      {
+        'code': '2100',
+        'name': 'Accounts Payable',
+        'sub_type': 'accountsPayable',
+        'level': 1,
+        'parent': '2000',
+      },
+    ],
+    'equity': [
+      {'code': '3000', 'name': 'Equity', 'sub_type': 'equity', 'level': 0},
+    ],
+    'revenue': [
+      {'code': '4000', 'name': 'Revenue', 'sub_type': 'revenue', 'level': 0},
+      {
+        'code': '4100',
+        'name': 'Sales Revenue',
+        'sub_type': 'saleRevenue',
+        'level': 1,
+        'parent': "4000",
+      },
+    ],
+    'expense': [
+      {'code': '5000', 'name': 'Expenses', 'sub_type': 'expenses', 'level': 0},
+      {
+        'code': '5100',
+        'name': 'Cost of sale',
+        'sub_type': 'cos',
+        'level': 1,
+        'parent': '5000',
+      },
+      {
+        'code': '5200',
+        'name': 'General & Administrative Expenses',
+        'sub_type': 'ae',
+        'level': 1,
+        'parent': '5000',
+      },
+      {
+        'code': '5300',
+        'name': 'Depriciation',
+        'sub_type': 'dep',
+        'level': 1,
+        'parent': '5000',
+      },
+      {
+        'code': '5400',
+        'name': 'Other Expense',
+        'sub_type': 'ot',
+        'level': 1,
+        'parent': '5000',
+      },
+      {
+        'code': '5500',
+        'name': 'Operating Expense',
+        'sub_type': 'operExp',
+        'level': 1,
+        'parent': '5000',
+      },
+    ],
+  };
 }
 
 // =====================================================
 // SERVICES
 // =====================================================
 
-class ChartOfAccountsService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final String _collection = 'chart_of_accounts';
-
-  // Initialize default chart of accounts
-  Future<void> initializeDefaultAccounts({required String companyId}) async {
-    final batch = _firestore.batch();
-    final defaultAccounts = DefaultChartOfAccounts.getDefaultAccounts();
-
-    for (final account in defaultAccounts) {
-      final docRef = _firestore
-          .collection('companies')
-          .doc(companyId)
-          .collection(_collection)
-          .doc(account.id);
-
-      batch.set(docRef, account.toMap());
-    }
-
-    await batch.commit();
-  }
-
-  // Create new custom account
-  Future<String> createAccount({
-    required String companyId,
-    required ChartOfAccount account,
-    required String createdBy,
-  }) async {
-    // Generate next account code
-    final nextCode = await _generateNextAccountCode(
-      companyId: companyId,
-      accountType: account.accountType,
-      accountSubType: account.accountSubType,
-      parentAccountId: account.parentAccountId,
-    );
-
-    final newAccount = account.copyWith(
-      accountCode: nextCode,
-    );
-
-    final docRef = _firestore
-        .collection('companies')
-        .doc(companyId)
-        .collection(_collection)
-        .doc();
-
-    await docRef.set(newAccount.toMap());
-
-    // Update parent account if exists
-    if (account.parentAccountId != null) {
-      await _addChildToParent(
-        companyId: companyId,
-        parentId: account.parentAccountId!,
-        childId: docRef.id,
-      );
-    }
-
-    return docRef.id;
-  }
-
-  // Get all accounts grouped by type
-  Future<Map<AccountType, List<ChartOfAccount>>> getAccountsGroupedByType({
-    required String companyId,
-  }) async {
-    final snapshot = await _firestore
-        .collection('companies')
-        .doc(companyId)
-        .collection(_collection)
-        .where('is_active', isEqualTo: true)
-        .orderBy('account_code')
-        .get();
-
-    final accounts = snapshot.docs
-        .map((doc) => ChartOfAccount.fromMap(doc.id, doc.data()))
-        .toList();
-
-    final Map<AccountType, List<ChartOfAccount>> groupedAccounts = {};
-
-    for (final type in AccountType.values) {
-      groupedAccounts[type] =
-          accounts.where((account) => account.accountType == type).toList();
-    }
-
-    return groupedAccounts;
-  }
-
-  // Generate next account code
-  Future<String> _generateNextAccountCode({
-    required String companyId,
-    required AccountType accountType,
-    required AccountSubType accountSubType,
-    String? parentAccountId,
-  }) async {
-    if (parentAccountId != null) {
-      // For sub-accounts, use parent code + sequence
-      return await _generateSubAccountCode(companyId, parentAccountId);
-    }
-
-    // For main accounts, use type-based prefix + sequence
-    final prefix = _getAccountTypePrefix(accountType, accountSubType);
-
-    final snapshot = await _firestore
-        .collection('companies')
-        .doc(companyId)
-        .collection(_collection)
-        .where('account_code', isGreaterThanOrEqualTo: prefix)
-        .where('account_code', isLessThan: '${prefix}Z')
-        .orderBy('account_code', descending: true)
-        .limit(1)
-        .get();
-
-    if (snapshot.docs.isEmpty) {
-      return '${prefix}01';
-    }
-
-    final lastCode = snapshot.docs.first.data()['account_code'] as String;
-    final lastNumber = int.parse(lastCode.substring(prefix.length));
-    final nextNumber = lastNumber + 1;
-
-    return '$prefix${nextNumber.toString().padLeft(2, '0')}';
-  }
-
-  String _getAccountTypePrefix(AccountType type, AccountSubType subType) {
-    switch (type) {
-      case AccountType.asset:
-        return subType == AccountSubType.currentAsset ? '1' : '15';
-      case AccountType.liability:
-        return subType == AccountSubType.currentLiability ? '2' : '25';
-      case AccountType.equity:
-        return '3';
-      case AccountType.income:
-        return '4';
-      case AccountType.expense:
-        return '5';
-    }
-  }
-
-  Future<String> _generateSubAccountCode(
-      String companyId, String parentId) async {
-    final parentDoc = await _firestore
-        .collection('companies')
-        .doc(companyId)
-        .collection(_collection)
-        .doc(parentId)
-        .get();
-
-    final parentCode = parentDoc.data()!['account_code'] as String;
-
-    final snapshot = await _firestore
-        .collection('companies')
-        .doc(companyId)
-        .collection(_collection)
-        .where('parent_account_id', isEqualTo: parentId)
-        .orderBy('account_code', descending: true)
-        .limit(1)
-        .get();
-
-    if (snapshot.docs.isEmpty) {
-      return '${parentCode}001';
-    }
-
-    final lastCode = snapshot.docs.first.data()['account_code'] as String;
-    final lastSequence = int.parse(lastCode.substring(parentCode.length));
-    final nextSequence = lastSequence + 1;
-
-    return '$parentCode${nextSequence.toString().padLeft(3, '0')}';
-  }
-
-  Future<void> _addChildToParent({
-    required String companyId,
-    required String parentId,
-    required String childId,
-  }) async {
-    await _firestore
-        .collection('companies')
-        .doc(companyId)
-        .collection(_collection)
-        .doc(parentId)
-        .update({
-      'child_account_ids': FieldValue.arrayUnion([childId]),
-    });
-  }
-
-  // Update account (only for non-default accounts)
-  Future<void> updateAccount({
-    required String companyId,
-    required String accountId,
-    required Map<String, dynamic> updates,
-  }) async {
-    // Check if account is default
-    final doc = await _firestore
-        .collection('companies')
-        .doc(companyId)
-        .collection(_collection)
-        .doc(accountId)
-        .get();
-
-    if (doc.data()!['is_default'] == true) {
-      throw Exception('Cannot modify default accounts');
-    }
-
-    await _firestore
-        .collection('companies')
-        .doc(companyId)
-        .collection(_collection)
-        .doc(accountId)
-        .update(updates);
-  }
-
-  // Soft delete account (only for non-default accounts)
-  Future<void> deactivateAccount({
-    required String companyId,
-    required String accountId,
-  }) async {
-    // Check if account is default
-    final doc = await _firestore
-        .collection('companies')
-        .doc(companyId)
-        .collection(_collection)
-        .doc(accountId)
-        .get();
-
-    if (doc.data()!['is_default'] == true) {
-      throw Exception('Cannot deactivate default accounts');
-    }
-
-    // Check if account has balance
-    final balance = (doc.data()!['current_balance'] ?? 0.0) as double;
-    if (balance != 0) {
-      throw Exception('Cannot deactivate account with non-zero balance');
-    }
-
-    await _firestore
-        .collection('companies')
-        .doc(companyId)
-        .collection(_collection)
-        .doc(accountId)
-        .update({'is_active': false});
-  }
-}
-
-// =====================================================
-// PROVIDER STATE MANAGEMENT
-// =====================================================
-
-class ChartOfAccountsProvider extends ChangeNotifier {
-  final ChartOfAccountsService _service = ChartOfAccountsService();
-
-  Map<AccountType, List<ChartOfAccount>> _groupedAccounts = {};
-  bool _isLoading = false;
-  String? _error;
-  String? _companyId;
-
-  Map<AccountType, List<ChartOfAccount>> get groupedAccounts =>
-      _groupedAccounts;
-  bool get isLoading => _isLoading;
-  String? get error => _error;
-
-  void setCompanyId(String companyId) {
-    if (_companyId != companyId) {
-      _companyId = companyId;
-      loadAccounts();
-    }
-  }
-
-  Future<void> loadAccounts() async {
-    if (_companyId == null) return;
-
-    _setLoading(true);
-    _setError(null);
-
-    try {
-      final accounts = await _service.getAccountsGroupedByType(
-        companyId: _companyId!,
-      );
-      _groupedAccounts = accounts;
-      notifyListeners();
-    } catch (e) {
-      _setError(e.toString());
-      debugPrint(e.toString());
-    } finally {
-      _setLoading(false);
-    }
-  }
-
-  Future<String> createAccount({
-    required ChartOfAccount account,
-    required String createdBy,
-  }) async {
-    if (_companyId == null) throw Exception('Company ID not set');
-
-    try {
-      final accountId = await _service.createAccount(
-        companyId: _companyId!,
-        account: account,
-        createdBy: createdBy,
-      );
-
-      // Reload accounts to reflect changes
-      await loadAccounts();
-
-      return accountId;
-    } catch (e) {
-      _setError(e.toString());
-      rethrow;
-    }
-  }
-
-  Future<void> updateAccount({
-    required String accountId,
-    required Map<String, dynamic> updates,
-  }) async {
-    if (_companyId == null) throw Exception('Company ID not set');
-
-    try {
-      await _service.updateAccount(
-        companyId: _companyId!,
-        accountId: accountId,
-        updates: updates,
-      );
-
-      // Reload accounts to reflect changes
-      await loadAccounts();
-    } catch (e) {
-      _setError(e.toString());
-      rethrow;
-    }
-  }
-
-  Future<void> deactivateAccount(String accountId) async {
-    if (_companyId == null) throw Exception('Company ID not set');
-
-    try {
-      await _service.deactivateAccount(
-        companyId: _companyId!,
-        accountId: accountId,
-      );
-
-      // Reload accounts to reflect changes
-      await loadAccounts();
-    } catch (e) {
-      _setError(e.toString());
-      rethrow;
-    }
-  }
-
-  Future<void> initializeDefaultAccounts() async {
-    if (_companyId == null) throw Exception('Company ID not set');
-
-    try {
-      await _service.initializeDefaultAccounts(companyId: _companyId!);
-      await loadAccounts();
-    } catch (e) {
-      _setError(e.toString());
-      rethrow;
-    }
-  }
-
-  void _setLoading(bool loading) {
-    _isLoading = loading;
-    notifyListeners();
-  }
-
-  void _setError(String? error) {
-    _error = error;
-    notifyListeners();
-  }
-
-  void clearError() {
-    _error = null;
-    notifyListeners();
-  }
-}
-
-// =====================================================
-// UI SCREENS
-// =====================================================
-
+// chart_of_accounts_screen.dart
 class ChartOfAccountsScreen extends StatefulWidget {
-  final String companyId;
-
-  const ChartOfAccountsScreen({
-    super.key,
-    required this.companyId,
-  });
+  const ChartOfAccountsScreen({super.key});
 
   @override
-  State<ChartOfAccountsScreen> createState() => _ChartOfAccountsScreenState();
+  ChartOfAccountsScreenState createState() => ChartOfAccountsScreenState();
 }
 
-class _ChartOfAccountsScreenState extends State<ChartOfAccountsScreen> {
-  @override
-  void initState() {
-    super.initState();
-    // Initialize provider with company ID
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final provider =
-          Provider.of<ChartOfAccountsProvider>(context, listen: false);
-      provider.setCompanyId(widget.companyId);
-    });
-  }
+class ChartOfAccountsScreenState extends State<ChartOfAccountsScreen> {
+  final ChartAccountService _accountService = ChartAccountService();
+  final Set<String> _expandedAccounts = {};
+  bool _isLoading = true;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: const Text(
-          'Chart of Accounts',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 20,
-          ),
-        ),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.grey[800],
-        elevation: 0,
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Container(
-            height: 1,
-            color: Colors.grey[200],
-          ),
-        ),
+        title: Text('Chart of Accounts'),
         actions: [
-          Consumer<ChartOfAccountsProvider>(
-            builder: (context, provider, child) {
-              return IconButton(
-                icon: const Icon(Icons.refresh),
-                onPressed: provider.isLoading
-                    ? null
-                    : () {
-                        provider.loadAccounts();
-                      },
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () => _showCreateAccountDialog(),
-          ),
-          const SizedBox(width: 8),
+          IconButton(icon: Icon(Icons.add), onPressed: _showCreateBranchDialog),
         ],
       ),
-      body: Consumer<ChartOfAccountsProvider>(
-        builder: (context, provider, child) {
-          // Handle error state
-          if (provider.error != null) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(provider.error!),
-                  backgroundColor: Colors.red,
-                  action: SnackBarAction(
-                    label: 'Dismiss',
-                    onPressed: () => provider.clearError(),
-                  ),
-                ),
-              );
-              provider.clearError();
-            });
+      body: StreamBuilder<Map<String, List<AccountTreeNode>>>(
+        stream: _accountService.watchAllAccounts(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
           }
 
-          // Handle loading state
-          if (provider.isLoading) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
-          }
-
-          // Handle loaded state
-          if (provider.groupedAccounts.isNotEmpty) {
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
+          if (snapshot.hasError) {
+            print('❌ UI Error: ${snapshot.error}');
+            print('❌ Stack trace: ${snapshot.stackTrace}');
+            return Center(
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  _buildSummaryCards(provider.groupedAccounts),
-                  const SizedBox(height: 24),
-                  ...AccountType.values
-                      .map((type) => _buildAccountTypeSection(
-                            type,
-                            provider.groupedAccounts[type] ?? [],
-                          ))
-                      .toList(),
+                  Icon(Icons.error, size: 64, color: Colors.red),
+                  SizedBox(height: 16),
+                  Text(
+                    'Error loading accounts',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    '${snapshot.error}',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.grey),
+                  ),
                 ],
               ),
             );
           }
 
-          // Handle empty state
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return Center(child: Text('No accounts found'));
+          }
+
+          final accountsData = snapshot.data!;
+
+          print('🎯 UI: Received ${accountsData.length} branches');
+
+          try {
+            final mainBranchAccounts =
+                accountsData['NRHLuRZIA2AMZXjW4TDI'] ?? [];
+            final otherBranches = Map.from(accountsData)
+              ..remove('NRHLuRZIA2AMZXjW4TDI');
+
+            return ListView(
               children: [
-                const Text('No accounts found'),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () {
-                    final provider = Provider.of<ChartOfAccountsProvider>(
-                        context,
-                        listen: false);
-                    provider.initializeDefaultAccounts();
-                  },
-                  child: const Text('Initialize Default Accounts'),
-                ),
+                if (mainBranchAccounts.isNotEmpty)
+                  _buildBranchSection(
+                    '🏢 Main Branch (Head Office)',
+                    mainBranchAccounts,
+                    'NRHLuRZIA2AMZXjW4TDI',
+                  ),
+
+                for (final entry in otherBranches.entries)
+                  if (entry.value.isNotEmpty)
+                    _buildBranchSection(
+                      '🏬 ${_getBranchName(entry.key)}',
+                      entry.value,
+                      entry.key,
+                    ),
               ],
-            ),
-          );
+            );
+          } catch (e) {
+            print('❌ UI rendering error: $e');
+            return Center(child: Text('Error rendering accounts: $e'));
+          }
         },
       ),
-    );
-  }
-
-  Widget _buildSummaryCards(Map<AccountType, List<ChartOfAccount>> accounts) {
-    return Row(
-      children: AccountType.values.map((type) {
-        final typeAccounts = accounts[type] ?? [];
-        final totalBalance = typeAccounts.fold<double>(
-            0, (sum, account) => sum + account.currentBalance);
-
-        return Expanded(
-          child: Container(
-            margin: const EdgeInsets.only(right: 8),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  type.displayName.toUpperCase(),
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.grey[600],
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '\$${totalBalance.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${typeAccounts.length} accounts',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[500],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  Widget _buildAccountTypeSection(
-    AccountType type,
-    List<ChartOfAccount> accounts,
-  ) {
-    if (accounts.isEmpty) return const SizedBox();
-
-    // Group by sub-type
-    final Map<AccountSubType, List<ChartOfAccount>> groupedBySubType = {};
-    for (final account in accounts) {
-      if (!groupedBySubType.containsKey(account.accountSubType)) {
-        groupedBySubType[account.accountSubType] = [];
-      }
-      groupedBySubType[account.accountSubType]!.add(account);
-    }
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showAddAccountDialog,
+        child: Icon(Icons.add_chart),
+        tooltip: 'Add New Account',
       ),
+    );
+  }
+
+  Widget _buildBranchSection(
+    String title,
+    List<AccountTreeNode> accounts,
+    String branchId,
+  ) {
+    return Card(
+      margin: EdgeInsets.all(8.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
           Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: _getTypeColor(type).withOpacity(0.1),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(12),
-                topRight: Radius.circular(12),
+            width: double.infinity,
+            padding: EdgeInsets.all(16.0),
+            color: Colors.blue[50],
+            child: Text(
+              title,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.blue[700],
               ),
             ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: _getTypeColor(type),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    _getTypeIcon(type),
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        type.displayName,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.grey,
-                        ),
-                      ),
-                      Text(
-                        '${accounts.length} accounts',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.add),
-                  onPressed: () => _showCreateAccountDialog(defaultType: type),
-                ),
-              ],
-            ),
           ),
-
-          // Sub-type sections
-          ...groupedBySubType.entries.map(
-            (entry) => _buildSubTypeSection(entry.key, entry.value),
-          ),
+          if (accounts.isEmpty)
+            Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Text(
+                'No accounts found',
+                style: TextStyle(color: Colors.grey),
+              ),
+            )
+          else
+            ...accounts.map((node) => _buildAccountTree(node, 0)),
         ],
       ),
     );
   }
 
-  Widget _buildSubTypeSection(
-    AccountSubType subType,
-    List<ChartOfAccount> accounts,
-  ) {
+  Widget _buildAccountTree(AccountTreeNode node, int level) {
+    final hasChildren = node.children.isNotEmpty;
+    final isExpanded = _expandedAccounts.contains(node.account.id);
+
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Sub-type header
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          color: Colors.grey[50],
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  subType.displayName,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.grey,
+          margin: EdgeInsets.only(left: (level * 20.0)),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey[300]!),
+            color: level == 0 ? Colors.grey[50] : Colors.white,
+          ),
+          child: ListTile(
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 4.0,
+            ),
+            leading: hasChildren
+                ? IconButton(
+                    icon: Icon(
+                      isExpanded ? Icons.expand_more : Icons.chevron_right,
+                      color: Colors.blue,
+                    ),
+                    onPressed: () => _toggleAccount(node.account.id!),
+                  )
+                : SizedBox(width: 40.0),
+            title: Row(
+              children: [
+                Text(
+                  '${node.account.accountCode} - ${node.account.accountName}',
+                  style: TextStyle(
+                    fontWeight: level == 0
+                        ? FontWeight.bold
+                        : FontWeight.normal,
                   ),
                 ),
+                if (node.account.isDefault) ...[
+                  SizedBox(width: 8.0),
+                  Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 6.0,
+                      vertical: 2.0,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.green[50],
+                      borderRadius: BorderRadius.circular(4.0),
+                      border: Border.all(color: Colors.green),
+                    ),
+                    child: Text(
+                      'Default',
+                      style: TextStyle(
+                        color: Colors.green,
+                        fontSize: 10.0,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            subtitle: Text(node.account.description),
+            trailing: Text(
+              'OMR ${node.account.currentBalance.toStringAsFixed(2)}',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: node.account.currentBalance >= 0
+                    ? Colors.green
+                    : Colors.red,
               ),
-              Text(
-                '${accounts.length} accounts',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[500],
-                ),
-              ),
-            ],
+            ),
+            onTap: hasChildren ? () => _toggleAccount(node.account.id!) : null,
           ),
         ),
-
-        // Account list
-        ...accounts.asMap().entries.map((entry) {
-          final index = entry.key;
-          final account = entry.value;
-          final isLast = index == accounts.length - 1;
-
-          return _buildAccountRow(account, isLast);
-        }),
+        if (isExpanded && hasChildren)
+          ...node.children.map((child) => _buildAccountTree(child, level + 1)),
       ],
     );
   }
 
-  Widget _buildAccountRow(ChartOfAccount account, bool isLast) {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: isLast ? Colors.transparent : Colors.grey.withOpacity(0.1),
-            width: 1,
-          ),
-        ),
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        leading: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: account.isDefault
-                ? Colors.blue.withOpacity(0.1)
-                : Colors.green.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Center(
-            child: Text(
-              account.accountCode,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
-                color: account.isDefault ? Colors.blue : Colors.green,
-              ),
-            ),
-          ),
-        ),
-        title: Row(
-          children: [
-            Expanded(
-              child: Text(
-                account.accountName,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-            if (account.isDefault)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Text(
-                  'DEFAULT',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.blue,
-                  ),
-                ),
-              ),
-          ],
-        ),
-        subtitle: account.description != null
-            ? Text(
-                account.description!,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
-                ),
-              )
-            : null,
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: account.currentBalance >= 0
-                    ? Colors.green.withOpacity(0.1)
-                    : Colors.red.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Text(
-                '\$${account.currentBalance.toStringAsFixed(2)}',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: account.currentBalance >= 0
-                      ? Colors.green[700]
-                      : Colors.red[700],
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            if (!account.isDefault)
-              PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert, size: 18),
-                onSelected: (value) {
-                  switch (value) {
-                    case 'edit':
-                      _showEditAccountDialog(account);
-                      break;
-                    case 'deactivate':
-                      _showDeactivateConfirmation(account);
-                      break;
-                  }
-                },
-                itemBuilder: (context) => [
-                  const PopupMenuItem(
-                    value: 'edit',
-                    child: Row(
-                      children: [
-                        Icon(Icons.edit, size: 16),
-                        SizedBox(width: 8),
-                        Text('Edit'),
-                      ],
-                    ),
-                  ),
-                  const PopupMenuItem(
-                    value: 'deactivate',
-                    child: Row(
-                      children: [
-                        Icon(Icons.remove_circle_outline, size: 16),
-                        SizedBox(width: 8),
-                        Text('Deactivate'),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-          ],
-        ),
-      ),
-    );
+  void _toggleAccount(String accountId) {
+    setState(() {
+      if (_expandedAccounts.contains(accountId)) {
+        _expandedAccounts.remove(accountId);
+      } else {
+        _expandedAccounts.add(accountId);
+      }
+    });
   }
 
-  Color _getTypeColor(AccountType type) {
-    switch (type) {
-      case AccountType.asset:
-        return Colors.blue;
-      case AccountType.liability:
-        return Colors.red;
-      case AccountType.equity:
-        return Colors.purple;
-      case AccountType.income:
-        return Colors.green;
-      case AccountType.expense:
-        return Colors.orange;
-    }
+  String _getBranchName(String branchId) {
+    BranchModel? b = context.read<MmResourceProvider>().getBranchByID(branchId);
+
+    return 'Branch ${b.branchName}';
   }
 
-  IconData _getTypeIcon(AccountType type) {
-    switch (type) {
-      case AccountType.asset:
-        return Icons.account_balance_wallet;
-      case AccountType.liability:
-        return Icons.credit_card;
-      case AccountType.equity:
-        return Icons.pie_chart;
-      case AccountType.income:
-        return Icons.trending_up;
-      case AccountType.expense:
-        return Icons.trending_down;
-    }
-  }
-
-  void _showCreateAccountDialog({AccountType? defaultType}) {
-    showDialog(
-      context: context,
-      builder: (context) => CreateAccountDialog(
-        companyId: widget.companyId,
-        defaultType: defaultType,
-        onAccountCreated: () {
-          final provider =
-              Provider.of<ChartOfAccountsProvider>(context, listen: false);
-          provider.loadAccounts();
-        },
-      ),
-    );
-  }
-
-  void _showEditAccountDialog(ChartOfAccount account) {
-    showDialog(
-      context: context,
-      builder: (context) => EditAccountDialog(
-        companyId: widget.companyId,
-        account: account,
-        onAccountUpdated: () {
-          final provider =
-              Provider.of<ChartOfAccountsProvider>(context, listen: false);
-          provider.loadAccounts();
-        },
-      ),
-    );
-  }
-
-  void _showDeactivateConfirmation(ChartOfAccount account) {
+  void _showCreateBranchDialog() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Deactivate Account'),
+        title: Text('Create New Branch'),
         content: Text(
-            'Are you sure you want to deactivate "${account.accountName}"?'),
+          'This will create a new branch with default chart of accounts.',
+        ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () {
-              Navigator.of(context).pop();
-              final provider =
-                  Provider.of<ChartOfAccountsProvider>(context, listen: false);
-              provider.deactivateAccount(account.id).catchError((error) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Error deactivating account: $error'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              });
+              final newBranchId = 'branch_$_getBranchName';
+              _accountService.createDefaultChartOfAccounts(
+                branchId: "NRHLuRZIA2AMZXjW4TDI", //newBranchId,
+              );
+              Navigator.pop(context);
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Deactivate'),
+            child: Text('Create Branch'),
           ),
         ],
       ),
     );
   }
+
+  void _showAddAccountDialog() {
+    // Implementation for adding new account
+    // You can create a form to collect account details
+    showDialog(
+      context: context,
+      builder: (context) => AddAccountDialog(accountService: _accountService),
+    );
+  }
 }
 
-// =====================================================
-// CREATE ACCOUNT DIALOG
-// =====================================================
+// Add Account Dialog
+class AddAccountDialog extends StatefulWidget {
+  final ChartAccountService accountService;
 
-class CreateAccountDialog extends StatefulWidget {
-  final String companyId;
-  final AccountType? defaultType;
-  final VoidCallback onAccountCreated;
-
-  const CreateAccountDialog({
-    super.key,
-    required this.companyId,
-    this.defaultType,
-    required this.onAccountCreated,
-  });
+  const AddAccountDialog({required this.accountService});
 
   @override
-  State<CreateAccountDialog> createState() => _CreateAccountDialogState();
+  _AddAccountDialogState createState() => _AddAccountDialogState();
 }
 
-class _CreateAccountDialogState extends State<CreateAccountDialog> {
+class _AddAccountDialogState extends State<AddAccountDialog> {
   final _formKey = GlobalKey<FormState>();
+  final _codeController = TextEditingController();
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
-
-  AccountType? _selectedType;
-  AccountSubType? _selectedSubType;
-  bool _isLoading = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _selectedType = widget.defaultType;
-    if (_selectedType != null) {
-      _updateSubTypes();
-    }
-  }
-
-  void _updateSubTypes() {
-    _selectedSubType = AccountSubType.values
-        .where((subType) => subType.parentType == _selectedType)
-        .first;
-  }
+  String _selectedType = 'asset';
+  String _selectedSubType = 'currentAssets';
+  String? _selectedParentId;
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Container(
-        width: 500,
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Create New Account',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
+    return AlertDialog(
+      title: Text('Add New Account'),
+      content: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: _codeController,
+                decoration: InputDecoration(labelText: 'Account Code'),
+                validator: (value) => value!.isEmpty ? 'Required' : null,
               ),
-            ),
-            const SizedBox(height: 24),
-            Form(
-              key: _formKey,
-              child: Column(
-                children: [
-                  TextFormField(
-                    controller: _nameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Account Name *',
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Account name is required';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  DropdownButtonFormField<AccountType>(
-                    value: _selectedType,
-                    decoration: const InputDecoration(
-                      labelText: 'Account Type *',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: AccountType.values.map((type) {
+              TextFormField(
+                controller: _nameController,
+                decoration: InputDecoration(labelText: 'Account Name'),
+                validator: (value) => value!.isEmpty ? 'Required' : null,
+              ),
+              TextFormField(
+                controller: _descriptionController,
+                decoration: InputDecoration(labelText: 'Description'),
+              ),
+              DropdownButtonFormField<String>(
+                value: _selectedType,
+                items: ['asset', 'liability', 'equity', 'revenue', 'expense']
+                    .map((type) {
                       return DropdownMenuItem(
                         value: type,
-                        child: Text(type.displayName),
+                        child: Text(type.toUpperCase()),
                       );
-                    }).toList(),
-                    onChanged: _isLoading
-                        ? null
-                        : (value) {
-                            setState(() {
-                              _selectedType = value;
-                              if (value != null) {
-                                _updateSubTypes();
-                              }
-                            });
-                          },
-                    validator: (value) {
-                      if (value == null) {
-                        return 'Account type is required';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  if (_selectedType != null)
-                    DropdownButtonFormField<AccountSubType>(
-                      value: _selectedSubType,
-                      decoration: const InputDecoration(
-                        labelText: 'Account Sub-Type *',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: AccountSubType.values
-                          .where(
-                              (subType) => subType.parentType == _selectedType)
-                          .map((subType) {
-                        return DropdownMenuItem(
-                          value: subType,
-                          child: Text(subType.displayName),
-                        );
-                      }).toList(),
-                      onChanged: _isLoading
-                          ? null
-                          : (value) {
-                              setState(() {
-                                _selectedSubType = value;
-                              });
-                            },
-                      validator: (value) {
-                        if (value == null) {
-                          return 'Account sub-type is required';
-                        }
-                        return null;
-                      },
-                    ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _descriptionController,
-                    decoration: const InputDecoration(
-                      labelText: 'Description',
-                      border: OutlineInputBorder(),
-                    ),
-                    maxLines: 3,
-                    enabled: !_isLoading,
-                  ),
-                ],
+                    })
+                    .toList(),
+                onChanged: (value) => setState(() => _selectedType = value!),
+                decoration: InputDecoration(labelText: 'Account Type'),
               ),
-            ),
-            const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton(
-                  onPressed:
-                      _isLoading ? null : () => Navigator.of(context).pop(),
-                  child: const Text('Cancel'),
-                ),
-                const SizedBox(width: 16),
-                ElevatedButton(
-                  onPressed: _isLoading ? null : _createAccount,
-                  child: _isLoading
-                      ? const SizedBox(
-                          height: 16,
-                          width: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Create Account'),
-                ),
-              ],
-            ),
-          ],
+              // Add more fields for sub-type, parent account selection, etc.
+            ],
+          ),
         ),
       ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text('Cancel'),
+        ),
+        ElevatedButton(onPressed: _submitForm, child: Text('Add Account')),
+      ],
     );
   }
 
-  void _createAccount() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-    });
-
-    final account = ChartOfAccount(
-      id: '',
-      accountCode: '', // Will be generated by service
-      accountName: _nameController.text.trim(),
-      accountType: _selectedType!,
-      accountSubType: _selectedSubType!,
-      isDefault: false,
-      description: _descriptionController.text.trim().isEmpty
-          ? null
-          : _descriptionController.text.trim(),
-      createdAt: DateTime.now(),
-      level: 0,
-    );
-
-    try {
-      final provider =
-          Provider.of<ChartOfAccountsProvider>(context, listen: false);
-      await provider.createAccount(
-        account: account,
-        createdBy: 'current_user_id', // Replace with actual user ID
-      );
-
-      Navigator.of(context).pop();
-      widget.onAccountCreated();
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Account created successfully'),
-          backgroundColor: Colors.green,
-        ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error creating account: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
+  void _submitForm() async {
+    if (_formKey.currentState!.validate()) {
+      try {
+        // Implementation to save the new account
+        // You'll need to determine if it's a parent or child account
+        Navigator.pop(context);
+      } catch (e) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error creating account: $e')));
       }
     }
-  }
-}
-
-// =====================================================
-// EDIT ACCOUNT DIALOG
-// =====================================================
-
-class EditAccountDialog extends StatefulWidget {
-  final String companyId;
-  final ChartOfAccount account;
-  final VoidCallback onAccountUpdated;
-
-  const EditAccountDialog({
-    super.key,
-    required this.companyId,
-    required this.account,
-    required this.onAccountUpdated,
-  });
-
-  @override
-  State<EditAccountDialog> createState() => _EditAccountDialogState();
-}
-
-class _EditAccountDialogState extends State<EditAccountDialog> {
-  final _formKey = GlobalKey<FormState>();
-  late final TextEditingController _nameController;
-  late final TextEditingController _descriptionController;
-  bool _isLoading = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _nameController = TextEditingController(text: widget.account.accountName);
-    _descriptionController = TextEditingController(
-      text: widget.account.description ?? '',
-    );
   }
 
   @override
   void dispose() {
+    _codeController.dispose();
     _nameController.dispose();
     _descriptionController.dispose();
     super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Container(
-        width: 500,
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Edit Account - ${widget.account.accountCode}',
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 24),
-            Form(
-              key: _formKey,
-              child: Column(
-                children: [
-                  TextFormField(
-                    controller: _nameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Account Name *',
-                      border: OutlineInputBorder(),
-                    ),
-                    enabled: !_isLoading,
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Account name is required';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _descriptionController,
-                    decoration: const InputDecoration(
-                      labelText: 'Description',
-                      border: OutlineInputBorder(),
-                    ),
-                    maxLines: 3,
-                    enabled: !_isLoading,
-                  ),
-                  const SizedBox(height: 16),
-                  // Display read-only information
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[50],
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey[300]!),
-                    ),
-                    child: Column(
-                      children: [
-                        Row(
-                          children: [
-                            const Text('Account Type: ',
-                                style: TextStyle(fontWeight: FontWeight.w500)),
-                            Text(widget.account.accountType.displayName),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            const Text('Sub-Type: ',
-                                style: TextStyle(fontWeight: FontWeight.w500)),
-                            Text(widget.account.accountSubType.displayName),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            const Text('Current Balance: ',
-                                style: TextStyle(fontWeight: FontWeight.w500)),
-                            Text(
-                                '\$${widget.account.currentBalance.toStringAsFixed(2)}'),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton(
-                  onPressed:
-                      _isLoading ? null : () => Navigator.of(context).pop(),
-                  child: const Text('Cancel'),
-                ),
-                const SizedBox(width: 16),
-                ElevatedButton(
-                  onPressed: _isLoading ? null : _updateAccount,
-                  child: _isLoading
-                      ? const SizedBox(
-                          height: 16,
-                          width: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Update Account'),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _updateAccount() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-    });
-
-    final updates = <String, dynamic>{
-      'account_name': _nameController.text.trim(),
-      'description': _descriptionController.text.trim().isEmpty
-          ? null
-          : _descriptionController.text.trim(),
-    };
-
-    try {
-      final provider =
-          Provider.of<ChartOfAccountsProvider>(context, listen: false);
-      await provider.updateAccount(
-        accountId: widget.account.id,
-        updates: updates,
-      );
-
-      Navigator.of(context).pop();
-      widget.onAccountUpdated();
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Account updated successfully'),
-          backgroundColor: Colors.green,
-        ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error updating account: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
   }
 }

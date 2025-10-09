@@ -25,6 +25,13 @@ enum MainContainer {
       iconPath: "assets/images/dashboard.png",
     ),
   ),
+  chartOfAccounts(
+    ContainerData(
+      key: "chartAccounts",
+      label: 'Chart Of Accounts',
+      iconPath: "assets/images/dashboard.png",
+    ),
+  ),
   salesAndInvoices(
     ContainerData(
       key: "manageInvoices",

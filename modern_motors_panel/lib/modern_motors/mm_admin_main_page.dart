@@ -2676,6 +2676,9 @@ class _MmAdminMainPageState extends State<MmAdminMainPage> {
         MainContainer.country,
         MainContainer.nationality,
       ],
+      'Branches'.tr(): [MainContainer.branches],
+
+      'Accounts'.tr(): [MainContainer.chartOfAccounts],
       //'Allowances'.tr(): [MainContainer.manageallotedAllowance],
       'Deduction'.tr(): [
         MainContainer.deductionCategory,

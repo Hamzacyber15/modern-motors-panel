@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:modern_motors_panel/brands/brands_page.dart';
+import 'package:modern_motors_panel/modern_motors/branch/branches_page.dart';
 import 'package:modern_motors_panel/modern_motors/customers/customers_main_page.dart';
 import 'package:modern_motors_panel/modern_motors/dashboard/coming_soon.dart';
 import 'package:modern_motors_panel/modern_motors/employees/employee_page.dart';
@@ -23,9 +24,11 @@ import 'package:modern_motors_panel/modern_motors/trucks/manage_heavy_equipment.
 import 'package:modern_motors_panel/modern_motors/trucks/manage_trucks_page.dart';
 import 'package:modern_motors_panel/modern_motors/units/unit_main_page.dart';
 import 'package:modern_motors_panel/modern_motors/vendor/manage_vendor_logos.dart';
+import 'package:modern_motors_panel/modern_motors/widgets/ChartOfAccountsScreen.dart';
 import 'package:modern_motors_panel/modern_motors/widgets/country/country_main_page.dart';
 import 'package:modern_motors_panel/modern_motors/widgets/invoices/templates/manage_templates.dart';
 import 'package:modern_motors_panel/modern_motors/widgets/log_out1.dart';
+import 'package:modern_motors_panel/provider/chart_of_accounts_screen.dart';
 import 'package:modern_motors_panel/provider/main_container.dart';
 
 Widget getSelectedPageWidget({
@@ -104,7 +107,7 @@ Widget getSelectedPageWidget({
     case MainContainer.procurementQuotation:
       return const CreateMaintenanceBooking();
     case MainContainer.branches:
-      return const CreateMaintenanceBooking();
+      return const BranchesPage();
     case MainContainer.roles:
       return RolePermissionPage();
     case MainContainer.currency:
@@ -169,5 +172,7 @@ Widget getSelectedPageWidget({
       return Logout1();
     case MainContainer.comingSoon:
       return ComingSoonWidget();
+    case MainContainer.chartOfAccounts:
+      return ChartOfAccountsScreen();
   }
 }

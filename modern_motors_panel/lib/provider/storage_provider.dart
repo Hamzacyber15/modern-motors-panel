@@ -97,16 +97,17 @@ class StorageProvider with ChangeNotifier {
     terms: false,
     userAttachment: [],
   );
-  PublicProfileModel profile = PublicProfileModel(
-    "",
-    "",
-    Timestamp.now(),
-    "",
-    "",
-    "",
-    "",
-    "",
-  );
+  PublicProfileModel profile = PublicProfileModel.getEmptyProfile();
+  // PublicProfileModel(
+  //   "",
+  //   "",
+  //   Timestamp.now(),
+  //   "",
+  //   "",
+  //   "",
+  //   "",
+  //   "",
+  // );
 
   // void getColdStorageBlock(String block) {
   //   selectedBlock = block;

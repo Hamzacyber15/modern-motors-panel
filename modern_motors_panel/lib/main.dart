@@ -475,7 +475,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => SellOrderProvider()),
         ChangeNotifierProvider(create: (_) => SelectedInventoriesProvider()),
         ChangeNotifierProvider(create: (_) => MaintenanceBookingProvider()),
-        ChangeNotifierProvider(create: (_) => ChartOfAccountsProvider()),
+        //ChangeNotifierProvider(create: (_) => ChartOfAccountsProvider()),
         ChangeNotifierProvider(create: (_) => EstimationProvider()),
         ChangeNotifierProvider(create: (_) => MmResourceProvider()),
         ChangeNotifierProvider(create: (_) => MainPageProvider()),
