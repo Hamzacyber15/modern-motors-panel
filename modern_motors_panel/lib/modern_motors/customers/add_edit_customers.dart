@@ -970,7 +970,7 @@ class _AddProductPageState extends State<AddEditCustomer> {
                 title: 'Create Client'.tr(),
                 buttonText: 'Back to Manage Client'.tr(),
                 subTitle: 'Add New Client'.tr(),
-                onCreateIcon: 'assets/icons/back.png',
+                onCreateIcon: 'assets/images/back.png',
                 selectedItems: [],
                 buttonWidth: 0.4,
                 onCreate: widget.onBack!.call,

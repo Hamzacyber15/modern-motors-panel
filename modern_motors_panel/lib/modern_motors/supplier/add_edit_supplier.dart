@@ -300,10 +300,10 @@ class _AddProductPageState extends State<AddEditSupplier> {
           slivers: [
             SliverToBoxAdapter(
               child: PageHeaderWidget(
-                title: 'Create Client'.tr(),
-                buttonText: 'Back to Manage Client'.tr(),
-                subTitle: 'Add New Client'.tr(),
-                onCreateIcon: 'assets/icons/back.png',
+                title: 'Create Supplier'.tr(),
+                buttonText: 'Back to Manage Supplier'.tr(),
+                subTitle: 'Add New Supplier'.tr(),
+                onCreateIcon: 'assets/images/back.png',
                 selectedItems: [],
                 buttonWidth: 0.4,
                 onCreate: widget.onBack!.call,
