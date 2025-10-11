@@ -153,6 +153,7 @@ import 'package:modern_motors_panel/provider/modern_motors/mm_resource_provider.
 import 'package:modern_motors_panel/provider/resource_provider.dart';
 import 'package:modern_motors_panel/provider/selected_inventories_provider.dart';
 import 'package:modern_motors_panel/provider/sell_order_provider.dart';
+import 'package:modern_motors_panel/services/local/branch_id_sp.dart';
 import 'package:modern_motors_panel/sign_in_screens/sign_in.dart';
 import 'package:modern_motors_panel/widgets/check_profile.dart';
 import 'package:provider/provider.dart';
@@ -430,6 +431,7 @@ Future<void> showNotificationWithActions(RemoteMessage message) async {
 void main() async {
   usePathUrlStrategy();
   WidgetsFlutterBinding.ensureInitialized();
+  await BranchIdSp.initSp();
   // audioHandler = await AudioService.init(
   //   builder: () => AudioPlayerHandler(),
   //   config: const AudioServiceConfig(

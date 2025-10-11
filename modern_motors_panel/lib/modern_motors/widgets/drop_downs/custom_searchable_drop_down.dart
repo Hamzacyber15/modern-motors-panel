@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:modern_motors_panel/app_theme.dart';
 import 'package:modern_motors_panel/extensions.dart';
 import 'package:modern_motors_panel/modern_motors/widgets/custom_mm_text_field.dart';
-import 'package:modern_motors_panel/modern_motors/widgets/drop_downs/build_drop_down.dart';
+import 'package:modern_motors_panel/modern_motors/widgets/drop_downs/build_drop_down_ui.dart';
 import 'package:modern_motors_panel/modern_motors/widgets/helper.dart';
 
 class CustomSearchableDropdown extends StatefulWidget {
@@ -11,8 +11,11 @@ class CustomSearchableDropdown extends StatefulWidget {
   final List<String>? selectedValues;
   final Map<String, String> items;
   final void Function(String)? onChanged;
+  final bool loading;
   final void Function(List<MapEntry<String, String>>)? onMultiChanged;
   final bool isMultiSelect;
+  final double? verticalPadding;
+  final bool isRequired;
 
   const CustomSearchableDropdown({
     super.key,
@@ -20,9 +23,12 @@ class CustomSearchableDropdown extends StatefulWidget {
     required this.items,
     this.onChanged,
     this.onMultiChanged,
+    this.loading = false,
     this.value,
     this.selectedValues,
+    this.verticalPadding,
     this.isMultiSelect = false,
+    this.isRequired = true,
   });
 
   @override
@@ -58,18 +64,6 @@ class _CustomSearchableDropdownState extends State<CustomSearchableDropdown> {
       _selectedValue = widget.value;
     }
   }
-
-  // @override
-  // void didUpdateWidget(covariant CustomSearchableDropdown oldWidget) {
-  //   super.didUpdateWidget(oldWidget);
-  //   if (widget.isMultiSelect &&
-  //       widget.selectedValues != oldWidget.selectedValues) {
-  //     _selectedEntries =
-  //         widget.items.entries
-  //             .where((entry) => widget.selectedValues!.contains(entry.key))
-  //             .toList();
-  //   }
-  // }
 
   @override
   void didUpdateWidget(covariant CustomSearchableDropdown oldWidget) {
@@ -149,8 +143,9 @@ class _CustomSearchableDropdownState extends State<CustomSearchableDropdown> {
                           if (widget.items.length > 3)
                             CustomMmTextField(
                               labelText: 'Search',
-                              hintText: 'Search...',
                               controller: _searchController,
+                              hintText: widget.hintText,
+
                               onChanged: (query) {
                                 setOverlayState(() {
                                   _filteredItems = widget.items.entries
@@ -165,7 +160,7 @@ class _CustomSearchableDropdownState extends State<CustomSearchableDropdown> {
                             ),
                           8.h,
                           ConstrainedBox(
-                            constraints: const BoxConstraints(maxHeight: 200),
+                            constraints: const BoxConstraints(maxHeight: 160),
                             child: ListView.builder(
                               shrinkWrap: true,
                               itemCount: _filteredItems.length,
@@ -290,6 +285,7 @@ class _CustomSearchableDropdownState extends State<CustomSearchableDropdown> {
                                     _removeOverlay();
                                   });
                                 },
+
                                 icon: const Icon(Icons.done, size: 18),
                                 label: const Text("Done"),
                               ),
@@ -339,21 +335,24 @@ class _CustomSearchableDropdownState extends State<CustomSearchableDropdown> {
     if (widget.isMultiSelect) {
       return FormField<List<String>>(
         key: _formFieldKey,
+        enabled: !widget.loading,
         initialValue: widget.selectedValues ?? [],
         validator: (val) {
-          if (val == null || val.isEmpty) {
+          // if (val == null || val.isEmpty)
+          if (widget.isRequired && (val == null || val.isEmpty)) {
             return 'Please ${widget.hintText}';
           }
           return null;
         },
         autovalidateMode: AutovalidateMode.onUserInteraction,
-        builder: (field) => buildDropdown(
+        builder: (field) => buildDropdownUI(
           context: context,
           field: field,
           displayText: displayText,
           hintText: widget.hintText,
           layerLink: _layerLink,
           showDropdown: _showDropdown,
+          verticalPadding: widget.verticalPadding ?? 6,
           toggleDropdown: _toggleDropdown,
         ),
       );
@@ -362,19 +361,23 @@ class _CustomSearchableDropdownState extends State<CustomSearchableDropdown> {
         key: _formFieldKey,
         initialValue: widget.value,
         validator: (val) {
-          if (val == null || val.isEmpty) {
+          // if (val == null || val.isEmpty)
+          if (widget.isRequired && (val == null || val.isEmpty)) {
             return 'Please ${widget.hintText}';
           }
           return null;
         },
-        autovalidateMode: AutovalidateMode.onUserInteraction,
-        builder: (field) => buildDropdown(
+        autovalidateMode: widget.loading
+            ? AutovalidateMode.disabled
+            : AutovalidateMode.onUserInteraction,
+        builder: (field) => buildDropdownUI(
           context: context,
           field: field,
           displayText: displayText,
           hintText: widget.hintText,
           layerLink: _layerLink,
           showDropdown: _showDropdown,
+          verticalPadding: widget.verticalPadding ?? 6,
           toggleDropdown: _toggleDropdown,
         ),
       );

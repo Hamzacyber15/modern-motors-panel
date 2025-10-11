@@ -171,28 +171,100 @@ class ChartAccountService {
     }
   }
 
+  // Future<String> addSubAccount({
+  //   required String parentAccountId,
+  //   required ChartAccount accountData,
+  //   required String branchId,
+  // }) async {
+  //   try {
+  //     // Correct path for parent account
+  //     final parentAccountRef = _firestore
+  //         .collection('chartOfAccounts')
+  //         .doc(branchId)
+  //         .collection('chartOfAccounts')
+  //         .doc(parentAccountId);
+
+  //     final parentDoc = await parentAccountRef.get();
+
+  //     if (!parentDoc.exists) {
+  //       throw Exception('Parent account not found');
+  //     }
+
+  //     final parentAccount = ChartAccount.fromFirestore(parentDoc);
+
+  //     // Create new sub-account with correct path
+  //     final newAccountDocRef = _firestore
+  //         .collection('chartOfAccounts')
+  //         .doc(branchId)
+  //         .collection('chartOfAccounts')
+  //         .doc();
+
+  //     final newAccountId = newAccountDocRef.id;
+  //     User? user = FirebaseAuth.instance.currentUser;
+
+  //     final subAccount = ChartAccount(
+  //       id: newAccountId,
+  //       accountCode: accountData.accountCode,
+  //       accountName: accountData.accountName,
+  //       accountSubType: accountData.accountSubType,
+  //       accountType: accountData.accountType,
+  //       childAccountIds: [],
+  //       createdAt: DateTime.now(),
+  //       currentBalance: 0,
+  //       description: accountData.description,
+  //       isActive: true,
+  //       isDefault: false,
+  //       level: parentAccount.level + 1,
+  //       refId: parentAccount.refId,
+  //       parentAccountId: parentAccountId,
+  //       branchId: branchId,
+  //       createdBy: user!.uid,
+  //     );
+
+  //     // Update parent account with new child ID
+  //     final updatedChildIds = [...parentAccount.childAccountIds, newAccountId];
+
+  //     final batch = _firestore.batch();
+  //     batch.set(newAccountDocRef, subAccount.toFirestore());
+  //     batch.update(parentAccountRef, {'child_account_ids': updatedChildIds});
+
+  //     await batch.commit();
+  //     return newAccountId;
+  //   } catch (e) {
+  //     print('Error adding sub-account: $e');
+  //     rethrow;
+  //   }
+  // }
+
   Future<String> addSubAccount({
     required String parentAccountId,
     required ChartAccount accountData,
     required String branchId,
   }) async {
     try {
-      // Correct path for parent account
+      debugPrint('Adding sub-account in branch: $branchId');
+      debugPrint('Parent Account ID: $parentAccountId');
+      debugPrint(
+        'NewAccount: ${accountData.accountCode} - ${accountData.accountName}',
+      );
+      // Get the parent account from the SAME BRANCH
       final parentAccountRef = _firestore
           .collection('chartOfAccounts')
           .doc(branchId)
           .collection('chartOfAccounts')
           .doc(parentAccountId);
-
       final parentDoc = await parentAccountRef.get();
-
       if (!parentDoc.exists) {
-        throw Exception('Parent account not found');
+        throw Exception('Parent account not found in branch $branchId');
       }
-
       final parentAccount = ChartAccount.fromFirestore(parentDoc);
-
-      // Create new sub-account with correct path
+      debugPrint(
+        '👨‍👦 Parent found: ${parentAccount.accountName} (Level: ${parentAccount.level})',
+      );
+      if (parentAccount.level >= 5) {
+        throw Exception('Cannot create sub-accounts beyond level 5');
+      }
+      // Create new sub-account in the SAME BRANCH
       final newAccountDocRef = _firestore
           .collection('chartOfAccounts')
           .doc(branchId)
@@ -200,109 +272,108 @@ class ChartAccountService {
           .doc();
 
       final newAccountId = newAccountDocRef.id;
-      User? user = FirebaseAuth.instance.currentUser;
-
+      final user = FirebaseAuth.instance.currentUser;
       final subAccount = ChartAccount(
         id: newAccountId,
         accountCode: accountData.accountCode,
         accountName: accountData.accountName,
         accountSubType: accountData.accountSubType,
         accountType: accountData.accountType,
-        childAccountIds: [],
+        childAccountIds: [], // New account starts with no children
         createdAt: DateTime.now(),
         currentBalance: 0,
         description: accountData.description,
         isActive: true,
-        isDefault: false,
-        level: parentAccount.level + 1,
-        refId: parentAccount.refId,
-        parentAccountId: parentAccountId,
-        branchId: branchId,
-        createdBy: user!.uid,
+        isDefault: false, // Manually created accounts are not default
+        level: parentAccount.level + 1, // Increment level from parent
+        refId: branchId,
+        parentAccountId: parentAccountId, // Link to parent in same branch
+        branchId: branchId, // Same branch as parent
+        createdBy: user?.uid,
       );
-
-      // Update parent account with new child ID
-      final updatedChildIds = [...parentAccount.childAccountIds, newAccountId];
-
+      final updatedChildIds = List<String>.from(parentAccount.childAccountIds)
+        ..add(newAccountId);
+      debugPrint('Updating parent with new child: $newAccountId');
+      debugPrint('Parent now has ${updatedChildIds.length} children');
+      debugPrint('New account level: ${subAccount.level}');
       final batch = _firestore.batch();
       batch.set(newAccountDocRef, subAccount.toFirestore());
       batch.update(parentAccountRef, {'child_account_ids': updatedChildIds});
-
       await batch.commit();
+      debugPrint('Successfully added sub-account: $newAccountId');
+      debugPrint('Parent: ${parentAccount.accountName}');
+      debugPrint('Branch: $branchId');
+      debugPrint('Level: ${subAccount.level}');
+
       return newAccountId;
     } catch (e) {
-      print('Error adding sub-account: $e');
+      debugPrint('Error adding sub-account: $e');
       rethrow;
     }
   }
 
   Stream<Map<String, List<AccountTreeNode>>> watchAllAccounts() {
-    return _firestore
-        .collection('branches') // This should contain your branch documents
-        .snapshots()
-        .asyncMap((branchesSnapshot) async {
-          debugPrint('DEBUG: Found ${branchesSnapshot.docs.length} branches');
-          final accountsData = <String, List<ChartAccount>>{};
-          for (final branchDoc in branchesSnapshot.docs) {
-            final branchId = branchDoc.id;
-            final branchData = branchDoc.data();
-            debugPrint(
-              'DEBUG: Processing branch: ${branchData['branchName']} ($branchId)',
-            );
-            try {
-              // Get accounts for this branch from chartOfAccounts/{branchId}/chartOfAccounts
-              final accountsSnapshot = await _firestore
-                  .collection('chartOfAccounts')
-                  .doc(branchId)
-                  .collection('chartOfAccounts')
-                  .orderBy('account_code')
-                  .get();
+    return _firestore.collection('branches').snapshots().asyncMap((
+      branchesSnapshot,
+    ) async {
+      debugPrint('${branchesSnapshot.docs.length} branches');
+      final accountsData = <String, List<ChartAccount>>{};
+      for (final branchDoc in branchesSnapshot.docs) {
+        final branchId = branchDoc.id;
+        final branchData = branchDoc.data();
+        debugPrint(
+          'DEBUG: Processing branch: ${branchData['branchName']} ($branchId)',
+        );
+        try {
+          // Get accounts for this branch from chartOfAccounts/{branchId}/chartOfAccounts
+          final accountsSnapshot = await _firestore
+              .collection('chartOfAccounts')
+              .doc(branchId)
+              .collection('chartOfAccounts')
+              .orderBy('account_code')
+              .get();
 
-              debugPrint(
-                'DEBUG: Branch $branchId has ${accountsSnapshot.docs.length} accounts',
-              );
-              accountsData[branchId] = accountsSnapshot.docs
-                  .map((doc) => ChartAccount.fromFirestore(doc))
-                  .toList();
-            } catch (e) {
-              debugPrint(
-                'DEBUG: Error fetching accounts for branch $branchId: $e',
-              );
-              accountsData[branchId] = [];
-            }
-          }
-          final mainBranchId = 'NRHLuRZIA2AMZXjW4TDI';
-          if (!accountsData.containsKey(mainBranchId)) {
-            try {
-              final mainAccountsSnapshot = await _firestore
-                  .collection('chartOfAccounts')
-                  .doc(mainBranchId)
-                  .collection('chartOfAccounts')
-                  .orderBy('account_code')
-                  .get();
+          debugPrint(
+            'DEBUG: Branch $branchId has ${accountsSnapshot.docs.length} accounts',
+          );
+          accountsData[branchId] = accountsSnapshot.docs
+              .map((doc) => ChartAccount.fromFirestore(doc))
+              .toList();
+        } catch (e) {
+          debugPrint('DEBUG: Error fetching accounts for branch $branchId: $e');
+          accountsData[branchId] = [];
+        }
+      }
+      final mainBranchId = 'NRHLuRZIA2AMZXjW4TDI';
+      if (!accountsData.containsKey(mainBranchId)) {
+        try {
+          final mainAccountsSnapshot = await _firestore
+              .collection('chartOfAccounts')
+              .doc(mainBranchId)
+              .collection('chartOfAccounts')
+              .orderBy('account_code')
+              .get();
 
-              accountsData[mainBranchId] = mainAccountsSnapshot.docs
-                  .map((doc) => ChartAccount.fromFirestore(doc))
-                  .toList();
-              debugPrint(
-                'branch ${accountsData[mainBranchId]!.length} accounts',
-              );
-            } catch (e) {
-              debugPrint('Error: $e');
-            }
-          }
+          accountsData[mainBranchId] = mainAccountsSnapshot.docs
+              .map((doc) => ChartAccount.fromFirestore(doc))
+              .toList();
+          debugPrint('branch ${accountsData[mainBranchId]!.length} accounts');
+        } catch (e) {
+          debugPrint('Error: $e');
+        }
+      }
 
-          // Build hierarchy for each branch
-          final result = <String, List<AccountTreeNode>>{};
-          for (final entry in accountsData.entries) {
-            result[entry.key] = _buildHierarchy(entry.value);
-            print(
-              '🌳 DEBUG: Branch ${entry.key} has ${result[entry.key]!.length} root nodes',
-            );
-          }
+      // Build hierarchy for each branch
+      final result = <String, List<AccountTreeNode>>{};
+      for (final entry in accountsData.entries) {
+        result[entry.key] = _buildHierarchy(entry.value);
+        print(
+          '🌳 DEBUG: Branch ${entry.key} has ${result[entry.key]!.length} root nodes',
+        );
+      }
 
-          return result;
-        });
+      return result;
+    });
   }
 
   List<AccountTreeNode> _buildHierarchy(List<ChartAccount> accounts) {

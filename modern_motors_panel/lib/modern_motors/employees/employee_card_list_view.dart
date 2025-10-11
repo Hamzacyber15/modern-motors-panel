@@ -11,6 +11,7 @@ import 'package:modern_motors_panel/modern_motors/widgets/build_filter_chip.dart
 import 'package:modern_motors_panel/modern_motors/widgets/filter_button.dart';
 import 'package:modern_motors_panel/modern_motors/widgets/permission_dialogue.dart';
 import 'package:modern_motors_panel/provider/modern_motors/mm_resource_provider.dart';
+import 'package:modern_motors_panel/widgets/employee_permission_viewer.dart';
 import 'package:provider/provider.dart';
 
 class EmployeeCard extends StatelessWidget {
@@ -113,7 +114,8 @@ class EmployeeCard extends StatelessWidget {
                             .firstWhere(
                               (employee) => employee.id == employeeMoel.id,
                             )
-                            .profileAccessKey ??
+                            .permissions ??
+                        // .profileAccessKey ??
                         [];
                     return Builder(
                       builder: (context) {
@@ -130,26 +132,73 @@ class EmployeeCard extends StatelessWidget {
                           );
                         }
 
-                        final showList = permissions.length > 3
-                            ? permissions.take(3).toList()
-                            : permissions;
-
-                        return Wrap(
-                          spacing: 2,
-                          runSpacing: 1,
-                          children: [
-                            ...showList.map((perm) {
-                              return containerWidget(perm);
-                            }),
-                            if (permissions.length > 3)
-                              permissionDialog(context, permissions),
-                          ],
+                        return EmployeePermissionsViewer(
+                          employee: employeeMoel,
                         );
+
+                        // return Wrap(
+                        //   spacing: 2,
+                        //   runSpacing: 1,
+                        //   children: [
+                        //     ...showList.map((perm) {
+                        //       return containerWidget(perm);
+                        //     }),
+                        //     if (permissions.length > 3)
+                        //       permissionDialog(context, permissions),
+                        //   ],
+                        // );
                       },
                     );
                   },
                 ),
               ),
+
+              // Expanded(
+              //   flex: 1,
+              //   child: Consumer<MmResourceProvider>(
+              //     builder: (context, resource, child) {
+              //       final permissions =
+              //           resource.employees
+              //               .firstWhere(
+              //                 (employee) => employee.id == employeeMoel.id,
+              //               )
+              //               .profileAccessKey ??
+              //           [];
+              //       return Builder(
+              //         builder: (context) {
+              //           if (permissions.isEmpty) {
+              //             return const Text(
+              //               'No Permissions',
+              //               style: TextStyle(
+              //                 fontSize: 12,
+              //                 fontWeight: FontWeight.w600,
+              //                 color: Color(0xffec4400),
+              //               ),
+              //               maxLines: 1,
+              //               overflow: TextOverflow.ellipsis,
+              //             );
+              //           }
+
+              //           final showList = permissions.length > 3
+              //               ? permissions.take(3).toList()
+              //               : permissions;
+
+              //           return Wrap(
+              //             spacing: 2,
+              //             runSpacing: 1,
+              //             children: [
+              //               ...showList.map((perm) {
+              //                 return containerWidget(perm);
+              //               }),
+              //               if (permissions.length > 3)
+              //                 permissionDialog(context, permissions),
+              //             ],
+              //           );
+              //         },
+              //       );
+              //     },
+              //   ),
+              // ),
               24.w,
               Expanded(
                 flex: 1,
@@ -457,6 +506,9 @@ class _EmployeeCardListViewState extends State<EmployeeCardListView> {
         break;
       case ProductAction.delete:
         _showDeleteConfirmation(employee);
+        break;
+      case ProductAction.clone:
+        //_showDeleteConfirmation(employee);
         break;
     }
   }

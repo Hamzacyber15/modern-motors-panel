@@ -20,6 +20,7 @@ import 'package:modern_motors_panel/modern_motors/sales/sales_settings.dart';
 import 'package:modern_motors_panel/modern_motors/services_maintenance/create_booking_main_page.dart';
 import 'package:modern_motors_panel/modern_motors/services_maintenance/create_maintenance_booking.dart';
 import 'package:modern_motors_panel/modern_motors/services_maintenance/services_main_page.dart';
+import 'package:modern_motors_panel/modern_motors/supplier/manage_supplier.dart';
 import 'package:modern_motors_panel/modern_motors/trucks/manage_heavy_equipment.dart';
 import 'package:modern_motors_panel/modern_motors/trucks/manage_trucks_page.dart';
 import 'package:modern_motors_panel/modern_motors/units/unit_main_page.dart';
@@ -174,5 +175,15 @@ Widget getSelectedPageWidget({
       return ComingSoonWidget();
     case MainContainer.chartOfAccounts:
       return ChartOfAccountsScreen();
+    case MainContainer.journalEntries:
+      return ComingSoonWidget();
+    case MainContainer.income:
+      return ComingSoonWidget();
+    case MainContainer.treasury:
+      return ComingSoonWidget();
+    case MainContainer.expenses:
+      return ComingSoonWidget();
+    case MainContainer.supplier:
+      return ManageSupplier();
   }
 }

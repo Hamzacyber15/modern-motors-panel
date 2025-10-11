@@ -3505,6 +3505,7 @@ import 'package:modern_motors_panel/model/admin_model/brands_model.dart';
 import 'package:modern_motors_panel/model/branches/branch_model.dart';
 import 'package:modern_motors_panel/model/chartoAccounts_model.dart';
 import 'package:modern_motors_panel/modern_motors/chart_of_account_service.dart';
+import 'package:modern_motors_panel/modern_motors/widgets/addsub_account_dialogue.dart';
 import 'package:modern_motors_panel/provider/modern_motors/mm_resource_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -3790,8 +3791,8 @@ class ChartOfAccountsScreenState extends State<ChartOfAccountsScreen> {
           }
 
           if (snapshot.hasError) {
-            print('❌ UI Error: ${snapshot.error}');
-            print('❌ Stack trace: ${snapshot.stackTrace}');
+            debugPrint('Error: ${snapshot.error}');
+            debugPrint('trace: ${snapshot.stackTrace}');
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -3926,16 +3927,38 @@ class ChartOfAccountsScreenState extends State<ChartOfAccountsScreen> {
                 : SizedBox(width: 40.0),
             title: Row(
               children: [
-                Text(
-                  '${node.account.accountCode} - ${node.account.accountName}',
-                  style: TextStyle(
-                    fontWeight: level == 0
-                        ? FontWeight.bold
-                        : FontWeight.normal,
+                // Level indicator
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: _getLevelColor(node.account.level),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(
+                      '${node.account.level}',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '${node.account.accountCode} - ${node.account.accountName}',
+                    style: TextStyle(
+                      fontWeight: level == 0
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                    ),
                   ),
                 ),
                 if (node.account.isDefault) ...[
-                  SizedBox(width: 8.0),
+                  SizedBox(width: 8),
                   Container(
                     padding: EdgeInsets.symmetric(
                       horizontal: 6.0,
@@ -3959,14 +3982,26 @@ class ChartOfAccountsScreenState extends State<ChartOfAccountsScreen> {
               ],
             ),
             subtitle: Text(node.account.description),
-            trailing: Text(
-              'OMR ${node.account.currentBalance.toStringAsFixed(2)}',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: node.account.currentBalance >= 0
-                    ? Colors.green
-                    : Colors.red,
-              ),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'OMR ${node.account.currentBalance.toStringAsFixed(2)}',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: node.account.currentBalance >= 0
+                        ? Colors.green
+                        : Colors.red,
+                  ),
+                ),
+                SizedBox(width: 8),
+                // Add sub-account button
+                IconButton(
+                  icon: Icon(Icons.add, size: 18, color: Colors.blue),
+                  onPressed: () => _showAddSubAccountDialog(node.account),
+                  tooltip: 'Add Sub-Account',
+                ),
+              ],
             ),
             onTap: hasChildren ? () => _toggleAccount(node.account.id!) : null,
           ),
@@ -3974,6 +4009,31 @@ class ChartOfAccountsScreenState extends State<ChartOfAccountsScreen> {
         if (isExpanded && hasChildren)
           ...node.children.map((child) => _buildAccountTree(child, level + 1)),
       ],
+    );
+  }
+
+  Color _getLevelColor(int level) {
+    switch (level) {
+      case 0:
+        return Colors.blue;
+      case 1:
+        return Colors.green;
+      case 2:
+        return Colors.orange;
+      case 3:
+        return Colors.purple;
+      default:
+        return Colors.red;
+    }
+  }
+
+  void _showAddSubAccountDialog(ChartAccount parentAccount) {
+    showDialog(
+      context: context,
+      builder: (context) => AddSubAccountDialog(
+        parentAccount: parentAccount,
+        accountService: _accountService,
+      ),
     );
   }
 
@@ -4010,7 +4070,7 @@ class ChartOfAccountsScreenState extends State<ChartOfAccountsScreen> {
             onPressed: () {
               final newBranchId = 'branch_$_getBranchName';
               _accountService.createDefaultChartOfAccounts(
-                branchId: "NRHLuRZIA2AMZXjW4TDI", //newBranchId,
+                branchId: "headOffice", //newBranchId,
               );
               Navigator.pop(context);
             },

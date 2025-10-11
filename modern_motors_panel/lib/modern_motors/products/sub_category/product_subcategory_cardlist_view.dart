@@ -359,6 +359,9 @@ class _EmployeeCardListViewState extends State<ProductSubCategoryCardListView> {
       case ProductAction.delete:
         _showDeleteConfirmation(category);
         break;
+      case ProductAction.clone:
+        //_showDeleteConfirmation(employee);
+        break;
     }
   }
 

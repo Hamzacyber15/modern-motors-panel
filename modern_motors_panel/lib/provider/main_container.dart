@@ -25,10 +25,24 @@ enum MainContainer {
       iconPath: "assets/images/dashboard.png",
     ),
   ),
+  supplier(
+    ContainerData(
+      key: "supplier",
+      label: 'Supplier',
+      iconPath: "assets/images/dashboard.png",
+    ),
+  ),
   chartOfAccounts(
     ContainerData(
       key: "chartAccounts",
       label: 'Chart Of Accounts',
+      iconPath: "assets/images/dashboard.png",
+    ),
+  ),
+  journalEntries(
+    ContainerData(
+      key: "journalEntries",
+      label: 'Journal Entries',
       iconPath: "assets/images/dashboard.png",
     ),
   ),
@@ -218,8 +232,8 @@ enum MainContainer {
   ),
   customers(
     ContainerData(
-      key: "customers",
-      label: 'Manage Customers',
+      key: "clients",
+      label: 'Manage Clients',
       iconPath: "assets/images/vendors_icon.png",
     ),
   ),
@@ -405,6 +419,28 @@ enum MainContainer {
       iconPath: "assets/images/dollar.png",
     ),
   ),
+  income(
+    ContainerData(
+      key: "income",
+      label: "Income",
+      iconPath: "assets/images/dollar.png",
+    ),
+  ),
+  expenses(
+    ContainerData(
+      key: "expenses",
+      label: "Expenses",
+      iconPath: "assets/images/dollar.png",
+    ),
+  ),
+  treasury(
+    ContainerData(
+      key: "treasury",
+      label: "Treasury & Bank Accounts",
+      iconPath: "assets/images/dollar.png",
+    ),
+  ),
+
   nationality(
     ContainerData(
       key: "nationality",
@@ -414,6 +450,5 @@ enum MainContainer {
   );
 
   final ContainerData data;
-
   const MainContainer(this.data);
 }

@@ -18,6 +18,7 @@ class AppTheme {
   static final Color backgroundGreyColor = Color(0xffF2F2F2);
   static final Color pageHeaderTitleColor = Color(0xff212b36);
   static const Color bgColor = Color(0xFFF5F7FA);
+  static final Color darkTeal = Color(0xFF042A69);
   //static Color primaryColor = const Color.fromARGB(255, 8, 34, 164);
   static Color primaryColor = const Color(
     0xFF0F172A,

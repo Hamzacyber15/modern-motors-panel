@@ -2055,7 +2055,15 @@ import 'package:modern_motors_panel/modern_motors/products/product_inventory_log
 import 'package:modern_motors_panel/modern_motors/widgets/employees/mm_employee_info_tile.dart';
 
 // Enum for dropdown actions
-enum ProductAction { view, inventoryLogs, inventoryBatch, edit, addNew, delete }
+enum ProductAction {
+  view,
+  inventoryLogs,
+  inventoryBatch,
+  edit,
+  addNew,
+  delete,
+  clone,
+}
 
 class ProductCard extends StatelessWidget {
   final ProductModel product;
@@ -2848,6 +2856,8 @@ class _ProductListViewState extends State<ProductListView> {
       case ProductAction.delete:
         _showDeleteConfirmation(product);
         break;
+      case ProductAction.clone:
+        throw UnimplementedError();
     }
   }
 

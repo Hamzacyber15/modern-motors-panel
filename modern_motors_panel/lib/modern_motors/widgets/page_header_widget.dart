@@ -27,6 +27,7 @@ class PageHeaderWidget extends StatefulWidget {
   final bool selection;
   final Future<void> Function()? onDesignation;
   final Future<void> Function()? onRefresh;
+  final bool? isHide;
   final VoidCallback? onAddInInvoice;
   final String onCreateIcon;
 
@@ -49,6 +50,7 @@ class PageHeaderWidget extends StatefulWidget {
     this.buttonWidth = 0.16,
     this.onImport,
     this.onRefresh,
+    this.isHide = true,
     this.onCreateIcon = 'assets/images/add-circle.png',
   });
 
@@ -203,19 +205,20 @@ class _PageHeaderWidgetState extends State<PageHeaderWidget> {
                                 ),
                                 6.w,
                               ],
-                              SizedBox(
-                                height: context.height * 0.062,
-                                width: context.height * 0.065,
-                                child: CustomButton(
-                                  onPressed: widget.onRefresh,
-                                  iconAsset: 'assets/images/recycle.png',
-                                  buttonType: ButtonType.IconOnly,
-                                  borderColor: AppTheme.borderColor,
-                                  backgroundColor: AppTheme.whiteColor,
-                                  iconColor: AppTheme.pageHeaderSubTitleColor,
-                                  iconSize: 12,
+                              if (widget.isHide ?? true)
+                                SizedBox(
+                                  height: context.height * 0.062,
+                                  width: context.height * 0.065,
+                                  child: CustomButton(
+                                    onPressed: widget.onRefresh,
+                                    iconAsset: 'assets/images/recycle.png',
+                                    buttonType: ButtonType.IconOnly,
+                                    borderColor: AppTheme.borderColor,
+                                    backgroundColor: AppTheme.whiteColor,
+                                    iconColor: AppTheme.pageHeaderSubTitleColor,
+                                    iconSize: 12,
+                                  ),
                                 ),
-                              ),
                               6.w,
                               SizedBox(
                                 height: context.height * 0.062,

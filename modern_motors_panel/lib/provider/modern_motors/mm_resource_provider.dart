@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:modern_motors_panel/constants.dart';
 import 'package:modern_motors_panel/model/admin_model/brands_model.dart';
 import 'package:modern_motors_panel/model/admin_model/country_model.dart';
+import 'package:modern_motors_panel/model/admin_model/currency_model.dart';
 import 'package:modern_motors_panel/model/admin_model/unit_model.dart';
 import 'package:modern_motors_panel/model/branches/branch_model.dart';
 import 'package:modern_motors_panel/model/customer_models/customer_models.dart';
@@ -21,6 +23,7 @@ import 'package:modern_motors_panel/model/terms/terms_of_sale_model.dart';
 import 'package:modern_motors_panel/model/trucks/mm_trucks_models.dart/mmtruck_model.dart';
 import 'package:modern_motors_panel/model/vendor/vendors_model.dart';
 import 'package:modern_motors_panel/model/vendor/ventor_logos_model.dart';
+import 'package:modern_motors_panel/services/local/branch_id_sp.dart';
 
 class MmResourceProvider with ChangeNotifier {
   List<EmployeeModel> employees = [];
@@ -44,6 +47,7 @@ class MmResourceProvider with ChangeNotifier {
   List<CountryModel> countryList = [];
   List<UnitModel> unitList = [];
   TermsOfSalesModel? termsOfSalesModel;
+  List<CurrencyModel> currencyList = [];
   // List<NewTruckModel> newTrucksList = [];
   // List<PackageModel> packageList = [];
   // List<OrderModel> completedOrders = [];
@@ -53,11 +57,22 @@ class MmResourceProvider with ChangeNotifier {
   // double walletBalance = 0;
   // double? labourOrderFilter;
 
+  bool _isLoading = false;
+
+  bool get isLoading => _isLoading;
+
+  void setLoading(bool value) {
+    _isLoading = value;
+    notifyListeners();
+  }
+
   Future<bool> start() async {
     bool result = true;
+    final branch = BranchIdSp.getBranchId();
     List<bool> futures = [];
     List<dynamic> futureValues = [];
-
+    setLoading(true);
+    resetData();
     futures = [
       false, //1
       false, //2
@@ -66,6 +81,8 @@ class MmResourceProvider with ChangeNotifier {
       false, //5
       false, //6
       false, //7
+      false,
+      false,
       false,
       false,
       false,
@@ -86,6 +103,7 @@ class MmResourceProvider with ChangeNotifier {
       getServiceTypes(),
       getCategories(),
       getProducts(),
+      // getProducts(branchId: branch),
       getProductsCategory(),
       getProductsSubCategory(),
       getMMTrucks(),
@@ -95,6 +113,8 @@ class MmResourceProvider with ChangeNotifier {
       getNationalities(),
       getDesignations(),
       getUnits(),
+      getCurrencies(),
+      getCountries(),
       //fetchTerms(),
     ]);
     for (int i = 0; i < futureValues.length; i++) {
@@ -111,6 +131,8 @@ class MmResourceProvider with ChangeNotifier {
     // logosList = futureValues[13] as VendorLogosListModel;
     //termsOfSalesModel = futureValues[14] as TermsOfSalesModel;
     debugPrint('estimation: ${estimationTemplatePreviewModel.length}');
+    setLoading(false);
+
     return result;
   }
 
@@ -131,6 +153,66 @@ class MmResourceProvider with ChangeNotifier {
       debugPrint(e.toString());
       return false;
     }
+  }
+
+  Future<bool> getCurrencies() async {
+    try {
+      await FirebaseFirestore.instance.collection('currency').get().then((
+        value,
+      ) async {
+        for (QueryDocumentSnapshot<Map<String, dynamic>> doc in value.docs) {
+          CurrencyModel currency = CurrencyModel.fromDoc(doc);
+          if (currency.id!.isNotEmpty) {
+            currencyList.add(currency);
+          }
+        }
+      });
+      return true;
+    } catch (e) {
+      debugPrint(e.toString());
+      return false;
+    }
+  }
+
+  CurrencyModel getCurrencyID(String id) {
+    CurrencyModel currency;
+    currency = currencyList.firstWhere(
+      (element) => element.id == id,
+      orElse: () => CurrencyModel(currency: ''),
+    );
+    return currency;
+  }
+
+  Future<bool> update() async {
+    setLoading(true);
+    // final branch = BranchIdSp.getBranchId();
+    // allAssets.clear();
+    productsList.clear();
+    bool result = true;
+    List<bool> futures = [];
+    List<dynamic> futureValues = [];
+
+    futures = [
+      false, //1
+      // false, //2
+    ];
+    futureValues = await Future.wait([
+      getProducts(),
+      // getAssets(branchId: branch),
+    ]);
+    for (int i = 0; i < futureValues.length - 3; i++) {
+      futures[i] = futureValues[i];
+    }
+    for (int i = 0; i < futures.length - 3; i++) {
+      if (!futures[i]) {
+        result = false;
+        break;
+      }
+    }
+
+    setLoading(false);
+
+    return result;
   }
 
   CountryModel getCountryID(String id) {
@@ -248,7 +330,10 @@ class MmResourceProvider with ChangeNotifier {
 
   BranchModel getBranchByID(String id) {
     BranchModel branch;
-    branch = branchesList.firstWhere((element) => element.id == id);
+    branch = branchesList.firstWhere(
+      (element) => element.id == id,
+      orElse: () => BranchModel(branchName: 'No'),
+    );
     return branch;
   }
 
@@ -425,6 +510,29 @@ class MmResourceProvider with ChangeNotifier {
     );
     return productSubCategory;
   }
+
+  // Future<bool> getProducts({String? branchId}) async {
+  //   try {
+  //     Query<Map<String, dynamic>> query = FirebaseFirestore.instance.collection(
+  //       'products',
+  //     );
+  //     if (branchId != null && branchId != Constants.mainBranchId) {
+  //       query = query.where("branchId", isEqualTo: branchId);
+  //     }
+
+  //     final snapshot = await query.get();
+  //     for (var doc in snapshot.docs) {
+  //       ProductModel product = ProductModel.fromMap(doc);
+  //       if (product.id!.isNotEmpty) {
+  //         productsList.add(product);
+  //       }
+  //     }
+  //     return true;
+  //   } catch (e) {
+  //     debugPrint(e.toString());
+  //     return false;
+  //   }
+  // }
 
   Future<bool> getProducts() async {
     try {
@@ -663,5 +771,38 @@ class MmResourceProvider with ChangeNotifier {
             notifyListeners();
           }
         });
+  }
+
+  void resetData() {
+    employees.clear();
+    profiles.clear();
+    customersList.clear();
+    nationalityList.clear();
+    vendorsList.clear();
+    unitList.clear();
+    designationsList.clear();
+    brandsList.clear();
+    countryList.clear();
+    branchesList.clear();
+    serviceList.clear();
+    categoryList.clear();
+    productsList.clear();
+    // assetsCategoryList.clear();
+    // parentCategories.clear();
+    // allAssets.clear();
+    estimationTemplatePreviewModel.clear();
+    productCategoryList.clear();
+    productSubCategoryList.clear();
+    mmTrucksList.clear();
+
+    logosList = null;
+    termsOfSalesModel = null;
+    employeeModel = null;
+
+    // Agar koi subscription chal rahi hai to cancel karna zaroori hai
+    employeeSubscription?.cancel();
+    employeeSubscription = null;
+
+    notifyListeners(); // 🔥 UI ko refresh karega
   }
 }

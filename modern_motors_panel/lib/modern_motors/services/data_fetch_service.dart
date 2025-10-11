@@ -35,6 +35,7 @@ import 'package:modern_motors_panel/model/purchase_models/quotation_procurement_
 import 'package:modern_motors_panel/model/sales_model/credit_days_model.dart';
 import 'package:modern_motors_panel/model/sales_model/sale_model.dart';
 import 'package:modern_motors_panel/model/services_model/services_model.dart';
+import 'package:modern_motors_panel/model/supplier/supplier_model.dart';
 import 'package:modern_motors_panel/model/terms/terms_of_sale_model.dart';
 import 'package:modern_motors_panel/model/trucks/mm_trucks_models.dart/mmtruck_model.dart';
 import 'package:modern_motors_panel/model/vendor/vendors_model.dart';
@@ -644,6 +645,26 @@ class DataFetchService {
     return querySnapshot.docs.map((doc) {
       return CustomerModel.fromDoc((doc));
     }).toList();
+  }
+
+  static Future<List<SupplierModel>> fetchSuppliers() async {
+    final querySnapshot = await FirebaseFirestore.instance
+        .collection('suppliers')
+        .get();
+    return querySnapshot.docs.map((doc) {
+      return SupplierModel.fromDoc((doc));
+    }).toList();
+  }
+
+  static Future<SupplierModel?> getSupplierById(String supplierId) async {
+    final doc = await FirebaseFirestore.instance
+        .collection('suppliers')
+        .doc(supplierId)
+        .get();
+    if (doc.exists) {
+      return SupplierModel.fromDoc(doc);
+    }
+    return null;
   }
 
   // static Future<List<EmployeeModel>> fetchEmployees() async {

@@ -87,10 +87,10 @@ class _CheckProfileState extends State<CheckProfile> {
     }
     subscribeToFBM();
     await getDataStorage();
-    PublicProfileModel? profile = await PublicProfileModel.getPublicProfile(
-      user.uid,
-    );
-
+    PublicProfileModel? profile;
+    if (user.uid == Constants.adminId) {
+      profile = await PublicProfileModel.getPublicProfile(user.uid);
+    }
     if (profile != null) {
       if (mounted) {
         bool result = await context.read<ResourceProvider>().start(

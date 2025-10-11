@@ -419,6 +419,9 @@ class _ServiceTypeCardListViewState extends State<ServiceTypeCardListView> {
       case ProductAction.delete:
         _showDeleteConfirmation(service);
         break;
+      case ProductAction.clone:
+        //_showDeleteConfirmation(employee);
+        break;
     }
   }
 

@@ -15,6 +15,7 @@ import 'package:modern_motors_panel/model/purchase_models/purchase_model.dart';
 import 'package:modern_motors_panel/model/purchase_models/purchase_order_model.dart';
 import 'package:modern_motors_panel/model/purchase_models/purchase_requisition_model.dart';
 import 'package:modern_motors_panel/model/sales_model/credit_days_model.dart';
+import 'package:modern_motors_panel/model/supplier/supplier_model.dart';
 import 'package:modern_motors_panel/model/trucks/mm_trucks_models.dart/mmtruck_model.dart';
 
 class DataUploadService {
@@ -391,6 +392,29 @@ class DataUploadService {
   //     'timestamp': FieldValue.serverTimestamp(),
   //   });
   // }
+
+  static Future<void> updateSupplier(
+    String id,
+    SupplierModel model,
+    String type,
+  ) async {
+    await FirebaseFirestore.instance
+        .collection('suppliers')
+        .doc(id)
+        .update(
+          type == 'business' ? model.toBusinessMap() : model.toIndividualMap(),
+        );
+  }
+
+  static Future<void> addSupplier(SupplierModel model, String type) async {
+    final Map<String, dynamic> customerData = type == 'business'
+        ? model.toBusinessMap()
+        : model.toIndividualMap();
+    await FirebaseFirestore.instance.collection('suppliers').add({
+      ...customerData,
+      'timestamp': FieldValue.serverTimestamp(),
+    });
+  }
 
   static Future<void> updateCustomer(
     String id,

@@ -2250,7 +2250,9 @@ import 'package:modern_motors_panel/provider/hide_app_bar_provider.dart';
 import 'package:modern_motors_panel/provider/main_container.dart';
 import 'package:modern_motors_panel/provider/main_page_provider.dart';
 import 'package:modern_motors_panel/provider/modern_motors/mm_resource_provider.dart';
+import 'package:modern_motors_panel/services/local/branch_id_sp.dart';
 import 'package:modern_motors_panel/widgets/clip_overlay_manager.dart';
+import 'package:modern_motors_panel/widgets/profile_overlay.dart';
 import 'package:provider/provider.dart';
 
 class MmAdminMainPage extends StatefulWidget {
@@ -2599,6 +2601,15 @@ class _MmAdminMainPageState extends State<MmAdminMainPage> {
     MainContainer.logout: [],
   };
 
+  // bool hasAccess(MainContainer container, List<String> profileAccessKeys) {
+  //   if (user!.uid == Constants.adminId) {
+  //     return true;
+  //   }
+  //   final requiredKeys = permissionsMap[container] ?? [];
+  //   if (requiredKeys.isEmpty) return true;
+  //   return requiredKeys.any(profileAccessKeys.contains);
+  // }
+
   bool hasAccess(MainContainer container, List<String> profileAccessKeys) {
     if (user!.uid == Constants.adminId) {
       return true;
@@ -2640,7 +2651,34 @@ class _MmAdminMainPageState extends State<MmAdminMainPage> {
         // MainContainer.inventory,
         MainContainer.uom,
       ],
-      'Customer'.tr(): [MainContainer.customers],
+      'Client'.tr(): [MainContainer.customers],
+
+      //'Customers'.tr(): [MainContainer.customers],
+      //'Designation'.tr(): [MainContainer.manageDesignation],
+      'Accounting'.tr(): [
+        MainContainer.journalEntries,
+        MainContainer.chartOfAccounts,
+      ],
+      'Finance'.tr(): [
+        MainContainer.expenses,
+        MainContainer.income,
+        MainContainer.treasury,
+      ],
+      'Purchase'.tr(): [
+        MainContainer.purchaseRequisition,
+        MainContainer.procurementQuotation,
+        MainContainer.procurmentPurchaseOrderPage,
+        MainContainer.supplier,
+      ],
+      'Administration'.tr(): [
+        MainContainer.vendor,
+        //MainContainer.branches,
+        MainContainer.vendorLogos,
+        MainContainer.termsAndCondition,
+        MainContainer.country,
+        MainContainer.nationality,
+      ],
+      'Branches'.tr(): [MainContainer.branches],
       'Assets'.tr(): [
         MainContainer.assets,
         MainContainer.assetsParentCategories,
@@ -2661,24 +2699,6 @@ class _MmAdminMainPageState extends State<MmAdminMainPage> {
         MainContainer.previewTemplates,
         MainContainer.defaultValue,
       ],
-      'Purchase'.tr(): [
-        MainContainer.purchaseRequisition,
-        MainContainer.procurementQuotation,
-        MainContainer.procurmentPurchaseOrderPage,
-      ],
-      //'Customers'.tr(): [MainContainer.customers],
-      //'Designation'.tr(): [MainContainer.manageDesignation],
-      'Administration'.tr(): [
-        MainContainer.vendor,
-        MainContainer.branches,
-        MainContainer.vendorLogos,
-        MainContainer.termsAndCondition,
-        MainContainer.country,
-        MainContainer.nationality,
-      ],
-      'Branches'.tr(): [MainContainer.branches],
-
-      'Accounts'.tr(): [MainContainer.chartOfAccounts],
       //'Allowances'.tr(): [MainContainer.manageallotedAllowance],
       'Deduction'.tr(): [
         MainContainer.deductionCategory,
@@ -2967,8 +2987,18 @@ class _MmAdminMainPageState extends State<MmAdminMainPage> {
       builder: (context, provider, _) {
         User? user = FirebaseAuth.instance.currentUser;
         EmployeeModel employeeModel = provider.getEmployeeByID(user!.uid);
-        final profileKeys = provider.employeeModel?.profileAccessKey ?? [];
-        final sidebarSections = buildSidebarSections(profileKeys);
+
+        final branchId = BranchIdSp.getBranchId();
+        final allPermissions = provider.employeeModel?.permissions ?? [];
+        final branchPermissionModel = allPermissions.firstWhere(
+          (p) => p.branchId == branchId,
+          orElse: () => Permissions(branchId: branchId, permission: []),
+        );
+        final branchPermissions = branchPermissionModel.permission;
+        final sidebarSections = buildSidebarSections(branchPermissions);
+
+        // final profileKeys = provider.employeeModel?.profileAccessKey ?? [];
+        // final sidebarSections = buildSidebarSections(profileKeys);
 
         return Scaffold(
           key: _scaffoldKey,
@@ -3014,13 +3044,15 @@ class _MmAdminMainPageState extends State<MmAdminMainPage> {
                             height: 20,
                             width: 20,
                           ),
-                          const SizedBox(width: 20),
-                          const CircleAvatar(
-                            radius: 20,
-                            backgroundImage: AssetImage(
-                              'assets/images/userimg.png',
-                            ),
-                          ),
+                          // const SizedBox(width: 20),
+                          // const CircleAvatar(
+                          //   radius: 20,
+                          //   backgroundImage: AssetImage(
+                          //     'assets/images/userimg.png',
+                          //   ),
+                          // ),
+                          20.w,
+                          ProfileOverlayWidget(),
                         ],
                       ),
                     ),
@@ -3131,13 +3163,15 @@ class _MmAdminMainPageState extends State<MmAdminMainPage> {
                                                   height: 20,
                                                   width: 20,
                                                 ),
+                                                // 20.w,
+                                                // const CircleAvatar(
+                                                //   radius: 20,
+                                                //   backgroundImage: AssetImage(
+                                                //     'assets/images/userimg.png',
+                                                //   ),
+                                                // ),
                                                 20.w,
-                                                const CircleAvatar(
-                                                  radius: 20,
-                                                  backgroundImage: AssetImage(
-                                                    'assets/images/userimg.png',
-                                                  ),
-                                                ),
+                                                ProfileOverlayWidget(),
                                               ],
                                             ),
                                           ),

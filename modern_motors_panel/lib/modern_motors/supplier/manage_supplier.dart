@@ -5,34 +5,38 @@ import 'package:modern_motors_panel/extensions.dart';
 import 'package:modern_motors_panel/model/admin_model/country_model.dart';
 import 'package:modern_motors_panel/model/admin_model/currency_model.dart';
 import 'package:modern_motors_panel/model/customer_models/customer_models.dart';
+import 'package:modern_motors_panel/model/supplier/supplier_card_list_view.dart';
+import 'package:modern_motors_panel/model/supplier/supplier_model.dart';
 import 'package:modern_motors_panel/modern_motors/customers/add_edit_customers.dart';
 import 'package:modern_motors_panel/modern_motors/customers/client_page.dart';
 import 'package:modern_motors_panel/modern_motors/customers/customer_card_list_view.dart';
 import 'package:modern_motors_panel/modern_motors/excel/excel_exporter.dart';
 import 'package:modern_motors_panel/modern_motors/pdf/pdf_exporter.dart';
 import 'package:modern_motors_panel/modern_motors/services/data_fetch_service.dart';
+import 'package:modern_motors_panel/modern_motors/supplier/add_edit_supplier.dart';
+import 'package:modern_motors_panel/modern_motors/supplier/supplier_page.dart';
 import 'package:modern_motors_panel/modern_motors/widgets/delete_helper.dart';
 import 'package:modern_motors_panel/modern_motors/widgets/page_header_widget.dart';
 import 'package:modern_motors_panel/modern_motors/widgets/pagination_widget.dart';
 import 'package:modern_motors_panel/widgets/empty_widget.dart';
 
-class ManageCustomerPage extends StatefulWidget {
-  const ManageCustomerPage({super.key});
+class ManageSupplier extends StatefulWidget {
+  const ManageSupplier({super.key});
 
   @override
-  State<ManageCustomerPage> createState() => _ProductPageState();
+  State<ManageSupplier> createState() => _ManageSupplierState();
 }
 
-class _ProductPageState extends State<ManageCustomerPage> {
+class _ManageSupplierState extends State<ManageSupplier> {
   bool showCustomersList = true;
   bool isLoading = true;
 
-  List<CustomerModel> allCustomers = [];
+  List<SupplierModel> allSuppliers = [];
   List<CurrencyModel> allCurrencies = [];
   List<CountryModel> allCountries = [];
-  List<CustomerModel> displayedCustomers = [];
+  List<SupplierModel> displayedSuppliers = [];
 
-  CustomerModel? customerBeingEdited;
+  SupplierModel? customerBeingEdited;
   bool isClone = false;
 
   int currentPage = 0;
@@ -40,8 +44,8 @@ class _ProductPageState extends State<ManageCustomerPage> {
   Set<String> selectedCustomerIds = {};
 
   final headerColumns = [
-    "Customer Name".tr(),
-    "Customer Type".tr(),
+    "Supplier Name".tr(),
+    "Supplier Type".tr(),
     "Telephone Number".tr(),
     "Contact Number".tr(),
     "Address".tr(),
@@ -49,7 +53,7 @@ class _ProductPageState extends State<ManageCustomerPage> {
     "Currency".tr(),
   ];
 
-  List<List<dynamic>> getCustomerRowsForExcel(List<CustomerModel> customers) {
+  List<List<dynamic>> getCustomerRowsForExcel(List<SupplierModel> customers) {
     return customers.map((c) {
       final country = allCountries
           .firstWhere(
@@ -69,8 +73,8 @@ class _ProductPageState extends State<ManageCustomerPage> {
           '${c.streetAddress1}, ${c.streetAddress2},${c.state}, ${c.city}';
 
       return [
-        c.customerName,
-        c.customerType.capitalizeFirstOnly,
+        c.supplierName,
+        c.supplierType.capitalizeFirstOnly,
         c.telePhoneNumber,
         c.contactNumber,
         fullAddress,
@@ -99,35 +103,35 @@ class _ProductPageState extends State<ManageCustomerPage> {
       selectedCustomerIds.clear();
     });
 
-    await _loadCustomers();
+    await _loadSuppliers();
   }
 
   @override
   void initState() {
     super.initState();
-    _loadCustomers();
+    _loadSuppliers();
   }
 
-  void getCustomer(CustomerModel customer) {
+  void getCustomer(SupplierModel customer) {
     setState(() {
       showCustomersList = false;
       customerBeingEdited = customer;
     });
   }
 
-  void onView(CustomerModel customer) async {
+  void onView(SupplierModel supplier) async {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ClientPage(customerModel: customer),
+        builder: (context) => SupplierPage(supplierModel: supplier),
       ),
     );
     if (result == 'updated') {
-      _loadCustomers();
+      _loadSuppliers();
     }
   }
 
-  void onClone(CustomerModel customer) {
+  void onClone(SupplierModel customer) {
     setState(() {
       showCustomersList = false;
       isClone = true;
@@ -135,17 +139,17 @@ class _ProductPageState extends State<ManageCustomerPage> {
     });
   }
 
-  Future<void> _loadCustomers() async {
+  Future<void> _loadSuppliers() async {
     setState(() {
       isLoading = true;
     });
     final country = await DataFetchService.fetchCountries();
     final currency = await DataFetchService.fetchCurrencies();
 
-    final customers = await DataFetchService.fetchCustomers();
+    final suppliers = await DataFetchService.fetchSuppliers();
     setState(() {
-      allCustomers = customers;
-      displayedCustomers = customers;
+      allSuppliers = suppliers;
+      displayedSuppliers = suppliers;
       allCurrencies = currency;
       allCountries = country;
       isLoading = false;
@@ -158,7 +162,7 @@ class _ProductPageState extends State<ManageCustomerPage> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    final pagedCustomers = displayedCustomers
+    final pagedCustomers = displayedSuppliers
         .skip(currentPage * itemsPerPage)
         .take(itemsPerPage)
         .toList();
@@ -167,10 +171,10 @@ class _ProductPageState extends State<ManageCustomerPage> {
         ? Column(
             children: [
               PageHeaderWidget(
-                title: "Clients List".tr(),
-                buttonText: "Add Clients".tr(),
-                subTitle: "Manage your Clients".tr(),
-                requiredPermission: 'Add Customer',
+                title: "Supplier List".tr(),
+                buttonText: "Add Supplier".tr(),
+                subTitle: "Manage your Supplier".tr(),
+                requiredPermission: 'Add Supplier',
                 selectedItems: selectedCustomerIds.toList(),
                 buttonWidth: 0.26,
                 onCreate: () {
@@ -184,7 +188,7 @@ class _ProductPageState extends State<ManageCustomerPage> {
                   await PdfExporter.exportToPdf(
                     headers: headerColumns,
                     rows: rowsToExport,
-                    fileNamePrefix: 'Customer_Details_Report',
+                    fileNamePrefix: 'Supplier_Details_Report',
                   );
                 },
                 onExelImport: () async {
@@ -192,16 +196,16 @@ class _ProductPageState extends State<ManageCustomerPage> {
                   await ExcelExporter.exportToExcel(
                     headers: headerColumns,
                     rows: rowsToExport,
-                    fileNamePrefix: 'Customer_Details_Report',
+                    fileNamePrefix: 'Supplier_Details_Report',
                   );
                 },
               ),
 
-              allCustomers.isEmpty
-                  ? EmptyWidget(text: "There's no customers available".tr())
+              allSuppliers.isEmpty
+                  ? EmptyWidget(text: "There's no Supplier available".tr())
                   : Expanded(
-                      child: CustomerCardListView(
-                        customersList: pagedCustomers,
+                      child: SupplierCardListView(
+                        suppliersList: pagedCustomers,
                         selectedIds: selectedCustomerIds,
                         onEdit: getCustomer,
                         onClone: onClone,
@@ -209,7 +213,7 @@ class _ProductPageState extends State<ManageCustomerPage> {
                       ),
                     ),
 
-              // : DynamicDataTable<CustomerModel>(
+              // : DynamicDataTable<SupplierModel>(
               //   data: pagedCustomers,
               //   editProfileAccessKey: 'Edit Customer',
               //   deleteProfileAccessKey: 'Delete Customer',
@@ -264,7 +268,7 @@ class _ProductPageState extends State<ManageCustomerPage> {
               //       context,
               //       MaterialPageRoute(
               //         builder:
-              //             (context) => ClientPage(customerModel: customer),
+              //             (context) => ClientPage(SupplierModel: customer),
               //       ),
               //     );
               //   },
@@ -305,7 +309,7 @@ class _ProductPageState extends State<ManageCustomerPage> {
               //   },
               //   onSearch: (query) {
               //     setState(() {
-              //       displayedCustomers =
+              //       displayedSuppliers =
               //           allCustomers
               //               .where(
               //                 (v) => v.customerName.toLowerCase().contains(
@@ -320,7 +324,7 @@ class _ProductPageState extends State<ManageCustomerPage> {
                 alignment: Alignment.topRight,
                 child: PaginationWidget(
                   currentPage: currentPage,
-                  totalItems: allCustomers.length,
+                  totalItems: allSuppliers.length,
                   itemsPerPage: itemsPerPage,
                   onPageChanged: (newPage) {
                     setState(() {
@@ -336,12 +340,12 @@ class _ProductPageState extends State<ManageCustomerPage> {
               ),
             ],
           )
-        : AddEditCustomer(
+        : AddEditSupplier(
             isEdit: customerBeingEdited != null,
-            customerModel: customerBeingEdited,
+            supplierModel: customerBeingEdited,
             isClone: isClone,
             onBack: () async {
-              await _loadCustomers();
+              await _loadSuppliers();
               setState(() {
                 showCustomersList = true;
                 customerBeingEdited = null;
@@ -352,7 +356,7 @@ class _ProductPageState extends State<ManageCustomerPage> {
   }
 }
 
-// class ManageCustomerPage extends StatefulWidget {
+// class ManageSupplier extends StatefulWidget {
 //   const ManageCustomerPage({super.key});
 
 //   @override
@@ -362,11 +366,11 @@ class _ProductPageState extends State<ManageCustomerPage> {
 // class _ProductPageState extends State<ManageCustomerPage> {
 //   bool showCustomersList = true;
 //   bool isLoading = true;
-//   List<CustomerModel> allCustomers = [];
+//   List<SupplierModel> allCustomers = [];
 //   List<CurrencyModel> allCurrencies = [];
 //   List<CountryModel> allCountries = [];
-//   List<CustomerModel> displayedCustomers = [];
-//   CustomerModel? customerBeingEdited;
+//   List<SupplierModel> displayedSuppliers = [];
+//   SupplierModel? customerBeingEdited;
 //   int currentPage = 0;
 //   int itemsPerPage = 10;
 //   Set<String> selectedCustomerIds = {};
@@ -381,7 +385,7 @@ class _ProductPageState extends State<ManageCustomerPage> {
 //     "Currency".tr(),
 //   ];
 
-//   List<List<dynamic>> getCustomerRowsForExcel(List<CustomerModel> customers) {
+//   List<List<dynamic>> getCustomerRowsForExcel(List<SupplierModel> customers) {
 //     return customers.map((c) {
 //       final country = allCountries
 //           .firstWhere(
@@ -450,7 +454,7 @@ class _ProductPageState extends State<ManageCustomerPage> {
 //     final customers = await DataFetchService.fetchCustomers();
 //     setState(() {
 //       allCustomers = customers;
-//       displayedCustomers = customers;
+//       displayedSuppliers = customers;
 //       allCurrencies = currency;
 //       allCountries = country;
 //       isLoading = false;
@@ -463,7 +467,7 @@ class _ProductPageState extends State<ManageCustomerPage> {
 //       return const Center(child: CircularProgressIndicator());
 //     }
 
-//     final pagedProducts = displayedCustomers
+//     final pagedProducts = displayedSuppliers
 //         .skip(currentPage * itemsPerPage)
 //         .take(itemsPerPage)
 //         .toList();
@@ -503,7 +507,7 @@ class _ProductPageState extends State<ManageCustomerPage> {
 //                 ),
 //                 allCustomers.isEmpty
 //                     ? EmptyWidget(text: "There's no customers available".tr())
-//                     : DynamicDataTable<CustomerModel>(
+//                     : DynamicDataTable<SupplierModel>(
 //                         data: pagedProducts,
 //                         isWithImage: true,
 //                         combineImageWithTextIndex: 0,
@@ -564,7 +568,7 @@ class _ProductPageState extends State<ManageCustomerPage> {
 //                         },
 //                         onSearch: (query) {
 //                           setState(() {
-//                             displayedCustomers = allCustomers
+//                             displayedSuppliers = allCustomers
 //                                 .where(
 //                                   (v) => v.customerName.toLowerCase().contains(
 //                                     query.toLowerCase(),
@@ -597,7 +601,7 @@ class _ProductPageState extends State<ManageCustomerPage> {
 //           )
 //         : AddEditCustomer(
 //             isEdit: customerBeingEdited != null,
-//             customerModel: customerBeingEdited,
+//             SupplierModel: customerBeingEdited,
 //             onBack: () async {
 //               await _loadProducts();
 //               setState(() {

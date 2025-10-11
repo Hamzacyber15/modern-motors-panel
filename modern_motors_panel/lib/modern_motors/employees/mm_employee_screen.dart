@@ -7,6 +7,7 @@ import 'package:modern_motors_panel/model/hr_models/employees/emlpoyee_model.dar
 import 'package:modern_motors_panel/modern_motors/employees/access_role_permission_page.dart';
 import 'package:modern_motors_panel/modern_motors/employees/profile_detail.dart';
 import 'package:modern_motors_panel/provider/connectivity_provider.dart';
+import 'package:modern_motors_panel/widgets/employee_branch_drop_down';
 import 'package:provider/provider.dart';
 
 class MmEmployeeScreen extends StatefulWidget {
@@ -30,6 +31,7 @@ class MmEmployeeScreen extends StatefulWidget {
 class _EmployeeProfileDetailScreenState extends State<MmEmployeeScreen> {
   late EmployeeModel employee;
   bool isLoading = false;
+  String? selectedBranchId;
 
   @override
   void initState() {
@@ -53,18 +55,41 @@ class _EmployeeProfileDetailScreenState extends State<MmEmployeeScreen> {
           .doc(employee.id)
           .get();
       if (snapshot.exists) {
-        final data = snapshot.data() as Map<String, dynamic>? ?? {};
-        final savedPermissions =
-            (data['profileAccessKey'] as List<dynamic>?)
-                ?.map((e) => e.toString())
-                .toList() ??
-            <String>[];
-        setState(() => employee.profileAccessKey = savedPermissions);
+        // final data = snapshot.data() as Map<String, dynamic>? ?? {};
+        EmployeeModel employeeModel = EmployeeModel.fromMap(snapshot);
+        employee.permissions = employeeModel.permissions;
+        setState(() {});
+        // final savedPermissions =
+        //     (data['profileAccessKey'] as List<dynamic>?)
+        //         ?.map((e) => e.toString())
+        //         .toList() ??
+        //     <String>[];
+        // setState(() => employee.profileAccessKey = savedPermissions);
       }
     } catch (e) {
       debugPrint('Error reloading employee: $e');
     }
   }
+
+  // Future<void> _reloadEmployeeData() async {
+  //   try {
+  //     final snapshot = await FirebaseFirestore.instance
+  //         .collection('mmEmployees')
+  //         .doc(employee.id)
+  //         .get();
+  //     if (snapshot.exists) {
+  //       final data = snapshot.data() as Map<String, dynamic>? ?? {};
+  //       final savedPermissions =
+  //           (data['profileAccessKey'] as List<dynamic>?)
+  //               ?.map((e) => e.toString())
+  //               .toList() ??
+  //           <String>[];
+  //       setState(() => employee.profileAccessKey = savedPermissions);
+  //     }
+  //   } catch (e) {
+  //     debugPrint('Error reloading employee: $e');
+  //   }
+  // }
 
   String truncateAtWord(String text, int maxLength) {
     if (text.length <= maxLength) return text;
@@ -182,14 +207,15 @@ class _EmployeeProfileDetailScreenState extends State<MmEmployeeScreen> {
                               ),
                             ),
                             onPressed:
-                                (employee.profileAccessKey != null &&
-                                    employee.profileAccessKey!.isNotEmpty)
+                                (employee.permissions == null &&
+                                    employee.profileAccessKey!.isEmpty)
                                 ? null
                                 : () async {
                                     final updatedPermissions =
                                         await AccessRolePermissionPage.open(
                                           context,
                                           employeeId: employee.id,
+                                          employeeModel: employee,
                                           selected:
                                               employee.profileAccessKey ?? [],
                                         );
@@ -203,9 +229,10 @@ class _EmployeeProfileDetailScreenState extends State<MmEmployeeScreen> {
                                       await _reloadEmployeeData();
                                     }
                                   },
+
                             child: Text(
-                              (employee.profileAccessKey != null &&
-                                      employee.profileAccessKey!.isNotEmpty)
+                              (employee.permissions != null &&
+                                      employee.permissions!.isNotEmpty)
                                   ? "Assigned"
                                   : "Assign Permission",
                               style: TextStyle(
@@ -354,61 +381,144 @@ class _EmployeeProfileDetailScreenState extends State<MmEmployeeScreen> {
                                   fontSize: 14,
                                 ),
                               ),
-                              if (employee.profileAccessKey != null &&
-                                  employee.profileAccessKey!.isNotEmpty)
+                              SizedBox(
+                                width: context.width * 0.2,
+                                child: EmployeeBranchDropdown(
+                                  employee: employee,
+                                  onBranchSelected: (branchId) {
+                                    selectedBranchId = branchId;
+                                    setState(() {});
+                                    debugPrint("Selected branchId: $branchId");
+                                  },
+                                ),
+                              ),
+                              if (employee.permissions != null &&
+                                  employee.permissions!.isNotEmpty)
                                 IconButton(
                                   icon: Image.asset(
-                                    'assets/images/edit_icon.png',
+                                    'assets/icons/edit_icon.png',
                                     height: 18,
                                   ),
                                   tooltip: "Edit Permissions",
                                   onPressed: () async {
-                                    final updatedPermissions =
-                                        await AccessRolePermissionPage.open(
-                                          context,
-                                          employeeId: employee.id,
-                                          selected:
-                                              employee.profileAccessKey ?? [],
-                                        );
+                                    // final updatedPermissions =
+                                    await AccessRolePermissionPage.open(
+                                      context,
+                                      employeeId: employee.id,
+                                      employeeModel: employee,
+                                      selected: employee.profileAccessKey ?? [],
+                                    );
+                                    await _reloadEmployeeData();
 
-                                    if (updatedPermissions != null) {
-                                      setState(() {
-                                        employee.profileAccessKey =
-                                            updatedPermissions;
-                                      });
-                                      await _reloadEmployeeData();
-                                    }
+                                    // if (updatedPermissions != null) {
+                                    //   setState(() {
+                                    //     employee.permissions =
+                                    //         updatedPermissions;
+                                    //   });
+                                    //   await _reloadEmployeeData();
+                                    // }
                                   },
                                 ),
+
+                              // if (employee.profileAccessKey != null &&
+                              //     employee.profileAccessKey!.isNotEmpty)
+                              //   IconButton(
+                              //     icon: Image.asset(
+                              //       'assets/images/edit_icon.png',
+                              //       height: 18,
+                              //     ),
+                              //     tooltip: "Edit Permissions",
+                              //     onPressed: () async {
+                              //       final updatedPermissions =
+                              //           await AccessRolePermissionPage.open(
+                              //             context,
+                              //             employeeId: employee.id,
+                              //             selected:
+                              //                 employee.profileAccessKey ?? [],
+                              //           );
+
+                              //       if (updatedPermissions != null) {
+                              //         setState(() {
+                              //           employee.profileAccessKey =
+                              //               updatedPermissions;
+                              //         });
+                              //         await _reloadEmployeeData();
+                              //       }
+                              //     },
+                              //   ),
                             ],
                           ),
                         ),
                         Padding(
                           padding: const EdgeInsets.all(16.0),
-                          child:
-                              employee.profileAccessKey != null &&
-                                  employee.profileAccessKey!.isNotEmpty
-                              ? Wrap(
-                                  spacing: 8,
-                                  runSpacing: 8,
-                                  children: employee.profileAccessKey!
-                                      .map(
-                                        (perm) => Chip(
-                                          label: Text(perm),
-                                          backgroundColor: Colors.blue.shade50,
-                                          labelStyle: const TextStyle(
-                                            color: Colors.black87,
-                                            fontWeight: FontWeight.w500,
-                                          ),
+                          child: Builder(
+                            builder: (context) {
+                              // selected branch ka permissions nikaalna
+                              final branchPermissions =
+                                  employee.permissions
+                                      ?.firstWhere(
+                                        (p) => p.branchId == selectedBranchId,
+                                        orElse: () => Permissions(
+                                          branchId: selectedBranchId ?? '',
+                                          permission: [],
                                         ),
                                       )
-                                      .toList(),
-                                )
-                              : const Text(
+                                      .permission ??
+                                  [];
+
+                              if (branchPermissions.isEmpty) {
+                                return const Text(
                                   "No permissions assigned",
                                   style: TextStyle(color: Colors.grey),
-                                ),
+                                );
+                              }
+
+                              return Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: branchPermissions
+                                    .map(
+                                      (perm) => Chip(
+                                        label: Text(perm),
+                                        backgroundColor: Colors.blue.shade50,
+                                        labelStyle: const TextStyle(
+                                          color: Colors.black87,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    )
+                                    .toList(),
+                              );
+                            },
+                          ),
                         ),
+
+                        // Padding(
+                        //   padding: const EdgeInsets.all(16.0),
+                        //   child:
+                        //       employee.profileAccessKey != null &&
+                        //           employee.profileAccessKey!.isNotEmpty
+                        //       ? Wrap(
+                        //           spacing: 8,
+                        //           runSpacing: 8,
+                        //           children: employee.profileAccessKey!
+                        //               .map(
+                        //                 (perm) => Chip(
+                        //                   label: Text(perm),
+                        //                   backgroundColor: Colors.blue.shade50,
+                        //                   labelStyle: const TextStyle(
+                        //                     color: Colors.black87,
+                        //                     fontWeight: FontWeight.w500,
+                        //                   ),
+                        //                 ),
+                        //               )
+                        //               .toList(),
+                        //         )
+                        //       : const Text(
+                        //           "No permissions assigned",
+                        //           style: TextStyle(color: Colors.grey),
+                        //         ),
+                        // ),
                       ],
                     ),
                   ),

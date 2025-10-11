@@ -82,6 +82,7 @@ class Constants {
   static String language = "";
   static double vat = 5;
   static String adminId = "dVaqI5nCKQZnlqhiqNQyXAERJbG3";
+  static final String mainBranchId = 'NRHLuRZIA2AMZXjW4TDI';
   static bool deposit = false;
   static double depositAmount = 0;
   static double driverCommission = 0.25;

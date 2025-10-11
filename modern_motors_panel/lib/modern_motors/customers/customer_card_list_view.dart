@@ -1,25 +1,28 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:modern_motors_panel/constants.dart';
 import 'package:modern_motors_panel/extensions.dart';
-import 'package:modern_motors_panel/model/branches/branch_model.dart';
+import 'package:modern_motors_panel/model/customer_models/customer_models.dart';
+import 'package:modern_motors_panel/model/hr_models/employees/emlpoyee_model.dart';
 import 'package:modern_motors_panel/model/hr_models/employees/employees_filter_model.dart';
-import 'package:modern_motors_panel/model/profile_models/public_profile_model.dart';
+import 'package:modern_motors_panel/modern_motors/branch/branches_card_list_view.dart';
 import 'package:modern_motors_panel/modern_motors/products/product_card.dart';
 import 'package:modern_motors_panel/modern_motors/widgets/build_filter_chip.dart';
 import 'package:modern_motors_panel/modern_motors/widgets/table_image_widget.dart';
 import 'package:modern_motors_panel/provider/modern_motors/mm_resource_provider.dart';
+import 'package:modern_motors_panel/services/local/branch_id_sp.dart';
 import 'package:provider/provider.dart';
 
-class BranchesCard extends StatelessWidget {
-  final BranchModel branchModel;
+class CustomerCard extends StatelessWidget {
+  final CustomerModel customerModel;
   final bool isSelected;
   final VoidCallback? onTap;
   final Function(ProductAction)? onActionSelected;
   final Function(bool?)? onSelectChanged;
 
-  const BranchesCard({
+  const CustomerCard({
     super.key,
-    required this.branchModel,
+    required this.customerModel,
     this.isSelected = false,
     this.onTap,
     this.onActionSelected,
@@ -29,7 +32,7 @@ class BranchesCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 85, // Increased height from 65 to 85
+      height: 100, // Increased height from 65 to 85
       margin: const EdgeInsets.only(bottom: 6),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -75,29 +78,30 @@ class BranchesCard extends StatelessWidget {
               ],
 
               Expanded(
-                flex: 1,
+                flex: 2,
                 child: Row(
                   children: [
-                    TableImageWidget(imageUrl: branchModel.imageUrl ?? ''),
+                    TableImageWidget(imageUrl: customerModel.imageUrl ?? ''),
                     12.w,
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          '${branchModel.branchName} - V${branchModel.code}',
+                          '${customerModel.customerName}-CL${customerModel.codeNumber}',
                           style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                             color: Color(0xFF1a202c),
                           ),
+                          softWrap: true,
                           maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                          overflow: TextOverflow.fade,
                         ),
                         1.h,
                         buildWidget(
-                          title: 'Address',
-                          value: branchModel.address ?? '',
+                          title: 'Type',
+                          value: customerModel.customerType,
                           color: Color(0xff23af01),
                           removeColor: false,
                         ),
@@ -106,24 +110,44 @@ class BranchesCard extends StatelessWidget {
                   ],
                 ),
               ),
-              70.w,
+              50.w,
               Expanded(
-                flex: 1,
-                child: Text(
-                  branchModel.description ?? 'No Description',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF1a202c),
-                  ),
-                  softWrap: true,
+                flex: 2,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Row(
+                      children: [
+                        if (customerModel.contactNumber.isNotEmpty)
+                          buildWidget(
+                            title: 'Mobile',
+                            icon: Icons.call,
+                            value: customerModel.contactNumber,
+                            color: Color(0xff268291),
+                          ),
+                        if (customerModel.telePhoneNumber.isNotEmpty)
+                          buildWidget(
+                            title: 'Whatsapp',
+                            icon: Icons.mobile_friendly_sharp,
+                            value: customerModel.telePhoneNumber,
+                            color: Color(0xff268291),
+                          ),
+                      ],
+                    ),
+
+                    if (customerModel.emailAddress.isNotEmpty)
+                      buildWidget(
+                        title: 'Email',
+                        icon: Icons.email,
+                        value: customerModel.emailAddress,
+                        color: Color(0xff268291),
+                      ),
+                  ],
                 ),
               ),
-              30.w,
-              Expanded(
-                flex: 1,
-                child: storeManager(branchModel.storeManager ?? ''),
-              ),
+              20.w,
+              Expanded(flex: 2, child: countryCurrency(customerModel)),
               Expanded(
                 flex: 1,
                 child: Column(
@@ -132,7 +156,7 @@ class BranchesCard extends StatelessWidget {
                   children: [
                     Text(
                       DateFormat('MMM dd').format(
-                        branchModel.timestamp?.toDate() ?? DateTime.now(),
+                        customerModel.timestamp?.toDate() ?? DateTime.now(),
                       ),
                       style: TextStyle(
                         fontSize: 12,
@@ -152,7 +176,7 @@ class BranchesCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(3),
                       ),
                       child: Text(
-                        (branchModel.status ?? 'No Status').toUpperCase(),
+                        (customerModel.status).toUpperCase(),
                         style: TextStyle(
                           color: _getStatusColor(),
                           fontSize: 10,
@@ -166,53 +190,90 @@ class BranchesCard extends StatelessWidget {
 
               const SizedBox(width: 8),
 
-              // Action Dropdown Menu
-              PopupMenuButton<ProductAction>(
-                onSelected: (ProductAction action) {
-                  if (onActionSelected != null) {
-                    onActionSelected!(action);
-                  }
+              Consumer<MmResourceProvider>(
+                builder: (context, resource, child) {
+                  final branchId = BranchIdSp.getBranchId();
+                  final allPermissions =
+                      resource.employeeModel?.permissions ??
+                      []; // List<Permissions>
+                  final branchPermissionModel = allPermissions.firstWhere(
+                    (p) => p.branchId == branchId,
+                    orElse: () =>
+                        Permissions(branchId: branchId, permission: []),
+                  );
+
+                  final branchPermissions = branchPermissionModel.permission;
+                  return PopupMenuButton<ProductAction>(
+                    onSelected: (ProductAction action) {
+                      if (onActionSelected != null) {
+                        onActionSelected!(action);
+                      }
+                    },
+                    icon: Icon(
+                      Icons.more_vert,
+                      size: 18,
+                      color: Colors.grey.shade600,
+                    ),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 0),
+                    itemBuilder: (BuildContext context) => [
+                      if (branchPermissions.contains('View Customer'))
+                        PopupMenuItem<ProductAction>(
+                          value: ProductAction.view,
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.visibility,
+                                size: 18,
+                                color: Colors.blue,
+                              ),
+                              const SizedBox(width: 8),
+                              Text('View'),
+                            ],
+                          ),
+                        ),
+                      if (branchPermissions.contains('Edit Customer') ||
+                          Constants.profile.role == "admin")
+                        PopupMenuItem<ProductAction>(
+                          value: ProductAction.edit,
+                          child: Row(
+                            children: [
+                              Icon(Icons.edit, size: 18, color: Colors.green),
+                              const SizedBox(width: 8),
+                              Text('Edit'),
+                            ],
+                          ),
+                        ),
+                      PopupMenuItem<ProductAction>(
+                        value: ProductAction.clone,
+                        child: Row(
+                          children: [
+                            Icon(Icons.copy, size: 18, color: Colors.grey),
+                            const SizedBox(width: 8),
+                            Text('Clone'),
+                          ],
+                        ),
+                      ),
+
+                      if (branchPermissions.contains('Delete Customer')) ...[
+                        const PopupMenuDivider(),
+                        PopupMenuItem<ProductAction>(
+                          value: ProductAction.delete,
+                          child: Row(
+                            children: [
+                              Icon(Icons.delete, size: 16, color: Colors.red),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Delete',
+                                style: TextStyle(color: Colors.red),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  );
                 },
-                icon: Icon(
-                  Icons.more_vert,
-                  size: 18,
-                  color: Colors.grey.shade600,
-                ),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 0),
-                itemBuilder: (BuildContext context) => [
-                  PopupMenuItem<ProductAction>(
-                    value: ProductAction.view,
-                    child: Row(
-                      children: [
-                        Icon(Icons.visibility, size: 18, color: Colors.blue),
-                        const SizedBox(width: 8),
-                        Text('View'),
-                      ],
-                    ),
-                  ),
-                  PopupMenuItem<ProductAction>(
-                    value: ProductAction.edit,
-                    child: Row(
-                      children: [
-                        Icon(Icons.edit, size: 18, color: Colors.green),
-                        const SizedBox(width: 8),
-                        Text('Edit'),
-                      ],
-                    ),
-                  ),
-                  const PopupMenuDivider(),
-                  PopupMenuItem<ProductAction>(
-                    value: ProductAction.delete,
-                    child: Row(
-                      children: [
-                        Icon(Icons.delete, size: 16, color: Colors.red),
-                        const SizedBox(width: 8),
-                        Text('Delete', style: TextStyle(color: Colors.red)),
-                      ],
-                    ),
-                  ),
-                ],
               ),
             ],
           ),
@@ -222,7 +283,7 @@ class BranchesCard extends StatelessWidget {
   }
 
   Color _getStatusColor() {
-    switch (branchModel.status?.toLowerCase() ?? 'No Status') {
+    switch (customerModel.status.toLowerCase()) {
       case 'active':
         return Colors.green;
       case 'inactive':
@@ -235,34 +296,38 @@ class BranchesCard extends StatelessWidget {
   }
 }
 
-class BranchesCardListView extends StatefulWidget {
-  final List<BranchModel> branchList;
+class CustomerCardListView extends StatefulWidget {
+  final List<CustomerModel> customersList;
   final bool enableSearch;
   final Set<String> selectedIds;
   final Function onEdit;
+  final Function onClone;
+  final Function onView;
 
-  const BranchesCardListView({
+  const CustomerCardListView({
     super.key,
-    required this.branchList,
+    required this.customersList,
     this.enableSearch = true,
     required this.selectedIds,
     required this.onEdit,
+    required this.onClone,
+    required this.onView,
   });
 
   @override
-  State<BranchesCardListView> createState() => _EmployeeCardListViewState();
+  State<CustomerCardListView> createState() => _EmployeeCardListViewState();
 }
 
-class _EmployeeCardListViewState extends State<BranchesCardListView> {
+class _EmployeeCardListViewState extends State<CustomerCardListView> {
   final TextEditingController _searchController = TextEditingController();
-  List<BranchModel> _filteredBranch = [];
+  List<CustomerModel> _filteredCustomer = [];
   String _searchQuery = '';
   EmployeeFilterModel tempFilter = EmployeeFilterModel();
 
   @override
   void initState() {
     super.initState();
-    _filteredBranch = widget.branchList;
+    _filteredCustomer = widget.customersList;
     _searchController.addListener(_onSearchChanged);
   }
 
@@ -276,58 +341,70 @@ class _EmployeeCardListViewState extends State<BranchesCardListView> {
   void _onSearchChanged() {
     setState(() {
       _searchQuery = _searchController.text;
-      _filterVendor();
+      _filterCustomer();
     });
   }
 
-  void selectVendor(BranchModel branch) {
+  void selectCustomer(CustomerModel customer) {
     setState(() {
-      widget.onEdit(branch);
+      widget.onEdit(customer);
+    });
+  }
+
+  void onCloneGetCustomer(CustomerModel customer) {
+    setState(() {
+      widget.onClone(customer);
+    });
+  }
+
+  void onViewGetCustomer(CustomerModel customer) {
+    setState(() {
+      widget.onView(customer);
     });
   }
 
   @override
-  void didUpdateWidget(BranchesCardListView oldWidget) {
+  void didUpdateWidget(CustomerCardListView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.branchList != widget.branchList) {
-      _filterVendor();
+    if (oldWidget.customersList != widget.customersList) {
+      _filterCustomer();
     }
   }
 
-  void _handleActionSelected(BranchModel branch, ProductAction action) {
+  void _handleActionSelected(CustomerModel customer, ProductAction action) {
     switch (action) {
       case ProductAction.inventoryLogs:
-        debugPrint('Inventory Logs: ${branch.branchName}');
+        debugPrint('Inventory Logs: ${customer.customerName}');
         break;
       case ProductAction.inventoryBatch:
-        debugPrint('Inventory Batches: ${branch.branchName}');
+        debugPrint('Inventory Batches: ${customer.customerName}');
         break;
       case ProductAction.edit:
-        selectVendor(branch);
-        debugPrint('Edit product: ${branch.branchName}');
+        selectCustomer(customer);
+        debugPrint('Edit product: ${customer.customerName}');
         break;
       case ProductAction.addNew:
-        debugPrint('Add inventory: ${branch.branchName}');
+        debugPrint('Add inventory: ${customer.customerName}');
         break;
       case ProductAction.view:
-        debugPrint('view inventory: ${branch.branchName}');
+        onViewGetCustomer(customer);
         break;
       case ProductAction.delete:
-        _showDeleteConfirmation(branch);
+        _showDeleteConfirmation(customer);
         break;
       case ProductAction.clone:
-        _showDeleteConfirmation(branch);
+        onCloneGetCustomer(customer);
         break;
     }
   }
 
-  void _showDeleteConfirmation(BranchModel branch) {
+  void _showDeleteConfirmation(CustomerModel customer) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Delete Branch'),
+        title: Text('Delete Client'),
         content: Text(
-          'Are you sure you want to delete "${branch.branchName}"?',
+          'Are you sure you want to delete "${customer.customerName}"?',
         ),
         actions: [
           TextButton(
@@ -338,7 +415,7 @@ class _EmployeeCardListViewState extends State<BranchesCardListView> {
             onPressed: () {
               Navigator.pop(context);
               // Perform delete action
-              debugPrint('Deleted Branch : ${branch.branchName}');
+              debugPrint('Deleted Client : ${customer.customerName}');
             },
             child: Text('Delete', style: TextStyle(color: Colors.red)),
           ),
@@ -347,36 +424,32 @@ class _EmployeeCardListViewState extends State<BranchesCardListView> {
     );
   }
 
-  void _filterVendor() {
+  void _filterCustomer() {
     if (_searchQuery.isEmpty) {
-      _filteredBranch = widget.branchList;
+      _filteredCustomer = widget.customersList;
     } else {
-      final provider = context.read<MmResourceProvider>();
       final searchLower = _searchQuery.toLowerCase();
 
-      _filteredBranch = widget.branchList.where((branch) {
-        final nameMatch = branch.branchName.toLowerCase().contains(searchLower);
-        final manager = provider.profiles.firstWhere(
-          (d) => d.id == branch.storeManager,
-          orElse: () => PublicProfileModel.getEmptyProfile(),
-        );
-        final managerName = manager.userName.toLowerCase();
-        final managerMatch = managerName.contains(searchLower);
-        final codeMatch = branch.code.toString().toLowerCase().contains(
+      _filteredCustomer = widget.customersList.where((customer) {
+        final nameMatch = customer.customerName.toLowerCase().contains(
           searchLower,
         );
-        final descriptionMatch = branch.description
-            .toString()
-            .toLowerCase()
-            .contains(searchLower);
+        final emailMatch = customer.emailAddress.toLowerCase().contains(
+          searchLower,
+        );
+        // final crNumberMatch = customer.crNumber!.toLowerCase().contains(
+        //   searchLower,
+        // );
+        final codeMatch = customer.codeNumber.toString().toLowerCase().contains(
+          searchLower,
+        );
 
-        final statusMatch = branch.status!.toLowerCase().contains(searchLower);
+        final statusMatch = customer.status.toLowerCase().contains(searchLower);
 
-        return nameMatch ||
-            codeMatch ||
-            statusMatch ||
-            managerMatch ||
-            descriptionMatch;
+        return nameMatch || codeMatch || statusMatch || emailMatch
+        // ||
+        // crNumberMatch
+        ;
       }).toList();
     }
   }
@@ -398,8 +471,7 @@ class _EmployeeCardListViewState extends State<BranchesCardListView> {
                     child: TextField(
                       controller: _searchController,
                       decoration: InputDecoration(
-                        hintText:
-                            'Search by name, code, description or store manager',
+                        hintText: 'Search by name, code, email or CR Number',
                         hintStyle: TextStyle(
                           fontSize: 14,
                           color: Colors.grey.shade500,
@@ -445,56 +517,6 @@ class _EmployeeCardListViewState extends State<BranchesCardListView> {
                     ),
                   ),
                 ),
-              // SizedBox(
-              //   height: 50,
-              //   child: ElevatedButton.icon(
-              //     onPressed: () async {
-              //       await showDialog(
-              //         context: context,
-              //         builder: (_) {
-              //           return employeeFilterWidget(context, tempFilter, () {
-              //             Navigator.pop(context);
-              //             // _applyFilters(tempFilter);
-              //           });
-              //         },
-              //       );
-              //     },
-              //     icon: Icon(
-              //       Icons.filter_list,
-              //       size: 20,
-              //       color:
-              //           tempFilter.hasActiveFilters
-              //               ? Colors.white
-              //               : Colors.grey.shade700,
-              //     ),
-              //     label: Text(
-              //       'Filter${tempFilter.hasActiveFilters ? ' (${_getActiveFilterCount()})' : ''}',
-              //       style: TextStyle(
-              //         color:
-              //             tempFilter.hasActiveFilters
-              //                 ? Colors.white
-              //                 : Colors.grey.shade700,
-              //         fontWeight: FontWeight.w500,
-              //       ),
-              //     ),
-              //     style: ElevatedButton.styleFrom(
-              //       backgroundColor:
-              //           tempFilter.hasActiveFilters
-              //               ? Theme.of(context).primaryColor
-              //               : Colors.grey.shade100,
-              //       elevation: tempFilter.hasActiveFilters ? 2 : 0,
-              //       shape: RoundedRectangleBorder(
-              //         borderRadius: BorderRadius.circular(8),
-              //         side: BorderSide(
-              //           color:
-              //               tempFilter.hasActiveFilters
-              //                   ? Theme.of(context).primaryColor
-              //                   : Colors.grey.shade300,
-              //         ),
-              //       ),
-              //     ),
-              //   ),
-              // ),
             ],
           ),
         ),
@@ -549,7 +571,7 @@ class _EmployeeCardListViewState extends State<BranchesCardListView> {
                   setState(() {
                     tempFilter.clear();
                     _searchQuery = '';
-                    _filteredBranch = widget.branchList;
+                    _filteredCustomer = widget.customersList;
                   });
                 }, isClearAll: true),
               ],
@@ -563,7 +585,7 @@ class _EmployeeCardListViewState extends State<BranchesCardListView> {
             child: Row(
               children: [
                 Text(
-                  'Found ${_filteredBranch.length} Vendor${_filteredBranch.length != 1 ? 's' : ''}',
+                  'Found ${_filteredCustomer.length} Vendor${_filteredCustomer.length != 1 ? 's' : ''}',
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.grey.shade600,
@@ -602,24 +624,23 @@ class _EmployeeCardListViewState extends State<BranchesCardListView> {
               85.w,
               // Image space
               Expanded(
-                flex: 1,
-                child: Text('Branch Info', style: _headerStyle()),
+                flex: 2,
+                child: Text('Client Info', style: headerStyle()),
               ),
               Expanded(
-                flex: 1,
-                child: Text('Description', style: _headerStyle()),
+                flex: 2,
+                child: Text('Contact Info', style: headerStyle()),
               ),
 
               Expanded(
-                flex: 1,
-                child: Text('Store Manager', style: _headerStyle()),
+                flex: 2,
+                child: Text('Country\nCurrency', style: headerStyle()),
               ),
-
               Expanded(
                 flex: 1,
                 child: Text(
                   'Created Info',
-                  style: _headerStyle(),
+                  style: headerStyle(),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -633,19 +654,19 @@ class _EmployeeCardListViewState extends State<BranchesCardListView> {
 
         // Products List
         Expanded(
-          child: _filteredBranch.isEmpty
+          child: _filteredCustomer.isEmpty
               ? _buildEmptyState()
               : ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: _filteredBranch.length,
+                  itemCount: _filteredCustomer.length,
                   itemBuilder: (context, index) {
-                    final branch = _filteredBranch[index];
+                    final customer = _filteredCustomer[index];
 
-                    return BranchesCard(
-                      branchModel: branch,
-                      isSelected: widget.selectedIds.contains(branch.id),
+                    return CustomerCard(
+                      customerModel: customer,
+                      isSelected: widget.selectedIds.contains(customer.id),
                       onActionSelected: (p0) {
-                        _handleActionSelected(branch, p0);
+                        _handleActionSelected(customer, p0);
                       },
                       onSelectChanged: (p0) {},
                       // onSelectChanged:
@@ -656,15 +677,6 @@ class _EmployeeCardListViewState extends State<BranchesCardListView> {
         ),
       ],
     );
-  }
-
-  int _getActiveFilterCount() {
-    int count = 0;
-    if (tempFilter.status != null) count++;
-    if (tempFilter.branchId != null) count++;
-    if (tempFilter.designationId != null) count++;
-    if (tempFilter.permission != null) count++;
-    return count;
   }
 
   Widget _buildEmptyState() {
@@ -682,8 +694,8 @@ class _EmployeeCardListViewState extends State<BranchesCardListView> {
           const SizedBox(height: 16),
           Text(
             _searchQuery.isNotEmpty
-                ? 'No products found for "$_searchQuery"'
-                : 'No products available',
+                ? 'No Clients found for "$_searchQuery"'
+                : 'No Client available',
             style: TextStyle(
               fontSize: 16,
               color: Colors.grey.shade600,
@@ -694,80 +706,40 @@ class _EmployeeCardListViewState extends State<BranchesCardListView> {
           Text(
             _searchQuery.isNotEmpty
                 ? 'Try searching with different keywords'
-                : 'Add your first product to get started',
+                : 'Add your first client to get started',
             style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
           ),
         ],
       ),
     );
   }
-
-  TextStyle _headerStyle() {
-    return TextStyle(
-      fontSize: 14,
-      fontWeight: FontWeight.w700,
-      color: Colors.grey.shade700,
-    );
-  }
 }
 
-Widget buildWidget({
-  required String title,
-  required String value,
-  required Color color,
-  IconData? icon,
-  bool removeColor = true,
-}) {
-  return Container(
-    margin: const EdgeInsets.only(bottom: 4),
-    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-    decoration: BoxDecoration(
-      color: removeColor
-          ? Colors.grey.withValues(alpha: 0.1)
-          : color.withValues(alpha: 0.1),
-      borderRadius: BorderRadius.circular(4),
-    ),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (icon != null) ...[
-          Icon(icon, size: 12, color: color),
-          const SizedBox(width: 2),
-        ],
-        Text(
-          icon != null ? value : '$title: $value',
-          style: TextStyle(
-            fontSize: 14,
-            color: removeColor ? Colors.black : color,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        // const SizedBox(width: ),
-      ],
-    ),
-  );
-}
-
-Widget storeManager(String id) {
+Widget countryCurrency(CustomerModel customer) {
   return Consumer<MmResourceProvider>(
     builder: (context, resource, child) {
-      final manage = resource.getProfileByID(id);
-      return Text(
-        manage.userName,
-        style: TextStyle(
-          fontSize: 12,
-          color: Colors.black,
-          fontWeight: FontWeight.w600,
-        ),
+      final currency = resource.getCurrencyID(customer.currencyId);
+      final country = resource.getCountryID(customer.countryId);
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          if (customer.currencyId.isNotEmpty)
+            buildWidget(
+              title: 'Currency',
+              icon: Icons.currency_exchange,
+              value: currency.currency,
+              color: Color(0xff268291),
+            ),
+          if (customer.countryId.isNotEmpty)
+            buildWidget(
+              title: 'Country',
+              icon: Icons.phone,
+              value: country.country,
+              color: Color(0xff268291),
+            ),
+        ],
       );
     },
-  );
-}
-
-TextStyle headerStyle() {
-  return TextStyle(
-    fontSize: 14,
-    fontWeight: FontWeight.w700,
-    color: Colors.grey.shade700,
   );
 }
