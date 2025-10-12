@@ -11,6 +11,9 @@ import 'package:modern_motors_panel/model/inventory_models/inventory_model.dart'
 import 'package:modern_motors_panel/model/product_models/product_model.dart';
 import 'package:modern_motors_panel/model/sales_model/sale_model.dart';
 import 'package:modern_motors_panel/model/trucks/new_trucks_model.dart';
+import 'package:modern_motors_panel/provider/modern_motors/mm_resource_provider.dart';
+import 'package:modern_motors_panel/services/local/branch_id_sp.dart';
+import 'package:provider/provider.dart';
 
 const String kIshCustomerId = 'ISH';
 
@@ -849,6 +852,9 @@ class MaintenanceBookingProvider extends ChangeNotifier {
         updateLoadingStatus(false);
         return;
       }
+      final branch = context.read<MmResourceProvider>().getBranchByID(
+        BranchIdSp.getBranchId(),
+      );
       String invoiceNumber = "";
       if (sale == null) {
         if (statusType == "draft") {
@@ -996,6 +1002,8 @@ class MaintenanceBookingProvider extends ChangeNotifier {
         };
       } else {
         saleData = {
+          'dueDate': paymentDate,
+          'branchId': branch.id,
           'invoice': isEdit ? sale!.invoice : invoiceNumber,
           'saleId': isEdit ? sale!.id : saleDocId,
           "discountType": discountType,

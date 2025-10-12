@@ -15,6 +15,7 @@ import 'package:modern_motors_panel/modern_motors/products/dummy_pages.dart';
 import 'package:modern_motors_panel/modern_motors/products/manage_products.dart';
 import 'package:modern_motors_panel/modern_motors/products/products_category_list.dart';
 import 'package:modern_motors_panel/modern_motors/products/sub_category/sub_category_page.dart';
+import 'package:modern_motors_panel/modern_motors/purchase/purchase_invoice_main_page.dart';
 import 'package:modern_motors_panel/modern_motors/sales/sales_main_page.dart';
 import 'package:modern_motors_panel/modern_motors/sales/sales_settings.dart';
 import 'package:modern_motors_panel/modern_motors/services_maintenance/create_booking_main_page.dart';
@@ -185,5 +186,7 @@ Widget getSelectedPageWidget({
       return ComingSoonWidget();
     case MainContainer.supplier:
       return ManageSupplier();
+        case MainContainer.purchaseInvoice:
+      return PurchaseInvoiceMainPage();
   }
 }

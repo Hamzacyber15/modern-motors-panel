@@ -1,9 +1,11 @@
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:modern_motors_panel/app_theme.dart';
 import 'package:modern_motors_panel/extensions.dart';
 import 'package:modern_motors_panel/model/admin_model/currency_model.dart';
+import 'package:modern_motors_panel/model/customer_models/customer_models.dart';
 import 'package:modern_motors_panel/modern_motors/services/data_fetch_service.dart';
 import 'package:modern_motors_panel/modern_motors/widgets/custom_mm_text_field.dart';
 import 'package:modern_motors_panel/modern_motors/widgets/dialogue_box/alert_dialogue_box_bottom_widget.dart';
@@ -14,7 +16,8 @@ import 'package:modern_motors_panel/widgets/overlay_loader.dart';
 import 'package:provider/provider.dart';
 
 class AddOpeningBalance extends StatefulWidget {
-  const AddOpeningBalance({super.key});
+  final CustomerModel customer;
+  const AddOpeningBalance({required this.customer, super.key});
 
   @override
   State<AddOpeningBalance> createState() => _AddOpeningBalanceState();
@@ -62,6 +65,27 @@ class _AddOpeningBalanceState extends State<AddOpeningBalance> {
     return selectedDate;
   }
 
+  Future<void> addBalance() async {
+    try {
+      HttpsCallable callable = FirebaseFunctions.instance.httpsCallable(
+        'setCustomerInitialBalance',
+      );
+      double d = double.tryParse(amountController.text) ?? 0;
+      final results = await callable({
+        'customerID': widget.customer.id,
+        "balance": d,
+        "initialDate": "2025-09-01",
+      });
+      debugPrint(results.toString());
+      // if (results.data.sta = '-1') {
+      // } else {
+      //   debugPrint("please try again later");
+      // }
+    } catch (e) {
+      debugPrint(e.toString());
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     ConnectivityResult connectionStatus = context
@@ -77,7 +101,7 @@ class _AddOpeningBalanceState extends State<AddOpeningBalance> {
                 title: 'Add Opening Balance'.tr(),
                 buttonText: 'Back to Customer Page'.tr(),
                 subTitle: 'Add New Opening Balance'.tr(),
-                onCreateIcon: 'assets/icons/back.png',
+                onCreateIcon: 'assets/images/back.png',
                 selectedItems: [],
                 buttonWidth: 0.4,
                 onCreate: () {
@@ -216,8 +240,8 @@ class _AddOpeningBalanceState extends State<AddOpeningBalance> {
 
                               18.h,
                               AlertDialogBottomWidget(
-                                title: 'Add Payment',
-                                onCreate: () {},
+                                title: 'Add balance',
+                                onCreate: addBalance,
                                 onCancel: () {
                                   Navigator.pop(context);
                                 },

@@ -217,7 +217,8 @@ class CustomerCard extends StatelessWidget {
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(minWidth: 0),
                     itemBuilder: (BuildContext context) => [
-                      if (branchPermissions.contains('View Customer'))
+                      if (branchPermissions.contains('View Customer') ||
+                          Constants.profile.role == "admin")
                         PopupMenuItem<ProductAction>(
                           value: ProductAction.view,
                           child: Row(

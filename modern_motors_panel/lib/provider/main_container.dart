@@ -32,6 +32,13 @@ enum MainContainer {
       iconPath: "assets/images/dashboard.png",
     ),
   ),
+  purchaseInvoice(
+    ContainerData(
+      key: "purchaseInvoice",
+      label: 'Purchase Invoice',
+      iconPath: "assets/images/dashboard.png",
+    ),
+  ),
   chartOfAccounts(
     ContainerData(
       key: "chartAccounts",

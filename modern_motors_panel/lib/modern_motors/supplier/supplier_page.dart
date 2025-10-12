@@ -143,12 +143,12 @@ class _SupplierPageState extends State<SupplierPage> {
                     ),
                     topTab(
                       onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => AddOpeningBalance(),
-                          ),
-                        );
+                        // Navigator.push(
+                        //   context,
+                        //   MaterialPageRoute(
+                        //     builder: (context) => AddOpeningBalance(customer: widget.supplierModel,),
+                        //   ),
+                        // );
                       },
                       icon: Icons.calculate,
                       // title: 'Opening Balance',

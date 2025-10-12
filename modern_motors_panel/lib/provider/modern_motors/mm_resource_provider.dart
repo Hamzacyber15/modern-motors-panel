@@ -43,6 +43,7 @@ class MmResourceProvider with ChangeNotifier {
   StreamSubscription<DocumentSnapshot>? employeeSubscription;
   EmployeeModel? employeeModel;
   List<BranchModel> branchesList = [];
+  List<BranchModel> suppliersList = [];
   List<NationalityModel> nationalityList = [];
   List<CountryModel> countryList = [];
   List<UnitModel> unitList = [];

@@ -1030,6 +1030,8 @@ import 'package:flutter/material.dart';
 import 'package:modern_motors_panel/extensions.dart';
 import 'package:modern_motors_panel/model/branches/branch_model.dart';
 import 'package:modern_motors_panel/model/product_models/product_model.dart';
+import 'package:modern_motors_panel/model/supplier/supplier_model.dart';
+import 'package:modern_motors_panel/modern_motors/services/data_fetch_service.dart';
 import 'package:modern_motors_panel/modern_motors/widgets/drop_downs/custom_searchable_drop_down.dart';
 import 'package:modern_motors_panel/provider/modern_motors/mm_resource_provider.dart';
 
@@ -3440,10 +3442,12 @@ class _DirectInventoryAddScreenState extends State<DirectInventoryAddScreen> {
 
   String _adjustmentType = 'purchase';
   String? selectBranchId;
+  String? selectSupplierId;
   bool _isLoading = false;
   List<String> _locationTags = [];
   final List<String> _selectedTags = [];
   List<BranchModel> branches = [];
+  List<SupplierModel> suppliers = [];
   List<String> _filteredTags = [];
   final FocusNode _locationFocusNode = FocusNode();
   final LayerLink _layerLink = LayerLink();
@@ -3482,9 +3486,15 @@ class _DirectInventoryAddScreenState extends State<DirectInventoryAddScreen> {
     });
   }
 
-  void loadBranches() {
+  void loadBranches() async {
+    await loadSuppliers();
     final provider = context.read<MmResourceProvider>();
     branches = provider.branchesList;
+    setState(() {});
+  }
+
+  Future<void> loadSuppliers() async {
+    suppliers = await DataFetchService.fetchSuppliers();
   }
 
   @override
@@ -3722,6 +3732,7 @@ class _DirectInventoryAddScreenState extends State<DirectInventoryAddScreen> {
         'updatedAt': FieldValue.serverTimestamp(),
         'addedBy': user.uid,
         'branchId': selectBranchId,
+        'supplierId': selectSupplierId,
       };
 
       await FirebaseFirestore.instance
@@ -4032,6 +4043,8 @@ class _DirectInventoryAddScreenState extends State<DirectInventoryAddScreen> {
               Expanded(child: _buildLocationSection()),
               20.w,
               Expanded(child: _buildChooseBranch()),
+              20.w,
+              Expanded(child: _buildChooseSupplier()),
             ],
           ),
           const SizedBox(height: 20),
@@ -4350,6 +4363,33 @@ class _DirectInventoryAddScreenState extends State<DirectInventoryAddScreen> {
           items: {for (var u in branches) u.id!: u.branchName},
           onChanged: (val) => setState(() {
             selectBranchId = val;
+          }),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildChooseSupplier() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Choose Supplier',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Color(0xFF374151),
+          ),
+        ),
+        const SizedBox(height: 8),
+        CustomSearchableDropdown(
+          key: UniqueKey(),
+          hintText: 'Choose Supplier'.tr(),
+          value: selectSupplierId,
+          verticalPadding: 12,
+          items: {for (var u in suppliers) u.id!: u.supplierName},
+          onChanged: (val) => setState(() {
+            selectSupplierId = val;
           }),
         ),
       ],

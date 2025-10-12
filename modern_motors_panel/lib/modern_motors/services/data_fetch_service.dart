@@ -142,6 +142,23 @@ class DataFetchService {
     }
   }
 
+  static Future<List<SaleModel>> fetchPurchase() async {
+    try {
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('purchase')
+          .where('status', isEqualTo: "pending")
+          .orderBy("createdAt", descending: true)
+          .get();
+
+      return querySnapshot.docs.map((doc) {
+        return SaleModel.fromFirestore(doc);
+      }).toList();
+    } catch (e, stackTrace) {
+      debugPrint("${"Error"} :${e.toString()}");
+      return []; // return empty list on error
+    }
+  }
+
   static Future<List<SaleModel>> fetchEstimates() async {
     try {
       final querySnapshot = await FirebaseFirestore.instance

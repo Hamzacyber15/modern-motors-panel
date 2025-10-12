@@ -2668,6 +2668,7 @@ class _MmAdminMainPageState extends State<MmAdminMainPage> {
         MainContainer.purchaseRequisition,
         MainContainer.procurementQuotation,
         MainContainer.procurmentPurchaseOrderPage,
+        MainContainer.purchaseInvoice,
         MainContainer.supplier,
       ],
       'Administration'.tr(): [

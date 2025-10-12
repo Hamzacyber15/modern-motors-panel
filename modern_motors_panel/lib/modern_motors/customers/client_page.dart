@@ -147,7 +147,9 @@ class _ClientPageState extends State<ClientPage> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => AddOpeningBalance(),
+                            builder: (context) => AddOpeningBalance(
+                              customer: widget.customerModel!,
+                            ),
                           ),
                         );
                       },
