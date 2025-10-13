@@ -11,12 +11,12 @@ import 'package:modern_motors_panel/model/product_models/product_category_model.
 import 'package:modern_motors_panel/model/product_models/product_model.dart';
 import 'package:modern_motors_panel/model/product_models/product_sub_category_model.dart';
 import 'package:modern_motors_panel/model/sales_model/sale_model.dart';
+import 'package:modern_motors_panel/model/supplier/supplier_model.dart';
 import 'package:modern_motors_panel/modern_motors/invoices/invoice_logs_timeline.dart';
 import 'package:modern_motors_panel/modern_motors/products/DataTableProductCell.dart';
 import 'package:modern_motors_panel/modern_motors/products/product_details_dialogue.dart';
 import 'package:modern_motors_panel/modern_motors/services/data_fetch_service.dart';
 import 'package:modern_motors_panel/modern_motors/services_maintenance/create_booking_main_page.dart';
-import 'package:modern_motors_panel/modern_motors/trucks/manage_trucks_page.dart';
 import 'package:modern_motors_panel/modern_motors/widgets/customer_name_tile.dart';
 import 'package:modern_motors_panel/modern_motors/widgets/employees/mm_employee_info_tile.dart';
 import 'package:modern_motors_panel/modern_motors/widgets/image_gallery_dialogue.dart';
@@ -24,8 +24,6 @@ import 'package:modern_motors_panel/modern_motors/widgets/payment_details_dialog
 import 'package:modern_motors_panel/modern_motors/widgets/sales_invoice_dropdown_view.dart';
 import 'package:modern_motors_panel/provider/modern_motors/mm_resource_provider.dart';
 import 'package:provider/provider.dart';
-
-import 'sale_payment_page.dart';
 
 // Mock models - replace with your actual models
 // class SaleModel {
@@ -94,11 +92,11 @@ import 'sale_payment_page.dart';
 enum SaleAction { view, edit, duplicate, payment, clone, refund, delete, logs }
 
 // Filter class for managing all filter states
-class SalesFilter {
+class PurchaseFilter {
   String? categoryId;
   String? subCategoryId;
   String? brandId;
-  String? customerId;
+  String? supplierId;
   DateTimeRange? dateRange;
   RangeValues? amountRange;
   String? status;
@@ -109,11 +107,11 @@ class SalesFilter {
   bool? isPaid;
   String? invoiceStatus;
 
-  SalesFilter({
+  PurchaseFilter({
     this.categoryId,
     this.subCategoryId,
     this.brandId,
-    this.customerId,
+    this.supplierId,
     this.dateRange,
     this.amountRange,
     this.status,
@@ -129,7 +127,7 @@ class SalesFilter {
     return categoryId != null ||
         subCategoryId != null ||
         brandId != null ||
-        customerId != null ||
+        supplierId != null ||
         dateRange != null ||
         amountRange != null ||
         status != null ||
@@ -145,7 +143,7 @@ class SalesFilter {
     categoryId = null;
     subCategoryId = null;
     brandId = null;
-    customerId = null;
+    supplierId = null;
     dateRange = null;
     amountRange = null;
     status = null;
@@ -157,11 +155,11 @@ class SalesFilter {
     invoiceStatus = null;
   }
 
-  SalesFilter copyWith({
+  PurchaseFilter copyWith({
     String? categoryId,
     String? subCategoryId,
     String? brandId,
-    String? customerId,
+    String? supplierId,
     DateTimeRange? dateRange,
     RangeValues? amountRange,
     String? status,
@@ -172,11 +170,11 @@ class SalesFilter {
     bool? isPaid,
     String? invoiceStatus,
   }) {
-    return SalesFilter(
+    return PurchaseFilter(
       categoryId: categoryId ?? this.categoryId,
       subCategoryId: subCategoryId ?? this.subCategoryId,
       brandId: brandId ?? this.brandId,
-      customerId: customerId ?? this.customerId,
+      supplierId: supplierId ?? this.supplierId,
       dateRange: dateRange ?? this.dateRange,
       amountRange: amountRange ?? this.amountRange,
       status: status ?? this.status,
@@ -190,7 +188,7 @@ class SalesFilter {
   }
 }
 
-class SaleCard extends StatelessWidget {
+class PurchaseCard extends StatelessWidget {
   final SaleModel sale;
   final String type;
   final ProductCategoryModel category;
@@ -201,7 +199,7 @@ class SaleCard extends StatelessWidget {
   final Function(SaleAction)? onActionSelected;
   final Function(bool?)? onSelectChanged;
 
-  const SaleCard({
+  const PurchaseCard({
     super.key,
     required this.sale,
     required this.category,
@@ -1139,51 +1137,51 @@ Widget _buildPaymentDepositSummary(SaleModel sale) {
 }
 
 // Filter Dialog
-// Updated SalesFilterDialog class with all the requested filters
-class SalesFilterDialog extends StatefulWidget {
-  final SalesFilter currentFilter;
+// Updated PurchaseFilterDialog class with all the requested filters
+class PurchaseFilterDialog extends StatefulWidget {
+  final PurchaseFilter currentFilter;
   final List<ProductCategoryModel> categories;
   final List<ProductSubCategoryModel> subCategories;
   final List<BrandModel> brands;
   final List<String> createdByUsers;
-  final List<CustomerModel> customers;
-  final Function(SalesFilter) onApplyFilter;
+  final List<SupplierModel> supplier;
+  final Function(PurchaseFilter) onApplyFilter;
 
-  const SalesFilterDialog({
+  const PurchaseFilterDialog({
     super.key,
     required this.currentFilter,
     required this.categories,
     required this.subCategories,
     required this.brands,
     required this.createdByUsers,
-    required this.customers,
+    required this.supplier,
     required this.onApplyFilter,
   });
 
   @override
-  State<SalesFilterDialog> createState() => _SalesFilterDialogState();
+  State<PurchaseFilterDialog> createState() => _PurchaseFilterDialogState();
 }
 
-class _SalesFilterDialogState extends State<SalesFilterDialog> {
-  late SalesFilter _filter;
-  final TextEditingController _customerSearchController =
+class _PurchaseFilterDialogState extends State<PurchaseFilterDialog> {
+  late PurchaseFilter _filter;
+  final TextEditingController _supplierSearchController =
       TextEditingController();
   final TextEditingController _searchController = TextEditingController();
-  List<CustomerModel> _filteredCustomers = [];
-  CustomerModel? _selectedCustomer;
+  List<SupplierModel> _filteredSuppliers = [];
+  SupplierModel? _selectedSupplier;
 
   @override
   void initState() {
     super.initState();
     _filter = widget.currentFilter.copyWith();
     _searchController.text = widget.currentFilter.searchQuery ?? '';
-    _filteredCustomers = widget.customers;
+    _filteredSuppliers = widget.supplier;
 
-    if (_filter.customerId != null) {
-      _selectedCustomer = widget.customers.firstWhere(
-        (customer) => customer.id == _filter.customerId,
+    if (_filter.supplierId != null) {
+      _selectedSupplier = widget.supplier.firstWhere(
+        (customer) => customer.id == _filter.supplierId,
       );
-      _customerSearchController.text = _selectedCustomer?.customerName ?? '';
+      _supplierSearchController.text = _selectedSupplier?.id ?? '';
     }
   }
 
@@ -1264,14 +1262,14 @@ class _SalesFilterDialogState extends State<SalesFilterDialog> {
                       child: Column(
                         children: [
                           TextField(
-                            controller: _customerSearchController,
+                            controller: _supplierSearchController,
                             decoration: InputDecoration(
                               hintText: 'Type customer name...',
                               prefixIcon: Icon(
                                 Icons.person_search,
                                 color: Colors.grey.shade600,
                               ),
-                              suffixIcon: _selectedCustomer != null
+                              suffixIcon: _selectedSupplier != null
                                   ? IconButton(
                                       icon: Icon(Icons.clear, size: 18),
                                       onPressed: _clearCustomerSelection,
@@ -1283,8 +1281,8 @@ class _SalesFilterDialogState extends State<SalesFilterDialog> {
                             ),
                             onChanged: _filterCustomers,
                           ),
-                          if (_customerSearchController.text.isNotEmpty &&
-                              _filteredCustomers.isNotEmpty)
+                          if (_supplierSearchController.text.isNotEmpty &&
+                              _filteredSuppliers.isNotEmpty)
                             Container(
                               margin: const EdgeInsets.only(top: 4),
                               decoration: BoxDecoration(
@@ -1302,9 +1300,9 @@ class _SalesFilterDialogState extends State<SalesFilterDialog> {
                               constraints: const BoxConstraints(maxHeight: 150),
                               child: ListView.builder(
                                 shrinkWrap: true,
-                                itemCount: _filteredCustomers.length,
+                                itemCount: _filteredSuppliers.length,
                                 itemBuilder: (context, index) {
-                                  final customer = _filteredCustomers[index];
+                                  final supplier = _filteredSuppliers[index];
                                   return ListTile(
                                     dense: true,
                                     leading: Icon(
@@ -1312,18 +1310,18 @@ class _SalesFilterDialogState extends State<SalesFilterDialog> {
                                       size: 20,
                                     ),
                                     title: Text(
-                                      customer.customerName,
+                                      supplier.supplierName,
                                       style: const TextStyle(fontSize: 14),
                                     ),
                                     onTap: () {
                                       setState(() {
-                                        _selectedCustomer = customer;
-                                        _customerSearchController.text =
-                                            customer.customerName;
+                                        _selectedSupplier = supplier;
+                                        _supplierSearchController.text =
+                                            supplier.supplierName;
                                         _filter = _filter.copyWith(
-                                          customerId: customer.id,
+                                          supplierId: supplier.id,
                                         );
-                                        _filteredCustomers = [];
+                                        _filteredSuppliers = [];
                                       });
                                     },
                                   );
@@ -1728,11 +1726,11 @@ class _SalesFilterDialogState extends State<SalesFilterDialog> {
                   child: OutlinedButton(
                     onPressed: () {
                       setState(() {
-                        _filter = SalesFilter();
-                        _customerSearchController.clear();
+                        _filter = PurchaseFilter();
+                        _supplierSearchController.clear();
                         _searchController.clear();
-                        _selectedCustomer = null;
-                        _filteredCustomers = widget.customers;
+                        _selectedSupplier = null;
+                        _filteredSuppliers = widget.supplier;
                       });
                     },
                     style: OutlinedButton.styleFrom(
@@ -1774,17 +1772,17 @@ class _SalesFilterDialogState extends State<SalesFilterDialog> {
   void _filterCustomers(String query) {
     if (query.isEmpty) {
       setState(() {
-        _filteredCustomers = widget.customers;
-        _selectedCustomer = null;
-        _filter = _filter.copyWith(customerId: null);
+        _filteredSuppliers = widget.supplier;
+        _selectedSupplier = null;
+        _filter = _filter.copyWith(supplierId: null);
       });
       return;
     }
 
     setState(() {
-      _filteredCustomers = widget.customers
+      _filteredSuppliers = widget.supplier
           .where(
-            (customer) => customer.customerName.toLowerCase().contains(
+            (supplier) => supplier.supplierName.toLowerCase().contains(
               query.toLowerCase(),
             ),
           )
@@ -1794,10 +1792,10 @@ class _SalesFilterDialogState extends State<SalesFilterDialog> {
 
   void _clearCustomerSelection() {
     setState(() {
-      _selectedCustomer = null;
-      _customerSearchController.clear();
-      _filter = _filter.copyWith(customerId: null);
-      _filteredCustomers = widget.customers;
+      _selectedSupplier = null;
+      _supplierSearchController.clear();
+      _filter = _filter.copyWith(supplierId: null);
+      _filteredSuppliers = widget.supplier;
     });
   }
 
@@ -1846,14 +1844,14 @@ class _SalesFilterDialogState extends State<SalesFilterDialog> {
 }
 
 // Main Sales List View
-class SalesListView extends StatefulWidget {
+class PurchaseListView extends StatefulWidget {
   final String? type;
   //  final List<SaleModel> sales;
   final Set<String> selectedIds;
   final Function(bool?, SaleModel) onSelectChanged;
   final bool enableSearch;
 
-  const SalesListView({
+  const PurchaseListView({
     super.key,
     this.type,
     //required this.sales,
@@ -1863,19 +1861,19 @@ class SalesListView extends StatefulWidget {
   });
 
   @override
-  State<SalesListView> createState() => _SalesListViewState();
+  State<PurchaseListView> createState() => _PurchaseListViewState();
 }
 
-class _SalesListViewState extends State<SalesListView> {
+class _PurchaseListViewState extends State<PurchaseListView> {
   final TextEditingController _searchController = TextEditingController();
   List<SaleModel> _filteredSales = [];
   String _searchQuery = '';
-  SalesFilter _currentFilter = SalesFilter();
+  PurchaseFilter _currentFilter = PurchaseFilter();
   List<ProductCategoryModel> _categories = [];
   List<ProductSubCategoryModel> _subCategories = [];
   List<BrandModel> _brands = [];
   List<String> _createdByUsers = [];
-  List<CustomerModel> _customers = [];
+  List<SupplierModel> suppliers = [];
   List<SaleModel> salesList = [];
 
   @override
@@ -1909,7 +1907,7 @@ class _SalesListViewState extends State<SalesListView> {
   }
 
   void _loadCustomers() async {
-    _customers = context.read<MmResourceProvider>().customersList;
+    suppliers = context.read<MmResourceProvider>().suppliersList;
     if (mounted) setState(() {});
   }
 
@@ -1996,9 +1994,9 @@ class _SalesListViewState extends State<SalesListView> {
       }).toList();
     }
 
-    if (_currentFilter.customerId != null) {
+    if (_currentFilter.supplierId != null) {
       filtered = filtered
-          .where((sale) => sale.customerName == _currentFilter.customerId)
+          .where((sale) => sale.customerName == _currentFilter.supplierId)
           .toList();
     }
 
@@ -2049,11 +2047,11 @@ class _SalesListViewState extends State<SalesListView> {
     }
 
     // Apply customer filter
-    if (_currentFilter.customerId != null) {
+    if (_currentFilter.supplierId != null) {
       filtered = filtered
           .where(
             (sale) => sale.customerName.toLowerCase().contains(
-              _currentFilter.customerId!.toLowerCase(),
+              _currentFilter.supplierId!.toLowerCase(),
             ),
           )
           .toList();
@@ -2167,7 +2165,7 @@ class _SalesListViewState extends State<SalesListView> {
   }
 
   // @override
-  // void didUpdateWidget(SalesListView oldWidget) {
+  // void didUpdateWidget(PurchaseListView oldWidget) {
   //   super.didUpdateWidget(oldWidget);
   //   if (oldWidget.sales != widget.sales) {
   //     _applyCombinedFilters();
@@ -2214,9 +2212,9 @@ class _SalesListViewState extends State<SalesListView> {
         debugPrint('Add Payment : ${sale.createdBy}');
         break;
       case SaleAction.payment:
-        Navigator.of(context).push<bool>(
-          MaterialPageRoute(builder: (context) => PaymentPage(sale: sale)),
-        );
+        // Navigator.of(context).push<bool>(
+        //   MaterialPageRoute(builder: (context) => PaymentPage(sale: sale)),
+        // );
         getList();
       // if (result == true) {
       //   // Payment was successful, refresh the sale data or update UI
@@ -2329,13 +2327,13 @@ class _SalesListViewState extends State<SalesListView> {
   void _showFilterDialog() {
     showDialog(
       context: context,
-      builder: (context) => SalesFilterDialog(
+      builder: (context) => PurchaseFilterDialog(
         currentFilter: _currentFilter,
         categories: _categories,
         subCategories: _subCategories,
         brands: _brands,
         createdByUsers: _createdByUsers,
-        customers: _customers, // Add your customers list here
+        supplier: suppliers, // Add your customers list here
         onApplyFilter: (filter) {
           if (mounted) {
             setState(() {
@@ -2595,7 +2593,7 @@ class _SalesListViewState extends State<SalesListView> {
                 //         (b) => b.id == sale.id, //sale.brandId,
                 //         orElse: () => BrandModel(name: 'Unknown Brand'),
                 //       );
-                //       return SaleCard(
+                //       return PurchaseCard(
                 //         sale: sale,
                 //         category: category,
                 //         subCategory: subCategory,
@@ -2636,7 +2634,7 @@ class _SalesListViewState extends State<SalesListView> {
                       orElse: () => BrandModel(id: '', name: 'Unknown Brand'),
                     );
 
-                    return SaleCard(
+                    return PurchaseCard(
                       key: UniqueKey(),
                       sale: sale,
                       category: category,
@@ -2661,7 +2659,7 @@ class _SalesListViewState extends State<SalesListView> {
     if (_currentFilter.categoryId != null) count++;
     if (_currentFilter.subCategoryId != null) count++;
     if (_currentFilter.brandId != null) count++;
-    if (_currentFilter.customerId != null) count++;
+    if (_currentFilter.supplierId != null) count++;
     if (_currentFilter.dateRange != null) count++;
     if (_currentFilter.amountRange != null) count++;
     if (_currentFilter.status != null) count++;
@@ -2688,15 +2686,15 @@ class _SalesListViewState extends State<SalesListView> {
       );
     }
 
-    if (_currentFilter.customerId != null) {
-      final customer = _customers.firstWhere(
-        (c) => c.id == _currentFilter.customerId,
+    if (_currentFilter.supplierId != null) {
+      final supplier = suppliers.firstWhere(
+        (c) => c.id == _currentFilter.supplierId,
         // orElse: () => CustomerModel(id: '', name: 'Unknown Customer'),
       );
       chips.add(
-        _buildFilterChip('Customer: ${customer.customerName}', () {
+        _buildFilterChip('Customer: ${supplier.supplierName}', () {
           setState(() {
-            _currentFilter.customerId = null;
+            _currentFilter.supplierId = null;
             _applyCombinedFilters();
           });
         }),
@@ -2777,11 +2775,11 @@ class _SalesListViewState extends State<SalesListView> {
       );
     }
 
-    if (_currentFilter.customerId != null) {
+    if (_currentFilter.supplierId != null) {
       chips.add(
-        _buildFilterChip('Customer: ${_currentFilter.customerId}', () {
+        _buildFilterChip('Supplier: ${_currentFilter.supplierId}', () {
           setState(() {
-            _currentFilter.customerId = null;
+            _currentFilter.supplierId = null;
             _applyCombinedFilters();
           });
         }),

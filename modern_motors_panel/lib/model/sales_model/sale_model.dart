@@ -586,6 +586,7 @@ class SaleModel {
   final String? draft;
   final double? total;
   final List<String>? url;
+  final DateTime? dueDate;
   SaleModel({
     required this.id,
     required this.customerName,
@@ -623,6 +624,7 @@ class SaleModel {
     this.total,
     this.draft,
     this.url,
+    this.dueDate,
   });
 
   factory SaleModel.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
@@ -693,6 +695,7 @@ class SaleModel {
       previousStock: data['previousStock'] ?? 0,
       productId: data['productId'] ?? "",
       productName: data['productName'] ?? "",
+      dueDate: (data['dueDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
       // New fields
       deposit: deposit,
       discount: (data['discount'] ?? 0).toDouble(),

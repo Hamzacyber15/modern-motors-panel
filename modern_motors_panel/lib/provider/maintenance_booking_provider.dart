@@ -969,6 +969,7 @@ class MaintenanceBookingProvider extends ChangeNotifier {
         saleData = {
           'invoice': invoiceNumber,
           'saleId': saleDocId,
+          'branchId': branch.id,
           "discountType": discountType,
           "discount": discountAmount,
           'total': total,
@@ -1038,16 +1039,6 @@ class MaintenanceBookingProvider extends ChangeNotifier {
           'paymentMethod': 'cash',
           'taxAmount': taxAmount,
           'truckId': truckId,
-          // 'serviceItems': servicesData
-          //     .map((d) => {
-          //           'serviceId': d["serviceId"] ?? "",
-          //           'productName': d["serviceName"] ?? "",
-          //           'quantity': d["quantity"] ?? 0,
-          //           'sellingPrice': d["price"] ?? 0,
-          //           'totalPrice': d["total"] ?? 0,
-          //           'discount': d['discount'] ?? 0,
-          //         })
-          //     .toList(),
           'paymentData': paymentData,
           'deposit': d,
           'url': urls,

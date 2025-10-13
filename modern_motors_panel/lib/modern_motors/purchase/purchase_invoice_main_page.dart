@@ -4,6 +4,7 @@ import 'package:modern_motors_panel/model/customer_models/customer_models.dart';
 import 'package:modern_motors_panel/model/sales_model/sale_model.dart';
 import 'package:modern_motors_panel/model/trucks/mm_trucks_models.dart/mmtruck_model.dart';
 import 'package:modern_motors_panel/modern_motors/purchase/purchase_invoice.dart';
+import 'package:modern_motors_panel/modern_motors/purchase/purchase_list_view.dart';
 import 'package:modern_motors_panel/modern_motors/sales/sales_screen.dart';
 import 'package:modern_motors_panel/modern_motors/widgets/page_header_widget.dart';
 
@@ -152,7 +153,7 @@ class _PurchaseInvoiceMainPageState extends State<PurchaseInvoiceMainPage> {
                   },
                 ),
                 Expanded(
-                  child: SalesListView(
+                  child: PurchaseListView(
                     type: "purchase",
                     //sales: salesList,
                     selectedIds: selectedSalesIds,

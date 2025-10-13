@@ -19,6 +19,7 @@ import 'package:modern_motors_panel/model/product_models/product_model.dart';
 import 'package:modern_motors_panel/model/product_models/product_sub_category_model.dart';
 import 'package:modern_motors_panel/model/profile_models/public_profile_model.dart';
 import 'package:modern_motors_panel/model/services_model/services_model.dart';
+import 'package:modern_motors_panel/model/supplier/supplier_model.dart';
 import 'package:modern_motors_panel/model/terms/terms_of_sale_model.dart';
 import 'package:modern_motors_panel/model/trucks/mm_trucks_models.dart/mmtruck_model.dart';
 import 'package:modern_motors_panel/model/vendor/vendors_model.dart';
@@ -43,7 +44,7 @@ class MmResourceProvider with ChangeNotifier {
   StreamSubscription<DocumentSnapshot>? employeeSubscription;
   EmployeeModel? employeeModel;
   List<BranchModel> branchesList = [];
-  List<BranchModel> suppliersList = [];
+  List<SupplierModel> suppliersList = [];
   List<NationalityModel> nationalityList = [];
   List<CountryModel> countryList = [];
   List<UnitModel> unitList = [];

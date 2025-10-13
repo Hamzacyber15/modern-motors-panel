@@ -7615,7 +7615,7 @@ class _PurchaseInvoiceState extends State<PurchaseInvoice>
                 Expanded(
                   flex: 2,
                   child: Text(
-                    'Description',
+                    'Supplier',
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
@@ -7636,6 +7636,7 @@ class _PurchaseInvoiceState extends State<PurchaseInvoice>
               itemCount: billExpenses.length,
               itemBuilder: (context, index) {
                 return BillExpenseRowWidget(
+                  supplierList: filteredSuppliers,
                   expense: billExpenses[index],
                   index: index,
                   onUpdate: (updatedExpense) =>
@@ -11679,12 +11680,14 @@ class BillExpenseRowWidget extends StatefulWidget {
   final int index;
   final Function(BillExpense) onUpdate;
   final VoidCallback onRemove;
+  final List<SupplierModel> supplierList;
   const BillExpenseRowWidget({
     super.key,
     required this.expense,
     required this.index,
     required this.onUpdate,
     required this.onRemove,
+    required this.supplierList,
   });
 
   @override
@@ -11740,7 +11743,9 @@ class _BillExpenseRowWidgetState extends State<BillExpenseRowWidget> {
 
   Widget _buildExpenseTypeDropdown() {
     final Map<String, String> expenseTypes = {};
-    for (var type in ExpenseType.types) expenseTypes[type.id] = type.name;
+    for (var type in ExpenseType.types) {
+      expenseTypes[type.id] = type.name;
+    }
     return CustomSearchableDropdown(
       hintText: 'Expense Type',
       items: expenseTypes,
@@ -11752,6 +11757,27 @@ class _BillExpenseRowWidgetState extends State<BillExpenseRowWidget> {
             orElse: () => ExpenseType.types[0],
           );
           if (mounted) setState(() => _updateType(selectedType));
+        }
+      },
+    );
+  }
+
+  Widget _buildSupplierTypeDropdown() {
+    final Map<String, String> suppliers = {};
+    for (var type in widget.supplierList) {
+      suppliers[type.id!] = type.supplierName;
+    }
+    return CustomSearchableDropdown(
+      hintText: 'Select Supplier',
+      items: suppliers,
+      value: widget.expense.type?.id,
+      onChanged: (value) {
+        if (value.isNotEmpty) {
+          final selectedType = widget.supplierList.firstWhere(
+            (type) => type.id == value,
+            //  orElse: () => ExpenseType.types[0],
+          );
+          //  if (mounted) setState(() => _updateType(selectedType));
         }
       },
     );
@@ -11804,10 +11830,11 @@ class _BillExpenseRowWidgetState extends State<BillExpenseRowWidget> {
         children: [
           Expanded(flex: 2, child: _buildExpenseTypeDropdown()),
           const SizedBox(width: 8),
-          Expanded(flex: 2, child: _buildDescriptionInput()),
-          const SizedBox(width: 8),
           Expanded(flex: 1, child: _buildAmountInput()),
           const SizedBox(width: 8),
+          Expanded(flex: 2, child: _buildSupplierTypeDropdown()),
+          const SizedBox(width: 8),
+
           IconButton(
             icon: const Icon(Icons.remove_circle, color: Colors.red, size: 20),
             onPressed: widget.onRemove,

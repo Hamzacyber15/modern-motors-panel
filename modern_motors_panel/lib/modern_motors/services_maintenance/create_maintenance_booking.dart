@@ -1695,429 +1695,442 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                 ),
                 SizedBox(height: 8),
                 // Deposit - Ultra compact
-                _buildUltraCompactCard(
-                  icon: Icons.account_balance_wallet_outlined,
-                  title: 'Deposit',
-                  checkBoxIcon: Transform.scale(
-                    scale: 0.9,
-                    child: Checkbox(
-                      activeColor: AppTheme.greenColor,
-                      value: requireDeposit,
-                      onChanged: (value) {
-                        if (mounted) {
-                          setState(() {
-                            requireDeposit = value ?? false;
-                            if (!requireDeposit) {
-                              depositAlreadyPaid = false;
-                              depositAmount = 0;
-                              depositPercentage = 0;
-                              depositAmountController.clear();
-                            }
-                            _updateAllCalculations(p);
-                          });
-                        }
-                      },
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                  ),
-                  trailing: requireDeposit && depositAmount > 0
-                      ? Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.red,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            'OMR ${depositAmount.toStringAsFixed(2)}',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                            ),
-                          ),
-                        )
-                      : null,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Require Deposit', style: TextStyle(fontSize: 14)),
-                      ],
-                    ),
-                    if (requireDeposit) ...[
-                      SizedBox(height: 6),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: SizedBox(
-                              height: 40,
-                              child: CustomSearchableDropdown(
-                                key: ValueKey(
-                                  'deposit_type_${selectedDepositType.id}',
-                                ),
-                                hintText: 'Type',
-                                value: selectedDepositType.id,
-                                items: {
-                                  for (var type in DepositType.types)
-                                    type.id: type.name,
-                                },
-                                onChanged: (value) {
-                                  if (value.isNotEmpty) {
-                                    if (mounted) {
-                                      setState(() {
-                                        selectedDepositType = DepositType.types
-                                            .firstWhere(
-                                              (type) => type.id == value,
-                                              orElse: () =>
-                                                  DepositType.types[0],
-                                            );
-                                        if (selectedDepositType.id ==
-                                            'percentage') {
-                                          depositAmountController.text =
-                                              depositPercentage.toString();
-                                        } else {
-                                          depositAmountController.text =
-                                              depositAmount.toStringAsFixed(2);
-                                        }
-                                      });
-                                    }
-                                  }
-                                  _updateAllCalculations(p);
-                                },
-                              ),
-                            ),
-                          ),
-                          SizedBox(width: 6),
-                          Expanded(
-                            flex: 2,
-                            child: SizedBox(
-                              height: 45,
-                              child: CustomMmTextField(
-                                controller: depositAmountController,
-                                hintText: selectedDepositType.id == 'percentage'
-                                    ? '%'
-                                    : 'Amount',
-                                keyboardType: TextInputType.numberWithOptions(
-                                  decimal: true,
-                                ),
-                                onChanged: (value) {
-                                  final val = double.tryParse(value) ?? 0;
-                                  if (selectedDepositType.id == 'percentage') {
-                                    depositPercentage = val;
-                                  } else {
-                                    depositAmount = val;
-                                  }
-                                  _updateAllCalculations(p);
-                                },
-                              ),
-                            ),
-                          ),
-                        ],
+                if (widget.sale == null)
+                  _buildUltraCompactCard(
+                    icon: Icons.account_balance_wallet_outlined,
+                    title: 'Deposit',
+                    checkBoxIcon: Transform.scale(
+                      scale: 0.9,
+                      child: Checkbox(
+                        activeColor: AppTheme.greenColor,
+                        value: requireDeposit,
+                        onChanged: (value) {
+                          if (mounted) {
+                            setState(() {
+                              requireDeposit = value ?? false;
+                              if (!requireDeposit) {
+                                depositAlreadyPaid = false;
+                                depositAmount = 0;
+                                depositPercentage = 0;
+                                depositAmountController.clear();
+                              }
+                              _updateAllCalculations(p);
+                            });
+                          }
+                        },
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
-                      // SizedBox(height: 4),
-                      // _buildRow('Amount', depositAmount),
-                      SizedBox(height: 4),
-                      // Row(
-                      //   // mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      //   children: [
-                      //     Text('Already Paid?', style: TextStyle(fontSize: 14)),
-                      //     const SizedBox(width: 5),
-                      //     Transform.scale(
-                      //       scale: 0.9,
-                      //       child: Checkbox(
-                      //         // checkColor: AppTheme.greenColor,
-                      //         activeColor: AppTheme.greenColor,
-                      //         value: depositAlreadyPaid,
-                      //         onChanged: (value) {
-                      //           if (mounted) {
-                      //             setState(() {
-                      //               depositAlreadyPaid = value ?? false;
-                      //               _updateAllCalculations(p);
-                      //             });
-                      //           }
-                      //         },
-                      //         materialTapTargetSize:
-                      //             MaterialTapTargetSize.shrinkWrap,
-                      //       ),
-                      //     ),
-                      //   ],
-                      // ),
-                      // Payment Configuration
-                      Row(
-                        children: [
-                          Text('Already Paid?', style: TextStyle(fontSize: 14)),
-                          const SizedBox(width: 5),
-                          // Transform.scale(
-                          //   scale: 0.9,
-                          //   child: Checkbox(
-                          //     activeColor: AppTheme.greenColor,
-                          //     value: isAlreadyPaid,
-                          //     onChanged: (value) {
-                          //       final newValue = value ?? false;
-
-                          //       WidgetsBinding.instance.addPostFrameCallback((
-                          //         _,
-                          //       ) {
-                          //         if (mounted) {
-                          //           setState(() {
-                          //             isAlreadyPaid = newValue;
-
-                          //             if (!isAlreadyPaid) {
-                          //               // Reset to default single payment
-                          //               paymentRows = [PaymentRow()];
-                          //               paymentRows.first.method = PaymentMethod
-                          //                   .methods
-                          //                   .firstWhere((m) => m.id == 'cash');
-                          //               paymentRows.first.amount = total;
-                          //               isMultiple =
-                          //                   false; // Reset multiple when turning off payment
-                          //             } else {
-                          //               // Clear deposit when payment is marked as paid
-                          //               depositAmount = 0;
-                          //               depositAlreadyPaid = false;
-                          //               requireDeposit = false;
-                          //               depositAmountController.clear();
-                          //               depositPercentage = 0;
-                          //             }
-
-                          //             _calculateRemainingAmount(total);
-                          //           });
-                          //         }
-                          //       });
-                          //     },
-                          //     materialTapTargetSize:
-                          //         MaterialTapTargetSize.shrinkWrap,
-                          //   ),
-                          // ),
-                          Transform.scale(
-                            scale: 0.9,
-                            child: Checkbox(
-                              activeColor: AppTheme.greenColor,
-                              value: isAlreadyPaid,
-                              onChanged: (value) {
-                                final newValue = value ?? false;
-
-                                WidgetsBinding.instance.addPostFrameCallback((
-                                  _,
-                                ) {
-                                  if (mounted) {
-                                    setState(() {
-                                      isAlreadyPaid = newValue;
-
-                                      if (!isAlreadyPaid) {
-                                        // Reset payment rows when turning off payment
-                                        paymentRows = [PaymentRow()];
-                                        paymentRows.first.method = PaymentMethod
-                                            .methods
-                                            .firstWhere((m) => m.id == 'cash');
-                                        paymentRows.first.amount = 0;
-                                        isMultiple = false;
-                                      } else {
-                                        // Initialize payment rows when turning on payment
-                                        _initializePaymentRows(total);
-
-                                        // Clear deposit when payment is marked as paid
-                                        depositAmount = 0;
-                                        depositAlreadyPaid = false;
-                                        requireDeposit = false;
-                                        depositAmountController.clear();
-                                        depositPercentage = 0;
-                                      }
-
-                                      _calculateRemainingAmount(total);
-                                    });
-                                  }
-                                });
-                              },
-                              materialTapTargetSize:
-                                  MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    trailing: requireDeposit && depositAmount > 0
+                        ? Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
                             ),
-                          ),
-                          const SizedBox(width: 10),
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              'OMR ${depositAmount.toStringAsFixed(2)}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                          )
+                        : null,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
                           Text(
-                            'Multiple Methods?',
+                            'Require Deposit',
                             style: TextStyle(fontSize: 14),
                           ),
-                          const SizedBox(width: 5),
-                          // Transform.scale(
-                          //   scale: 0.9,
-                          //   child: Checkbox(
-                          //     activeColor: AppTheme.greenColor,
-                          //     value: isMultiple,
-                          //     onChanged: (value) {
-                          //       if (!isAlreadyPaid) {
-                          //         // Force false if not already paid
-                          //         ScaffoldMessenger.of(context).showSnackBar(
-                          //           SnackBar(
-                          //             content: Text(
-                          //               'Please enable "Already Paid?" first',
-                          //             ),
-                          //             backgroundColor: Colors.orange,
-                          //           ),
-                          //         );
-                          //         return;
-                          //       }
-
-                          //       final newValue = value ?? false;
-
-                          //       WidgetsBinding.instance.addPostFrameCallback((
-                          //         _,
-                          //       ) {
-                          //         if (mounted) {
-                          //           setState(() {
-                          //             isMultiple = newValue;
-
-                          //             if (isMultiple &&
-                          //                 paymentRows.length == 1) {
-                          //               // When enabling multiple, keep the existing row and allow adding more
-                          //               // Don't automatically add rows - let user add them manually
-                          //               // This preserves the existing payment data
-                          //             } else if (!isMultiple &&
-                          //                 paymentRows.length > 1) {
-                          //               // When disabling multiple, consolidate to single payment
-                          //               final totalPaid =
-                          //                   _getCurrentTotalPaid();
-                          //               paymentRows = [PaymentRow()];
-                          //               paymentRows.first.amount = totalPaid;
-                          //               // Keep the method from the first row if it exists
-                          //               if (paymentRows.isNotEmpty) {
-                          //                 paymentRows.first.method =
-                          //                     paymentRows.first.method;
-                          //               }
-                          //             }
-
-                          //             _calculateRemainingAmount(total);
-                          //           });
-                          //         }
-                          //       });
-                          //     },
-                          //     materialTapTargetSize:
-                          //         MaterialTapTargetSize.shrinkWrap,
-                          //   ),
-                          // ),
-                          // Transform.scale(
-                          //   scale: 0.9,
-                          //   child: Checkbox(
-                          //     activeColor: AppTheme.greenColor,
-                          //     value: isMultiple,
-                          //     onChanged: (value) {
-                          //       if (!isAlreadyPaid) {
-                          //         ScaffoldMessenger.of(context).showSnackBar(
-                          //           SnackBar(
-                          //             content: Text(
-                          //               'Please enable "Already Paid?" first',
-                          //             ),
-                          //             backgroundColor: Colors.orange,
-                          //           ),
-                          //         );
-                          //         return;
-                          //       }
-
-                          //       final newValue = value ?? false;
-
-                          //       WidgetsBinding.instance.addPostFrameCallback((
-                          //         _,
-                          //       ) {
-                          //         if (mounted) {
-                          //           setState(() {
-                          //             isMultiple = newValue;
-
-                          //             if (isMultiple &&
-                          //                 paymentRows.length == 1) {
-                          //               // When enabling multiple, add one more row and distribute amounts
-                          //               paymentRows.add(PaymentRow());
-                          //               _distributeAmountsEqually(total);
-                          //             } else if (!isMultiple &&
-                          //                 paymentRows.length > 1) {
-                          //               // When disabling multiple, consolidate to single payment
-                          //               final totalPaid =
-                          //                   _getCurrentTotalPaid();
-                          //               paymentRows = [PaymentRow()];
-                          //               paymentRows.first.amount = totalPaid;
-                          //               if (paymentRows.isNotEmpty) {
-                          //                 paymentRows.first.method =
-                          //                     paymentRows.first.method;
-                          //               }
-                          //             }
-
-                          //             _calculateRemainingAmount(total);
-                          //           });
-                          //         }
-                          //       });
-                          //     },
-                          //     materialTapTargetSize:
-                          //         MaterialTapTargetSize.shrinkWrap,
-                          //   ),
-                          // ),
-                          Transform.scale(
-                            scale: 0.9,
-                            child: Checkbox(
-                              activeColor: AppTheme.greenColor,
-                              value: isMultiple,
-                              onChanged: (value) {
-                                if (!isAlreadyPaid) return;
-
-                                final newValue = value ?? false;
-
-                                setState(() {
-                                  isMultiple = newValue;
-
-                                  if (isMultiple && paymentRows.length == 1) {
-                                    paymentRows.add(PaymentRow());
-                                    _distributeAmountsEqually(total);
-                                  } else if (!isMultiple &&
-                                      paymentRows.length > 1) {
-                                    paymentRows = [paymentRows.first];
-                                    paymentRows.first.amount = total;
-                                  }
-
-                                  _calculateRemainingAmount(total);
-                                });
-                              },
-                              materialTapTargetSize:
-                                  MaterialTapTargetSize.shrinkWrap,
-                            ),
-                          ),
                         ],
                       ),
-                      if (!depositAlreadyPaid)
-                        Container(
-                          margin: EdgeInsets.only(top: 2),
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.orange.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'Next Payment:',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.orange.shade700,
+                      if (requireDeposit) ...[
+                        SizedBox(height: 6),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: SizedBox(
+                                height: 40,
+                                child: CustomSearchableDropdown(
+                                  key: ValueKey(
+                                    'deposit_type_${selectedDepositType.id}',
+                                  ),
+                                  hintText: 'Type',
+                                  value: selectedDepositType.id,
+                                  items: {
+                                    for (var type in DepositType.types)
+                                      type.id: type.name,
+                                  },
+                                  onChanged: (value) {
+                                    if (value.isNotEmpty) {
+                                      if (mounted) {
+                                        setState(() {
+                                          selectedDepositType = DepositType
+                                              .types
+                                              .firstWhere(
+                                                (type) => type.id == value,
+                                                orElse: () =>
+                                                    DepositType.types[0],
+                                              );
+                                          if (selectedDepositType.id ==
+                                              'percentage') {
+                                            depositAmountController.text =
+                                                depositPercentage.toString();
+                                          } else {
+                                            depositAmountController.text =
+                                                depositAmount.toStringAsFixed(
+                                                  2,
+                                                );
+                                          }
+                                        });
+                                      }
+                                    }
+                                    _updateAllCalculations(p);
+                                  },
                                 ),
                               ),
-                              Text(
-                                'OMR ${depositAmount.toStringAsFixed(2)}',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.orange.shade700,
+                            ),
+                            SizedBox(width: 6),
+                            Expanded(
+                              flex: 2,
+                              child: SizedBox(
+                                height: 45,
+                                child: CustomMmTextField(
+                                  controller: depositAmountController,
+                                  hintText:
+                                      selectedDepositType.id == 'percentage'
+                                      ? '%'
+                                      : 'Amount',
+                                  keyboardType: TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
+                                  onChanged: (value) {
+                                    final val = double.tryParse(value) ?? 0;
+                                    if (selectedDepositType.id ==
+                                        'percentage') {
+                                      depositPercentage = val;
+                                    } else {
+                                      depositAmount = val;
+                                    }
+                                    _updateAllCalculations(p);
+                                  },
                                 ),
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
+                        // SizedBox(height: 4),
+                        // _buildRow('Amount', depositAmount),
+                        SizedBox(height: 4),
+                        // Row(
+                        //   // mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        //   children: [
+                        //     Text('Already Paid?', style: TextStyle(fontSize: 14)),
+                        //     const SizedBox(width: 5),
+                        //     Transform.scale(
+                        //       scale: 0.9,
+                        //       child: Checkbox(
+                        //         // checkColor: AppTheme.greenColor,
+                        //         activeColor: AppTheme.greenColor,
+                        //         value: depositAlreadyPaid,
+                        //         onChanged: (value) {
+                        //           if (mounted) {
+                        //             setState(() {
+                        //               depositAlreadyPaid = value ?? false;
+                        //               _updateAllCalculations(p);
+                        //             });
+                        //           }
+                        //         },
+                        //         materialTapTargetSize:
+                        //             MaterialTapTargetSize.shrinkWrap,
+                        //       ),
+                        //     ),
+                        //   ],
+                        // ),
+                        // Payment Configuration
+                        Row(
+                          children: [
+                            Text(
+                              'Already Paid?',
+                              style: TextStyle(fontSize: 14),
+                            ),
+                            const SizedBox(width: 5),
+                            // Transform.scale(
+                            //   scale: 0.9,
+                            //   child: Checkbox(
+                            //     activeColor: AppTheme.greenColor,
+                            //     value: isAlreadyPaid,
+                            //     onChanged: (value) {
+                            //       final newValue = value ?? false;
+
+                            //       WidgetsBinding.instance.addPostFrameCallback((
+                            //         _,
+                            //       ) {
+                            //         if (mounted) {
+                            //           setState(() {
+                            //             isAlreadyPaid = newValue;
+
+                            //             if (!isAlreadyPaid) {
+                            //               // Reset to default single payment
+                            //               paymentRows = [PaymentRow()];
+                            //               paymentRows.first.method = PaymentMethod
+                            //                   .methods
+                            //                   .firstWhere((m) => m.id == 'cash');
+                            //               paymentRows.first.amount = total;
+                            //               isMultiple =
+                            //                   false; // Reset multiple when turning off payment
+                            //             } else {
+                            //               // Clear deposit when payment is marked as paid
+                            //               depositAmount = 0;
+                            //               depositAlreadyPaid = false;
+                            //               requireDeposit = false;
+                            //               depositAmountController.clear();
+                            //               depositPercentage = 0;
+                            //             }
+
+                            //             _calculateRemainingAmount(total);
+                            //           });
+                            //         }
+                            //       });
+                            //     },
+                            //     materialTapTargetSize:
+                            //         MaterialTapTargetSize.shrinkWrap,
+                            //   ),
+                            // ),
+                            Transform.scale(
+                              scale: 0.9,
+                              child: Checkbox(
+                                activeColor: AppTheme.greenColor,
+                                value: isAlreadyPaid,
+                                onChanged: (value) {
+                                  final newValue = value ?? false;
+
+                                  WidgetsBinding.instance.addPostFrameCallback((
+                                    _,
+                                  ) {
+                                    if (mounted) {
+                                      setState(() {
+                                        isAlreadyPaid = newValue;
+
+                                        if (!isAlreadyPaid) {
+                                          // Reset payment rows when turning off payment
+                                          paymentRows = [PaymentRow()];
+                                          paymentRows.first.method =
+                                              PaymentMethod.methods.firstWhere(
+                                                (m) => m.id == 'cash',
+                                              );
+                                          paymentRows.first.amount = 0;
+                                          isMultiple = false;
+                                        } else {
+                                          // Initialize payment rows when turning on payment
+                                          _initializePaymentRows(total);
+
+                                          // Clear deposit when payment is marked as paid
+                                          depositAmount = 0;
+                                          depositAlreadyPaid = false;
+                                          requireDeposit = false;
+                                          depositAmountController.clear();
+                                          depositPercentage = 0;
+                                        }
+
+                                        _calculateRemainingAmount(total);
+                                      });
+                                    }
+                                  });
+                                },
+                                materialTapTargetSize:
+                                    MaterialTapTargetSize.shrinkWrap,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Text(
+                              'Multiple Methods?',
+                              style: TextStyle(fontSize: 14),
+                            ),
+                            const SizedBox(width: 5),
+                            // Transform.scale(
+                            //   scale: 0.9,
+                            //   child: Checkbox(
+                            //     activeColor: AppTheme.greenColor,
+                            //     value: isMultiple,
+                            //     onChanged: (value) {
+                            //       if (!isAlreadyPaid) {
+                            //         // Force false if not already paid
+                            //         ScaffoldMessenger.of(context).showSnackBar(
+                            //           SnackBar(
+                            //             content: Text(
+                            //               'Please enable "Already Paid?" first',
+                            //             ),
+                            //             backgroundColor: Colors.orange,
+                            //           ),
+                            //         );
+                            //         return;
+                            //       }
+
+                            //       final newValue = value ?? false;
+
+                            //       WidgetsBinding.instance.addPostFrameCallback((
+                            //         _,
+                            //       ) {
+                            //         if (mounted) {
+                            //           setState(() {
+                            //             isMultiple = newValue;
+
+                            //             if (isMultiple &&
+                            //                 paymentRows.length == 1) {
+                            //               // When enabling multiple, keep the existing row and allow adding more
+                            //               // Don't automatically add rows - let user add them manually
+                            //               // This preserves the existing payment data
+                            //             } else if (!isMultiple &&
+                            //                 paymentRows.length > 1) {
+                            //               // When disabling multiple, consolidate to single payment
+                            //               final totalPaid =
+                            //                   _getCurrentTotalPaid();
+                            //               paymentRows = [PaymentRow()];
+                            //               paymentRows.first.amount = totalPaid;
+                            //               // Keep the method from the first row if it exists
+                            //               if (paymentRows.isNotEmpty) {
+                            //                 paymentRows.first.method =
+                            //                     paymentRows.first.method;
+                            //               }
+                            //             }
+
+                            //             _calculateRemainingAmount(total);
+                            //           });
+                            //         }
+                            //       });
+                            //     },
+                            //     materialTapTargetSize:
+                            //         MaterialTapTargetSize.shrinkWrap,
+                            //   ),
+                            // ),
+                            // Transform.scale(
+                            //   scale: 0.9,
+                            //   child: Checkbox(
+                            //     activeColor: AppTheme.greenColor,
+                            //     value: isMultiple,
+                            //     onChanged: (value) {
+                            //       if (!isAlreadyPaid) {
+                            //         ScaffoldMessenger.of(context).showSnackBar(
+                            //           SnackBar(
+                            //             content: Text(
+                            //               'Please enable "Already Paid?" first',
+                            //             ),
+                            //             backgroundColor: Colors.orange,
+                            //           ),
+                            //         );
+                            //         return;
+                            //       }
+
+                            //       final newValue = value ?? false;
+
+                            //       WidgetsBinding.instance.addPostFrameCallback((
+                            //         _,
+                            //       ) {
+                            //         if (mounted) {
+                            //           setState(() {
+                            //             isMultiple = newValue;
+
+                            //             if (isMultiple &&
+                            //                 paymentRows.length == 1) {
+                            //               // When enabling multiple, add one more row and distribute amounts
+                            //               paymentRows.add(PaymentRow());
+                            //               _distributeAmountsEqually(total);
+                            //             } else if (!isMultiple &&
+                            //                 paymentRows.length > 1) {
+                            //               // When disabling multiple, consolidate to single payment
+                            //               final totalPaid =
+                            //                   _getCurrentTotalPaid();
+                            //               paymentRows = [PaymentRow()];
+                            //               paymentRows.first.amount = totalPaid;
+                            //               if (paymentRows.isNotEmpty) {
+                            //                 paymentRows.first.method =
+                            //                     paymentRows.first.method;
+                            //               }
+                            //             }
+
+                            //             _calculateRemainingAmount(total);
+                            //           });
+                            //         }
+                            //       });
+                            //     },
+                            //     materialTapTargetSize:
+                            //         MaterialTapTargetSize.shrinkWrap,
+                            //   ),
+                            // ),
+                            Transform.scale(
+                              scale: 0.9,
+                              child: Checkbox(
+                                activeColor: AppTheme.greenColor,
+                                value: isMultiple,
+                                onChanged: (value) {
+                                  if (!isAlreadyPaid) return;
+
+                                  final newValue = value ?? false;
+
+                                  setState(() {
+                                    isMultiple = newValue;
+
+                                    if (isMultiple && paymentRows.length == 1) {
+                                      paymentRows.add(PaymentRow());
+                                      _distributeAmountsEqually(total);
+                                    } else if (!isMultiple &&
+                                        paymentRows.length > 1) {
+                                      paymentRows = [paymentRows.first];
+                                      paymentRows.first.amount = total;
+                                    }
+
+                                    _calculateRemainingAmount(total);
+                                  });
+                                },
+                                materialTapTargetSize:
+                                    MaterialTapTargetSize.shrinkWrap,
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (!depositAlreadyPaid)
+                          Container(
+                            margin: EdgeInsets.only(top: 2),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'Next Payment:',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.orange.shade700,
+                                  ),
+                                ),
+                                Text(
+                                  'OMR ${depositAmount.toStringAsFixed(2)}',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.orange.shade700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
                     ],
-                  ],
-                ),
+                  ),
                 SizedBox(height: 12),
                 // Payment Details - Ultra compact
                 // _buildUltraCompactCard(
@@ -2315,6 +2328,7 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                 //   ],
                 // ),
                 // Payment Details - Ultra compact
+                ///if (widget.sale == null)
                 _buildUltraCompactCard(
                   icon: Icons.payment,
                   title: 'Payment',
@@ -2652,21 +2666,22 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
 
                 SizedBox(height: 12),
                 // Attachment
-                _buildUltraCompactCard(
-                  icon: Icons.attach_file_sharp,
-                  title: 'Attachment',
-                  children: [
-                    DialogueBoxPicker(
-                      showOldRow: false,
-                      uploadDocument: true,
-                      onFilesPicked: (List<AttachmentModel> files) {
-                        setState(() {
-                          displayPicture = files;
-                        });
-                      },
-                    ),
-                  ],
-                ),
+                if (widget.sale == null)
+                  _buildUltraCompactCard(
+                    icon: Icons.attach_file_sharp,
+                    title: 'Attachment',
+                    children: [
+                      DialogueBoxPicker(
+                        showOldRow: false,
+                        uploadDocument: true,
+                        onFilesPicked: (List<AttachmentModel> files) {
+                          setState(() {
+                            displayPicture = files;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
 
                 // Action Button - Compact
                 SizedBox(
@@ -2737,7 +2752,11 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                         //'depositAlreadyPaid': depositAlreadyPaid,
                         'nextPaymentAmount': nextPaymentAmount,
                       };
-
+                      double t = paymentRows.fold(
+                        0.0,
+                        (sum, row) => sum + (row.amount ?? 0.0),
+                      );
+                      double r = total - t;
                       final paymentData = isAlreadyPaid
                           ? {
                               'isAlreadyPaid': true,
@@ -2751,10 +2770,11 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                                     },
                                   )
                                   .toList(),
-                              'totalPaid': paymentRows.fold(
-                                0.0,
-                                (sum, row) => sum + (row.amount ?? 0.0),
-                              ),
+                              'totalPaid': t,
+                              // paymentRows.fold(
+                              //   0.0,
+                              //   (sum, row) => sum + (row.amount ?? 0.0),
+                              // ),
                               // paymentRows.length > 1
                               //     ? paymentRows
                               //         .fold(0.0, (sum, row) => sum + row.amount)
@@ -2762,7 +2782,7 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                               //     // ? paymentRows.fold(
                               //     //     0, (sum, row) => sum + row.amount as int)
                               //     : p.total,
-                              'remainingAmount': remainingAmount,
+                              'remainingAmount': r,
                             }
                           : {
                               'isAlreadyPaid': false,
