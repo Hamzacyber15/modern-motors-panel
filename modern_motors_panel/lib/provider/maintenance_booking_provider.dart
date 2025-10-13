@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:modern_motors_panel/constants.dart';
 import 'package:modern_motors_panel/extensions.dart';
+import 'package:modern_motors_panel/model/attachment_model.dart';
 import 'package:modern_motors_panel/model/discount_models/discount_model.dart';
 import 'package:modern_motors_panel/model/hr_models/employees/commissions_model/employees_commision_model.dart';
 import 'package:modern_motors_panel/model/inventory_models/inventory_model.dart';
@@ -57,6 +58,7 @@ class MaintenanceBookingProvider extends ChangeNotifier {
   double _discountPercent = 0;
   double get discountPercent => _discountPercent;
   DateTime? paymentDate;
+  List<String> urls = [];
 
   // void updateServiceLines(List<ServiceLineItem> serviceLines) {
   //   _selectedServiceLines = serviceLines;
@@ -81,6 +83,14 @@ class MaintenanceBookingProvider extends ChangeNotifier {
 
   void setPaymentDate(int d) {
     paymentDate = getDateAfterDays(d);
+  }
+
+  Future<void> getImages(List<AttachmentModel> dPicture) async {
+    urls = await Future.wait(
+      dPicture.map((attachment) async {
+        return await Constants.uploadAttachment(attachment);
+      }),
+    );
   }
 
   void setProductsTotal(double value) {
@@ -1040,6 +1050,7 @@ class MaintenanceBookingProvider extends ChangeNotifier {
           //     .toList(),
           'paymentData': paymentData,
           'deposit': d,
+          'url': urls,
           'items': productsData
               .map(
                 (item) => {

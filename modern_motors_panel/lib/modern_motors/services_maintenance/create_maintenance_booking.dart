@@ -1310,22 +1310,6 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                   ),
                 ),
                 12.w,
-
-                Expanded(
-                  child: CustomSearchableDropdown(
-                    key: const ValueKey('Due Date'),
-                    hintText: 'Due Date',
-                    value: p.truckId,
-                    items: {
-                      for (var t in allTrucks.where(
-                        (t) => t.id == p.customerId,
-                      ))
-                        t.id!: '${t.code}-${t.plateNumber}',
-                    },
-                    onChanged: (val) => p.setTruckId(val),
-                  ),
-                ),
-
                 Expanded(child: _buildCreditDropdown(p)),
               ],
             ),
@@ -1363,6 +1347,7 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
           if (mounted) {
             setState(() {
               selectedCreditDays = int.parse(value);
+              provider.setPaymentDate(selectedCreditDays!);
               //  provider.setTruckId(selectedCreditDays);
               // You can also update the provider if needed
               // context.read<MaintenanceBookingProvider>().setCreditDays(selectedCreditDays);
@@ -2688,7 +2673,7 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                   width: double.infinity,
                   height: 40,
                   child: ElevatedButton(
-                    onPressed: () {
+                    onPressed: () async {
                       if (!_validatePaymentAmounts(total) &&
                           widget.sale == null) {
                         return;
@@ -2696,6 +2681,9 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                       setState(() {
                         p.orderLoading = true;
                       });
+                      if (displayPicture.isNotEmpty) {
+                        await p.getImages(displayPicture);
+                      }
                       double d = double.tryParse(discountController.text) ?? 0;
                       List<Map<String, dynamic>> productsData = [];
                       try {
@@ -2722,6 +2710,7 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                         // Log technical error for debugging
                         debugPrint('Invoice submission error: $e');
                       }
+
                       // final productsData = Constants.buildProductsData(
                       //   productRows,
                       // ); // final productsData = productRows.map((row) {
@@ -3325,6 +3314,15 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
     return totalPaid <= grandTotal;
   }
 
+  Future<List<String>> getImages(List<AttachmentModel> dPicture) async {
+    List<String> urls = await Future.wait(
+      dPicture.map((attachment) async {
+        return await Constants.uploadAttachment(attachment);
+      }),
+    );
+    return urls;
+  }
+
   void _updateCalculationsWithoutRebuild(double grandTotal) {
     // Update calculations without triggering full rebuild
     double paidAmount = _getCurrentTotalPaid();
@@ -3531,8 +3529,10 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
   // }
 
   void _validateAndRecalculate(double grandTotal) {
-    if (!isMultiple)
-      return; // No validation needed for single payment (it's locked)
+    if (!isMultiple) {
+      return;
+    }
+    // No validation needed for single payment (it's locked)
 
     // Check if total payments exceed the grand total
     final totalPaid = _getCurrentTotalPaid();
