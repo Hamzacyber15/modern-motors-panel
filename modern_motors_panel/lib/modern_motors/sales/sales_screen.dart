@@ -6,6 +6,7 @@ import 'package:modern_motors_panel/app_theme.dart';
 import 'package:modern_motors_panel/constants.dart';
 import 'package:modern_motors_panel/model/admin_model/brands_model.dart';
 import 'package:modern_motors_panel/model/customer_models/customer_models.dart';
+import 'package:modern_motors_panel/model/payment_data.dart';
 import 'package:modern_motors_panel/model/product_models/product_category_model.dart';
 import 'package:modern_motors_panel/model/product_models/product_sub_category_model.dart';
 import 'package:modern_motors_panel/model/sales_model/sale_model.dart';
@@ -1822,8 +1823,10 @@ class _SalesListViewState extends State<SalesListView> {
   Future<void> getList() async {
     if (widget.type == "estimation") {
       salesList = await DataFetchService.fetchEstimates();
-    } else {
+    } else if (widget.type == "purchase") {
       salesList = await DataFetchService.fetchPurchase();
+    } else {
+      salesList = await DataFetchService.fetchSales();
     }
 
     setState(() {

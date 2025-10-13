@@ -150,6 +150,7 @@ import 'package:modern_motors_panel/provider/hide_app_bar_provider.dart';
 import 'package:modern_motors_panel/provider/main_page_provider.dart';
 import 'package:modern_motors_panel/provider/maintenance_booking_provider.dart';
 import 'package:modern_motors_panel/provider/modern_motors/mm_resource_provider.dart';
+import 'package:modern_motors_panel/provider/purchase_invoice_provider.dart';
 import 'package:modern_motors_panel/provider/resource_provider.dart';
 import 'package:modern_motors_panel/provider/selected_inventories_provider.dart';
 import 'package:modern_motors_panel/provider/sell_order_provider.dart';
@@ -477,7 +478,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => SellOrderProvider()),
         ChangeNotifierProvider(create: (_) => SelectedInventoriesProvider()),
         ChangeNotifierProvider(create: (_) => MaintenanceBookingProvider()),
-        //ChangeNotifierProvider(create: (_) => ChartOfAccountsProvider()),
+        ChangeNotifierProvider(create: (_) => PurchaseInvoiceProvider()),
         ChangeNotifierProvider(create: (_) => EstimationProvider()),
         ChangeNotifierProvider(create: (_) => MmResourceProvider()),
         ChangeNotifierProvider(create: (_) => MainPageProvider()),

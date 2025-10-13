@@ -202,14 +202,6 @@ class _CustomSearchableDropdownState extends State<CustomSearchableDropdown> {
                                           } else {
                                             _selectedEntries.add(entry);
                                           }
-
-                                          // if (_selectedEntries.contains(
-                                          //   entry,
-                                          // )) {
-                                          //   _selectedEntries.remove(entry);
-                                          // } else {
-                                          //   _selectedEntries.add(entry);
-                                          // }
                                         });
                                         WidgetsBinding.instance
                                             .addPostFrameCallback((_) {

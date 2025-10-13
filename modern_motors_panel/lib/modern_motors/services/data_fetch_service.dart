@@ -145,7 +145,7 @@ class DataFetchService {
   static Future<List<SaleModel>> fetchPurchase() async {
     try {
       final querySnapshot = await FirebaseFirestore.instance
-          .collection('purchase')
+          .collection('purchases')
           .where('status', isEqualTo: "pending")
           .orderBy("createdAt", descending: true)
           .get();

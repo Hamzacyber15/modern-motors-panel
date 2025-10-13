@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:modern_motors_panel/app_theme.dart';
-import 'package:modern_motors_panel/model/sales_model/sale_model.dart';
+import 'package:modern_motors_panel/model/payment_data.dart';
 
 class PaymentDetailsDialog extends StatelessWidget {
   final PaymentData paymentData;

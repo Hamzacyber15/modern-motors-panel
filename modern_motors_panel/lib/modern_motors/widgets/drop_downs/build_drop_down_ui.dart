@@ -71,7 +71,7 @@ Widget buildDropdownUI({
                           fontWeight: displayText == hintText
                               ? FontWeight.w400
                               : FontWeight.w600,
-                          color: AppTheme.primaryColor.withOpacity(0.1),
+                          color: AppTheme.primaryColor.withOpacity(0.8),
                         ),
                   ),
                 ),

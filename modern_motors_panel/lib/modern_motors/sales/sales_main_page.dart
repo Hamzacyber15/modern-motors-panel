@@ -152,6 +152,7 @@ class _SalesMainPageState extends State<SalesMainPage> {
                 ),
                 Expanded(
                   child: SalesListView(
+                    type: "sales",
                     //sales: salesList,
                     selectedIds: selectedSalesIds,
                     onSelectChanged: (isSelected, sale) {

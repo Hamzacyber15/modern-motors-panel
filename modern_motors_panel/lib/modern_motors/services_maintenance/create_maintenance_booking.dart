@@ -2610,7 +2610,8 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                'Remaining Balance:',
+                                //'Remaining Balance:',
+                                getRemaningText(p),
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
@@ -2620,7 +2621,8 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                                 ),
                               ),
                               Text(
-                                '${remainingAmount.toStringAsFixed(2)} OMR',
+                                '${_getRemaining(p).toStringAsFixed(2)} OMR',
+                                //'${remainingAmount.toStringAsFixed(2)} OMR',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
@@ -2687,7 +2689,8 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                   height: 40,
                   child: ElevatedButton(
                     onPressed: () {
-                      if (!_validatePaymentAmounts(total)) {
+                      if (!_validatePaymentAmounts(total) &&
+                          widget.sale == null) {
                         return;
                       }
                       setState(() {
@@ -3289,6 +3292,31 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
       total += row.amount;
     }
     return total;
+  }
+
+  String getRemaningText(MaintenanceBookingProvider p) {
+    String d = "";
+    double previousTotal = 0;
+    double paid = _getCurrentTotalPaid();
+    d = 'Remaining Balance';
+    if (widget.sale != null) {
+      previousTotal = widget.sale!.total!;
+    }
+    if (widget.sale != null && previousTotal > p.grandTotal) {
+      paid > p.grandTotal;
+      d = "Over Paid";
+    }
+    return d;
+  }
+
+  double _getRemaining(MaintenanceBookingProvider p) {
+    double paid = _getCurrentTotalPaid();
+    double remaining = 0.0;
+    // if (widget.sale != null && p.grandTotal != widget.sale!.total) {
+
+    // }
+    remaining = p.grandTotal - paid;
+    return remaining;
   }
 
   // Validate payment amounts don't exceed grand total

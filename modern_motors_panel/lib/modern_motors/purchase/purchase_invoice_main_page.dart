@@ -121,11 +121,11 @@ class _PurchaseInvoiceMainPageState extends State<PurchaseInvoiceMainPage> {
           ? Column(
               children: [
                 PageHeaderWidget(
-                  title: 'Invoice'.tr(),
-                  buttonText: 'Create Invoice'.tr(),
-                  subTitle: 'Manage Invoice'.tr(),
+                  title: 'Purchase Invoice'.tr(),
+                  buttonText: 'Create Purchase Invoice'.tr(),
+                  subTitle: 'Manage Purchase Invoice'.tr(),
                   selectedItems: selectedBookingIds.toList(),
-                  requiredPermission: 'Create Invoices',
+                  requiredPermission: 'Create Purchase Invoices',
                   buttonWidth: 0.25,
                   onCreate: () {
                     // navOrderPage();
@@ -153,6 +153,7 @@ class _PurchaseInvoiceMainPageState extends State<PurchaseInvoiceMainPage> {
                 ),
                 Expanded(
                   child: SalesListView(
+                    type: "purchase",
                     //sales: salesList,
                     selectedIds: selectedSalesIds,
                     onSelectChanged: (isSelected, sale) {

@@ -24,7 +24,9 @@ import 'package:modern_motors_panel/model/equipment_models/equipment_type_model.
 import 'package:modern_motors_panel/model/handling_orders/order_model.dart';
 import 'package:modern_motors_panel/model/handling_orders/pallet_update_model.dart';
 import 'package:modern_motors_panel/model/package_models/package_model.dart';
+import 'package:modern_motors_panel/model/payment_data.dart';
 import 'package:modern_motors_panel/model/profile_models/public_profile_model.dart';
+import 'package:modern_motors_panel/model/purchase_models/new_purchase_model.dart';
 import 'package:modern_motors_panel/model/sales_model/sale_model.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -1714,6 +1716,145 @@ class Constants {
       previousStock: 0,
       productId: saleItems.isNotEmpty ? saleItems.first.productId : '',
       productName: saleItems.isNotEmpty ? saleItems.first.productName : '',
+      deposit: deposit,
+      discount: discount,
+      discountType: 'percentage',
+      paymentData: paymentInfo,
+      remaining: paymentInfo.remainingAmount,
+      draft: isEdit ? 'updated' : null,
+    );
+  }
+
+  static NewPurchaseModel parseToPurchaseModel({
+    required List<Map<String, dynamic>> productsData,
+    required Map<String, dynamic> depositData,
+    required Map<String, dynamic> paymentData,
+    required double totalRevenue,
+    required double discount,
+    required double taxAmount,
+    required String supplierId,
+    required bool isEdit,
+  }) {
+    // Validate that productsData is not empty
+    if (productsData.isEmpty) {
+      throw ArgumentError('productsData cannot be empty');
+    }
+
+    // Validate required fields
+    if (supplierId.isEmpty) {
+      throw ArgumentError('customerName cannot be empty');
+    }
+
+    // Calculate totals from products data with null safety
+    double totalCost = 0;
+    double totalProfit = 0;
+    int totalQuantity = 0;
+    List<PurchaseItem> purchaseItems = [];
+
+    for (var product in productsData) {
+      // Validate each product has required fields
+      if (product['productId'] == null ||
+          product['productId'].toString().isEmpty) {
+        throw ArgumentError('Each product must have a productId');
+      }
+
+      final cost = (product['sellingPrice'] as num?)?.toDouble() ?? 0;
+      final quantity = (product['quantity'] as num?)?.toInt() ?? 0;
+      final profit = (product['profit'] as num?)?.toDouble() ?? 0;
+
+      totalCost += cost * quantity;
+      totalProfit += profit * quantity;
+      totalQuantity += quantity;
+
+      // Create SaleItem
+      purchaseItems.add(
+        PurchaseItem(
+          productId: product['productId'] as String? ?? '',
+          productName: product['productName'] as String? ?? '',
+          quantity: quantity,
+          unitPrice: cost,
+          sellingPrice: cost,
+          minimumPrice: (product['minimumPrice'] as num?)?.toDouble() ?? 0,
+          discount: (product['discount'] as num?)?.toDouble() ?? 0,
+          margin: 0,
+          totalPrice: (product['total'] as num?)?.toDouble() ?? 0,
+          type: product['type'] as String? ?? 'product',
+          cost: (product['cost'] as num?)?.toDouble() ?? 0,
+        ),
+      );
+    }
+
+    // Parse deposit data with defaults
+    final deposit = Deposit(
+      depositA: (depositData['depositAmount'] as num?)?.toDouble() ?? 0,
+      requireDeposit: depositData['requireDeposit'] as bool? ?? false,
+      depositType: depositData['depositType'] as String? ?? '',
+      depositAmount: (depositData['depositAmount'] as num?)?.toDouble() ?? 0,
+      depositPercentage:
+          (depositData['depositPercentage'] as num?)?.toDouble() ?? 0,
+      depositAlreadyPaid: depositData['depositAlreadyPaid'] as bool? ?? false,
+      nextPaymentAmount:
+          (depositData['nextPaymentAmount'] as num?)?.toDouble() ?? 0,
+    );
+
+    // Parse payment data with validation
+    final paymentMethods =
+        (paymentData['paymentMethods'] as List<dynamic>?)?.map((method) {
+          final methodMap = method as Map<String, dynamic>;
+          return PaymentMethod(
+            method: methodMap['method'] ?? "",
+            methodName: methodMap['methodName'] ?? "",
+            reference: methodMap['reference'] ?? "",
+            amount: (methodMap['amount'] as num?)?.toDouble() ?? 0,
+          );
+        }).toList() ??
+        [];
+
+    final paymentInfo = PaymentData(
+      isAlreadyPaid: paymentData['isAlreadyPaid'] as bool? ?? false,
+      paymentMethods: paymentMethods,
+      totalPaid: (paymentData['totalPaid'] as num?)?.toDouble() ?? 0,
+      remainingAmount:
+          (paymentData['remainingAmount'] as num?)?.toDouble() ?? 0,
+    );
+
+    // Generate a unique ID or use existing one
+    final String saleId = ""; //existingBooking?.id ?? _generateSaleId();
+
+    // Determine payment method from payment data
+    String primaryPaymentMethod = 'cash';
+    if (paymentMethods.isNotEmpty) {
+      if (paymentMethods.length == 1) {
+        primaryPaymentMethod = paymentMethods.first.method ?? 'cash';
+      } else {
+        primaryPaymentMethod = 'multiple';
+      }
+    }
+
+    // Create the SaleModel
+    return NewPurchaseModel(
+      id: saleId,
+      supplierId: supplierId,
+      branchId: "",
+      paymentMethod: primaryPaymentMethod,
+      createdAt: DateTime.now(),
+      processedAt: DateTime.now(),
+      items: purchaseItems,
+      quantity: totalQuantity,
+      purchasePrice: totalRevenue,
+      status: 'completed',
+      totalCost: totalCost,
+      totalQuantityProcessed: totalQuantity,
+      updatedAt: DateTime.now(),
+      createdBy: 'system',
+      invoice: _generateInvoiceNumber(),
+      createBy: 'system',
+      taxAmount: taxAmount,
+      previousStock: 0,
+      productId: purchaseItems.isNotEmpty ? purchaseItems.first.productId : '',
+      productName: purchaseItems.isNotEmpty
+          ? purchaseItems.first.productName
+          : '',
       deposit: deposit,
       discount: discount,
       discountType: 'percentage',
