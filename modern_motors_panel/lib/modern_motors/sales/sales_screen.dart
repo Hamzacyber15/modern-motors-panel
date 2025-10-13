@@ -15,8 +15,10 @@ import 'package:modern_motors_panel/modern_motors/products/DataTableProductCell.
 import 'package:modern_motors_panel/modern_motors/products/product_details_dialogue.dart';
 import 'package:modern_motors_panel/modern_motors/services/data_fetch_service.dart';
 import 'package:modern_motors_panel/modern_motors/services_maintenance/create_booking_main_page.dart';
+import 'package:modern_motors_panel/modern_motors/trucks/manage_trucks_page.dart';
 import 'package:modern_motors_panel/modern_motors/widgets/customer_name_tile.dart';
 import 'package:modern_motors_panel/modern_motors/widgets/employees/mm_employee_info_tile.dart';
+import 'package:modern_motors_panel/modern_motors/widgets/image_gallery_dialogue.dart';
 import 'package:modern_motors_panel/modern_motors/widgets/payment_details_dialog.dart';
 import 'package:modern_motors_panel/modern_motors/widgets/sales_invoice_dropdown_view.dart';
 import 'package:modern_motors_panel/provider/modern_motors/mm_resource_provider.dart';
@@ -786,6 +788,19 @@ class SaleCard extends StatelessWidget {
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
+                            const SizedBox(height: 2),
+                            if (sale.url != null && sale.url!.isNotEmpty)
+                              IconButton(
+                                onPressed: () => showDialog(
+                                  context: context,
+                                  builder: (context) => ImageGalleryDialog(
+                                    imageUrls: sale.url!,
+                                    thumbnailSize: 40.0,
+                                    spacing: 6.0,
+                                  ),
+                                ),
+                                icon: Icon(Icons.preview_sharp),
+                              ),
                           ],
                         ),
                       ),

@@ -585,6 +585,7 @@ class SaleModel {
   final double remaining;
   final String? draft;
   final double? total;
+  final List<String>? url;
   SaleModel({
     required this.id,
     required this.customerName,
@@ -621,6 +622,7 @@ class SaleModel {
     required this.remaining,
     this.total,
     this.draft,
+    this.url,
   });
 
   factory SaleModel.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
@@ -699,6 +701,9 @@ class SaleModel {
       total: (data['total'] ?? 0).toDouble(),
       remaining: (data['remaining'] ?? 0).toDouble(),
       draft: (data['draft'] ?? ""),
+      url: (data['url'] as List<dynamic>? ?? [])
+          .map((e) => e.toString())
+          .toList(),
     );
   }
 
@@ -736,6 +741,7 @@ class SaleModel {
       'discountType': discountType,
       'paymentData': paymentData.toMap(),
       'remaining': remaining,
+      'url': url,
     };
   }
 

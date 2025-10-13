@@ -427,7 +427,7 @@ class _ManageTrucksPageState extends State<ManageTrucksPage>
 
     showDialog(
       context: context,
-      builder: (context) => ImageGalleryDialog(
+      builder: (context) => TruckImageGallery(
         images: truck.imageUrls!,
         truckInfo: '${truck.brand} ${truck.modelName} - ${truck.plateNumber}',
       ),
@@ -1052,21 +1052,21 @@ class TruckCard extends StatelessWidget {
   }
 }
 
-class ImageGalleryDialog extends StatefulWidget {
+class TruckImageGallery extends StatefulWidget {
   final List<String> images;
   final String truckInfo;
 
-  const ImageGalleryDialog({
+  const TruckImageGallery({
     Key? key,
     required this.images,
     required this.truckInfo,
   }) : super(key: key);
 
   @override
-  State<ImageGalleryDialog> createState() => _ImageGalleryDialogState();
+  State<TruckImageGallery> createState() => _TruckImageGalleryState();
 }
 
-class _ImageGalleryDialogState extends State<ImageGalleryDialog> {
+class _TruckImageGalleryState extends State<TruckImageGallery> {
   PageController? _pageController;
   int _currentIndex = 0;
 
