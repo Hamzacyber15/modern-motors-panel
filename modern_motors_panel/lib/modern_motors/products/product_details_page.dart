@@ -604,10 +604,15 @@
 // }
 
 import 'package:flutter/material.dart';
+import 'package:modern_motors_panel/model/chartoAccounts_model.dart';
 import 'package:modern_motors_panel/model/product_models/product_model.dart';
 import 'package:modern_motors_panel/modern_motors/products/add_edit_product.dart';
 import 'package:modern_motors_panel/modern_motors/products/product_inventory_batches.dart';
 import 'package:modern_motors_panel/modern_motors/products/product_inventory_logs.dart';
+import 'package:modern_motors_panel/modern_motors/services/data_fetch_service.dart';
+import 'package:modern_motors_panel/provider/modern_motors/mm_resource_provider.dart';
+import 'package:modern_motors_panel/services/local/branch_id_sp.dart';
+import 'package:provider/provider.dart';
 
 class ProductDetailsPage extends StatefulWidget {
   final ProductModel product;
@@ -629,11 +634,97 @@ class ProductDetailsPage extends StatefulWidget {
 class _ProductDetailsPageState extends State<ProductDetailsPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  ChartAccount? _selectedRevenueAccount;
+  ChartAccount? _selectedCostOfSalesAccount;
+  ChartAccount? _selectedAssetAccount;
+
+  // Dropdown items
+  List<ChartAccount> _revenueAccounts = [];
+  List<ChartAccount> _costOfSalesAccounts = [];
+  List<ChartAccount> _assetAccounts = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
+    _loadChartAccounts();
     _tabController = TabController(length: 3, vsync: this);
+  }
+
+  Future<void> _loadChartAccounts() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final branch = context.read<MmResourceProvider>().getBranchByID(
+        BranchIdSp.getBranchId(),
+      );
+
+      // Load revenue accounts (4000)
+      final revenueParentAccounts =
+          await DataFetchService.getChartAccountsByCode(branch.id!, '4000');
+
+      List<ChartAccount> allRevenueAccounts = [];
+      for (var parentAccount in revenueParentAccounts) {
+        allRevenueAccounts.add(parentAccount);
+        if (parentAccount.childAccountIds.isNotEmpty) {
+          final childAccounts = await DataFetchService.getChildAccounts(
+            branch.id!,
+            parentAccount.childAccountIds,
+          );
+          allRevenueAccounts.addAll(childAccounts);
+        }
+      }
+
+      // Load cost of sales accounts (5100)
+      final costParentAccounts = await DataFetchService.getChartAccountsByCode(
+        branch.id!,
+        '5100',
+      );
+
+      List<ChartAccount> allCostAccounts = [];
+      for (var parentAccount in costParentAccounts) {
+        allCostAccounts.add(parentAccount);
+        if (parentAccount.childAccountIds.isNotEmpty) {
+          final childAccounts = await DataFetchService.getChildAccounts(
+            branch.id!,
+            parentAccount.childAccountIds,
+          );
+          allCostAccounts.addAll(childAccounts);
+        }
+      }
+
+      // Load asset accounts (1000)
+      final assetParentAccounts = await DataFetchService.getChartAccountsByCode(
+        branch.id!,
+        '1000',
+      );
+
+      List<ChartAccount> allAssetAccounts = [];
+      for (var parentAccount in assetParentAccounts) {
+        allAssetAccounts.add(parentAccount);
+        if (parentAccount.childAccountIds.isNotEmpty) {
+          final childAccounts = await DataFetchService.getChildAccounts(
+            branch.id!,
+            parentAccount.childAccountIds,
+          );
+          allAssetAccounts.addAll(childAccounts);
+        }
+      }
+
+      setState(() {
+        _revenueAccounts = allRevenueAccounts;
+        _costOfSalesAccounts = allCostAccounts;
+        _assetAccounts = allAssetAccounts;
+        _isLoading = false;
+      });
+    } catch (e) {
+      debugPrint('Error loading chart accounts: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -694,18 +785,14 @@ class _ProductDetailsPageState extends State<ProductDetailsPage>
       child: Row(
         children: [
           // Breadcrumb
-          Icon(Icons.arrow_back),
+          //Icon(Icons.arrow_back),
+          IconButton(
+            onPressed: cancel,
+            icon: Icon(Icons.arrow_back, size: 20, color: Colors.grey.shade600),
+          ),
           const SizedBox(width: 10),
           Row(
             children: [
-              IconButton(
-                onPressed: cancel,
-                icon: Icon(
-                  Icons.inventory_2_outlined,
-                  size: 20,
-                  color: Colors.grey.shade600,
-                ),
-              ),
               const SizedBox(width: 8),
               Text(
                 'Products',
@@ -849,75 +936,206 @@ class _ProductDetailsPageState extends State<ProductDetailsPage>
     );
   }
 
+  Widget _buildAccountDropdown({
+    required String label,
+    required List<ChartAccount> accounts,
+    required ChartAccount? selectedAccount,
+    required Function(ChartAccount?) onChanged,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Color(0xFF374151),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            border: Border.all(color: const Color(0xFFD1D5DB)),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: DropdownButton<ChartAccount>(
+            value: selectedAccount,
+            isExpanded: true,
+            underline: const SizedBox(),
+            borderRadius: BorderRadius.circular(6),
+            dropdownColor: Colors.white,
+            hint: const Text('Select Account'),
+            items: [
+              const DropdownMenuItem<ChartAccount>(
+                value: null,
+                child: Text('Select Account'),
+              ),
+              ...accounts.map((account) {
+                return DropdownMenuItem<ChartAccount>(
+                  value: account,
+                  child: Text(
+                    '${account.accountCode} - ${account.accountName}',
+                    style: TextStyle(
+                      color: account.level > 0 ? Colors.blue : Colors.black,
+                      fontWeight: account.level > 0
+                          ? FontWeight.normal
+                          : FontWeight.bold,
+                    ),
+                  ),
+                );
+              }).toList(),
+            ],
+            onChanged: onChanged,
+          ),
+        ),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
   Widget _buildProductOverviewCard() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+          ),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Product Image
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                ),
-                child:
-                    widget.product.image != null &&
-                        widget.product.image!.isNotEmpty
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.network(
-                          widget.product.image!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => Icon(
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Product Image
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child:
+                        widget.product.image != null &&
+                            widget.product.image!.isNotEmpty
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.network(
+                              widget.product.image!,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  Icon(
+                                    Icons.inventory_2_outlined,
+                                    color: Colors.grey.shade400,
+                                    size: 32,
+                                  ),
+                            ),
+                          )
+                        : Icon(
                             Icons.inventory_2_outlined,
                             color: Colors.grey.shade400,
                             size: 32,
                           ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.product.productName ?? 'Unknown Product',
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF0F172A),
+                            height: 1.3,
+                          ),
                         ),
-                      )
-                    : Icon(
-                        Icons.inventory_2_outlined,
-                        color: Colors.grey.shade400,
-                        size: 32,
-                      ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.product.productName ?? 'Unknown Product',
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF0F172A),
-                        height: 1.3,
-                      ),
+                        const SizedBox(height: 6),
+                        _buildStatusBadge(),
+                      ],
                     ),
-                    const SizedBox(height: 6),
-                    _buildStatusBadge(),
-                  ],
-                ),
+                  ),
+                ],
               ),
+              const SizedBox(height: 20),
+              // _buildProductDetails(),
             ],
           ),
-          const SizedBox(height: 20),
-          _buildProductDetails(),
-        ],
-      ),
+        ),
+        //Text("testing"),
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Chart of Accounts',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF0F172A),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              if (_isLoading)
+                const Center(child: CircularProgressIndicator())
+              else
+                Column(
+                  children: [
+                    // Revenue Account Dropdown
+                    _buildAccountDropdown(
+                      label: 'Revenue Account (4000)',
+                      accounts: _revenueAccounts,
+                      selectedAccount: _selectedRevenueAccount,
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedRevenueAccount = value;
+                        });
+                      },
+                    ),
+
+                    // Cost of Sales Account Dropdown
+                    _buildAccountDropdown(
+                      label: 'Cost of Sales Account (5100)',
+                      accounts: _costOfSalesAccounts,
+                      selectedAccount: _selectedCostOfSalesAccount,
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedCostOfSalesAccount = value;
+                        });
+                      },
+                    ),
+
+                    // Asset Account Dropdown
+                    _buildAccountDropdown(
+                      label: 'Asset Account (1000)',
+                      accounts: _assetAccounts,
+                      selectedAccount: _selectedAssetAccount,
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedAssetAccount = value;
+                        });
+                      },
+                    ),
+                  ],
+                ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

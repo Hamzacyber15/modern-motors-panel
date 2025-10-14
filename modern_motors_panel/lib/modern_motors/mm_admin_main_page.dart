@@ -2937,44 +2937,44 @@ class _MmAdminMainPageState extends State<MmAdminMainPage> {
             ),
           ),
 
-          if (!isSidebarCollapsed && !isMobile)
-            Container(
-              margin: const EdgeInsets.all(16),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFF374151).withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(12),
-                // border: Border.all(
-                //   color: const Color(0xFF4B5563).withValues(alpha: 0.3),
-                // ),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: AppTheme.primaryColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Icon(
-                      Icons.help_outline,
-                      color: AppTheme.primaryColor,
-                      size: 16,
-                    ),
-                  ),
-                  8.w,
-                  Expanded(
-                    child: Text(
-                      'Need Help?'.tr(),
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.9),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          // if (!isSidebarCollapsed && !isMobile)
+          //   Container(
+          //     margin: const EdgeInsets.all(16),
+          //     padding: const EdgeInsets.all(16),
+          //     decoration: BoxDecoration(
+          //       color: const Color(0xFF374151).withValues(alpha: 0.3),
+          //       borderRadius: BorderRadius.circular(12),
+          //       // border: Border.all(
+          //       //   color: const Color(0xFF4B5563).withValues(alpha: 0.3),
+          //       // ),
+          //     ),
+          //     child: Row(
+          //       children: [
+          //         Container(
+          //           padding: const EdgeInsets.all(6),
+          //           decoration: BoxDecoration(
+          //             color: AppTheme.primaryColor.withValues(alpha: 0.1),
+          //             borderRadius: BorderRadius.circular(6),
+          //           ),
+          //           child: Icon(
+          //             Icons.help_outline,
+          //             color: AppTheme.primaryColor,
+          //             size: 16,
+          //           ),
+          //         ),
+          //         // 8.w,
+          //         // Expanded(
+          //         //   child: Text(
+          //         //     'Need Help?'.tr(),
+          //         //     style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          //         //       color: Colors.white.withValues(alpha: 0.9),
+          //         //       fontWeight: FontWeight.w500,
+          //         //     ),
+          //         //   ),
+          //         // ),
+          //       ],
+          //     ),
+          //   ),
         ],
       ),
     );

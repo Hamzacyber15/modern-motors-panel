@@ -147,14 +147,23 @@ class _ProfileOverlayWidgetState extends State<ProfileOverlayWidget> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    '${userProfile.userName} - ${userProfile.employeeNumber}',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 15,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
+                                  user!.uid == Constants.adminId
+                                      ? Text(
+                                          "Admin",
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 15,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        )
+                                      : Text(
+                                          '${userProfile.userName} - ${userProfile.employeeNumber}',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 15,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
                                   Text(
                                     branch.branchName,
                                     style: const TextStyle(
@@ -187,15 +196,15 @@ class _ProfileOverlayWidgetState extends State<ProfileOverlayWidget> {
                         //   "Change Email",
                         // ),
                         _buildMenuItem(Icons.lock_outline, "Change Password"),
-                        _buildMenuItem(
-                          Icons.phone_android_outlined,
-                          "Daftra Mobile Apps",
-                        ),
-                        _buildMenuItem(
-                          Icons.autorenew_outlined,
-                          "Renew Subscription",
-                        ),
 
+                        // _buildMenuItem(
+                        //   Icons.phone_android_outlined,
+                        //   "Daftra Mobile Apps",
+                        // ),
+                        // _buildMenuItem(
+                        //   Icons.autorenew_outlined,
+                        //   "Renew Subscription",
+                        // ),
                         const SizedBox(height: 8),
                         const Text(
                           "My Branches",

@@ -10,6 +10,7 @@ import 'package:modern_motors_panel/model/assets_model/assets_category_model.dar
 import 'package:modern_motors_panel/model/assets_model/assets_model.dart';
 import 'package:modern_motors_panel/model/assets_model/assets_parent_category_model.dart';
 import 'package:modern_motors_panel/model/branches/branch_model.dart';
+import 'package:modern_motors_panel/model/chartoAccounts_model.dart';
 import 'package:modern_motors_panel/model/customer_models/customer_models.dart';
 import 'package:modern_motors_panel/model/default_address_preview.dart';
 import 'package:modern_motors_panel/model/depriciation/depriciation_methods_model.dart';
@@ -428,6 +429,51 @@ class DataFetchService {
     return querySnapshot.docs.map((doc) {
       return MaintenanceBookingModel.from(doc);
     }).toList();
+  }
+
+  static Future<List<ChartAccount>> getChartAccountsByCode(
+    String branchId,
+    String accountCode,
+  ) async {
+    try {
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('chartOfAccounts')
+          .doc(branchId)
+          .collection('chartOfAccounts')
+          .where('account_code', isEqualTo: accountCode)
+          .where('branch_id', isEqualTo: branchId)
+          .get();
+
+      return querySnapshot.docs
+          .map((doc) => ChartAccount.fromFirestore(doc))
+          .toList();
+    } catch (e) {
+      debugPrint('Error fetching chart accounts: $e');
+      return [];
+    }
+  }
+
+  static Future<List<ChartAccount>> getChildAccounts(
+    String branchId,
+    List<String> childAccountIds,
+  ) async {
+    if (childAccountIds.isEmpty) return [];
+
+    try {
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('chartOfAccounts')
+          .doc(branchId)
+          .collection('chartOfAccounts')
+          .where(FieldPath.documentId, whereIn: childAccountIds)
+          .get();
+
+      return querySnapshot.docs
+          .map((doc) => ChartAccount.fromFirestore(doc))
+          .toList();
+    } catch (e) {
+      debugPrint('Error fetching child accounts: $e');
+      return [];
+    }
   }
 
   static Future<List<BrandModel>> fetchBrands() async {

@@ -1275,7 +1275,7 @@ class _ManageProductsState extends State<ManageProducts> {
       isLoading = true;
     });
     Future.wait([
-      DataFetchService.fetchProducts(),
+      DataFetchService.fetchAllProducts(),
       DataFetchService.fetchUnits(),
       DataFetchService.fetchProduct(),
       DataFetchService.fetchSubCategories(),
