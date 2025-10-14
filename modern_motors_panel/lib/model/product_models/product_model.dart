@@ -21,6 +21,7 @@ class ProductModel {
   final String? description;
   final double? sellingPrice;
   final String? sku;
+  final bool? includeInInventory;
   ProductModel({
     this.id,
     this.productName,
@@ -42,6 +43,7 @@ class ProductModel {
     this.description,
     this.sellingPrice,
     this.sku,
+    this.includeInInventory,
   });
 
   factory ProductModel.fromMap(DocumentSnapshot doc) {
@@ -68,6 +70,7 @@ class ProductModel {
       minimumPrice: double.tryParse(map['minimumPrice'].toString()) ?? 0,
       sku: map['sku'] ?? "",
       description: map['description'] ?? "",
+      includeInInventory: map['includeInInventory'] ?? false,
     );
   }
 
@@ -81,6 +84,7 @@ class ProductModel {
       image: map['image'] ?? '',
       status: map['status'] ?? 'pending',
       threshold: (map['threshold'] ?? 0).toDouble(),
+      includeInInventory: (map['includeInInventory'] ?? false),
     );
   }
 
@@ -99,6 +103,7 @@ class ProductModel {
       'sellingPrice': sellingPrice,
       'sku': sku,
       'description': description,
+      'includeInInventory': includeInInventory,
     };
   }
 

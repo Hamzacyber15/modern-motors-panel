@@ -6755,6 +6755,8 @@
 //   }
 // }
 
+// ignore_for_file: deprecated_member_use
+
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -6863,12 +6865,14 @@ class ExpenseType {
 
 class BillExpense {
   ExpenseType? type;
+  SupplierModel? supplier;
   double amount = 0;
   String description = '';
   bool includeInProductCost = true;
 
   BillExpense({
     this.type,
+    this.supplier,
     this.amount = 0,
     this.description = '',
     this.includeInProductCost = true,
@@ -6892,7 +6896,8 @@ class ProductRow {
   double serviceCost = 0;
   String? serviceType;
   String? vatType; // 'standard', 'zero', 'exempt', 'none'
-
+  String? supplierId;
+  bool? addToPurchaseCost = false;
   String discountType = 'percentage';
   Key? vatKey;
   late Key dropdownKey;
@@ -7010,6 +7015,7 @@ class _PurchaseInvoiceState extends State<PurchaseInvoice>
 
   // New fields for bill-level expenses
   List<BillExpense> billExpenses = [];
+  List<SupplierModel> expensesSuppliers = [];
   double billExpensesTotal = 0;
   bool includeExpensesInProductCost = true;
 
@@ -7512,6 +7518,7 @@ class _PurchaseInvoiceState extends State<PurchaseInvoice>
               itemCount: productRows.length,
               itemBuilder: (context, index) {
                 return ProductRowWidget(
+                  supplierList: allSuppliers,
                   productRow: productRows[index],
                   allItems: purchaseItem,
                   index: index,
@@ -7636,7 +7643,7 @@ class _PurchaseInvoiceState extends State<PurchaseInvoice>
               itemCount: billExpenses.length,
               itemBuilder: (context, index) {
                 return BillExpenseRowWidget(
-                  supplierList: filteredSuppliers,
+                  supplierList: allSuppliers,
                   expense: billExpenses[index],
                   index: index,
                   onUpdate: (updatedExpense) =>
@@ -8278,8 +8285,9 @@ class _PurchaseInvoiceState extends State<PurchaseInvoice>
       items: creditDaysMap,
       value: selectedCreditDays?.toString(),
       onChanged: (value) {
-        if (value.isNotEmpty && mounted)
+        if (value.isNotEmpty && mounted) {
           setState(() => selectedCreditDays = int.parse(value));
+        }
       },
     );
   }
@@ -10897,7 +10905,7 @@ class ProductRowWidget extends StatefulWidget {
   final Function(ProductRow) onUpdate;
   final VoidCallback onRemove;
   final bool showRemoveButton;
-
+  final List<SupplierModel> supplierList;
   const ProductRowWidget({
     super.key,
     required this.productRow,
@@ -10906,6 +10914,7 @@ class ProductRowWidget extends StatefulWidget {
     required this.onUpdate,
     required this.onRemove,
     required this.showRemoveButton,
+    required this.supplierList,
   });
 
   @override
@@ -10935,6 +10944,25 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
     'percentage': '%',
     'amount': 'OMR',
   };
+
+  // Expense type options
+  final Map<String, String> expenseTypes = {
+    'freight': 'Freight',
+    'handling': 'Handling',
+    'multiple': 'Multiple',
+    'other': 'Other',
+  };
+
+  // Supplier options (you can populate this from your data)
+  Map<String, String> get supplierOptions {
+    final Map<String, String> options = {};
+    for (var supplier in widget.supplierList) {
+      if (supplier.id != null && supplier.supplierName.isNotEmpty) {
+        options[supplier.id!] = supplier.supplierName;
+      }
+    }
+    return options;
+  }
 
   @override
   void initState() {
@@ -10975,27 +11003,27 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
   }
 
   void _onPriceFocusChange() {
-    if (!_priceFocusNode.hasFocus) _validateAndUpdatePrice();
+    if (!_priceFocusNode.hasFocus) {} // _validateAndUpdatePrice();
   }
 
-  void _validateAndUpdatePrice() {
-    final newPrice = double.tryParse(_priceController.text) ?? 0;
-    final minimumPrice = widget.productRow.purchaseItem?.minimumPrice ?? 0;
-    final sellingPrice = widget.productRow.purchaseItem?.sellingPrice ?? 0;
-    if (newPrice < minimumPrice) {
-      _showMinimumPriceError(minimumPrice);
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          setState(() {
-            _priceController.text = sellingPrice.toStringAsFixed(2);
-            _updatePriceInModel(sellingPrice);
-          });
-        }
-      });
-    } else {
-      _updatePriceInModel(newPrice);
-    }
-  }
+  // void _validateAndUpdatePrice() {
+  //   final newPrice = double.tryParse(_priceController.text) ?? 0;
+  //   final minimumPrice = widget.productRow.purchaseItem?.minimumPrice ?? 0;
+  //   final sellingPrice = widget.productRow.purchaseItem?.sellingPrice ?? 0;
+  //   if (newPrice < minimumPrice) {
+  //     _showMinimumPriceError(minimumPrice);
+  //     WidgetsBinding.instance.addPostFrameCallback((_) {
+  //       if (mounted) {
+  //         setState(() {
+  //           _priceController.text = sellingPrice.toStringAsFixed(2);
+  //           _updatePriceInModel(sellingPrice);
+  //         });
+  //       }
+  //     });
+  //   } else {
+  //     _updatePriceInModel(newPrice);
+  //   }
+  // }
 
   void _updatePriceInModel(double newPrice) {
     if (widget.productRow.type == 'service') {
@@ -11066,6 +11094,16 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
     _updateProductWithDebounce();
   }
 
+  void _updateSupplierInModel(String supplierId) {
+    widget.productRow.supplierId = supplierId;
+    _updateProductWithDebounce();
+  }
+
+  void _updateAddToPurchaseCost(bool value) {
+    widget.productRow.addToPurchaseCost = value;
+    _updateProductWithDebounce();
+  }
+
   void _updateProductWithDebounce() {
     widget.productRow.calculateTotals();
     _updateTimer?.cancel();
@@ -11075,17 +11113,17 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
     );
   }
 
-  void _showMinimumPriceError(double minimumPrice) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Price cannot be less than minimum price: OMR ${minimumPrice.toStringAsFixed(2)}',
-        ),
-        backgroundColor: Colors.red,
-        duration: Duration(seconds: 3),
-      ),
-    );
-  }
+  // void _showMinimumPriceError(double minimumPrice) {
+  //   ScaffoldMessenger.of(context).showSnackBar(
+  //     SnackBar(
+  //       content: Text(
+  //         'Price cannot be less than minimum price: OMR ${minimumPrice.toStringAsFixed(2)}',
+  //       ),
+  //       backgroundColor: Colors.red,
+  //       duration: Duration(seconds: 3),
+  //     ),
+  //   );
+  // }
 
   @override
   void didUpdateWidget(ProductRowWidget oldWidget) {
@@ -11206,7 +11244,7 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
     VoidCallback? onEditingComplete,
     List<TextInputFormatter>? inputFormatters,
   }) {
-    return Container(
+    return SizedBox(
       height: 44,
       child: TextFormField(
         controller: controller,
@@ -11247,6 +11285,46 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
     );
   }
 
+  Widget _buildDropdown({
+    required Map<String, String> items,
+    required String? value,
+    required String hint,
+    required Function(String) onChanged,
+    double? width,
+  }) {
+    return Container(
+      width: width,
+      height: 44,
+      padding: EdgeInsets.symmetric(horizontal: 12),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          isExpanded: true,
+          value: value,
+          hint: Text(
+            hint,
+            style: TextStyle(color: Colors.grey[600], fontSize: 14),
+          ),
+          items: items.entries.map((entry) {
+            return DropdownMenuItem(
+              value: entry.key,
+              child: Text(
+                entry.value,
+                style: TextStyle(fontSize: 14),
+                overflow: TextOverflow.ellipsis,
+              ),
+            );
+          }).toList(),
+          onChanged: (value) {
+            if (value != null) {
+              onChanged(value);
+            }
+          },
+        ),
+      ),
+    );
+  }
+
+  bool _addToPurchaseCost = false;
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -11292,12 +11370,13 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
                         final newPrice = double.tryParse(value) ?? 0;
                         final minimumPrice =
                             widget.productRow.purchaseItem?.minimumPrice ?? 0;
-                        if (newPrice >= minimumPrice)
+                        if (newPrice >= minimumPrice) {
                           _updatePriceInModel(newPrice);
+                        }
                       }
                     },
                     onEditingComplete: () {
-                      _validateAndUpdatePrice();
+                      // _validateAndUpdatePrice();
                       FocusScope.of(context).requestFocus(_qtyFocusNode);
                     },
                   ),
@@ -11336,7 +11415,7 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
                 _buildFieldBlock(
                   header: 'DISCOUNT',
                   flex: 3,
-                  child: Container(
+                  child: SizedBox(
                     height: 44,
                     child: Row(
                       children: [
@@ -11419,63 +11498,55 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
                 _buildFieldBlock(
                   header: 'VAT',
                   flex: 3,
-                  child: Container(
-                    height: 44,
-                    child: Row(
-                      children: [
-                        Expanded(
-                          flex: 2,
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              key: widget.productRow.vatKey,
-                              isExpanded: true,
-                              value: widget.productRow.vatType ?? 'none',
-                              padding: EdgeInsets.symmetric(horizontal: 8),
-                              items: vatOptions.entries.map((entry) {
-                                return DropdownMenuItem(
-                                  value: entry.key,
-                                  child: Text(
-                                    entry.value,
-                                    style: TextStyle(fontSize: 13),
-                                  ),
-                                );
-                              }).toList(),
-                              onChanged: (value) {
-                                if (value != null && mounted) {
-                                  setState(() => _updateVatTypeInModel(value));
-                                }
-                              },
-                            ),
-                          ),
-                        ),
-                        Container(
-                          width: 1,
-                          height: 30,
-                          color: Colors.grey[300],
-                        ),
-                        Expanded(
-                          flex: 3,
-                          child: Container(
+                  child: Row(
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            key: widget.productRow.vatKey,
+                            isExpanded: true,
+                            value: widget.productRow.vatType ?? 'none',
                             padding: EdgeInsets.symmetric(horizontal: 8),
-                            decoration: BoxDecoration(color: Colors.grey[50]),
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              'OMR ${widget.productRow.vatAmount.toStringAsFixed(2)}',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                                color: Colors.grey[800],
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                            items: vatOptions.entries.map((entry) {
+                              return DropdownMenuItem(
+                                value: entry.key,
+                                child: Text(
+                                  entry.value,
+                                  style: TextStyle(fontSize: 13),
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              if (value != null && mounted) {
+                                setState(() => _updateVatTypeInModel(value));
+                              }
+                            },
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                      Container(width: 1, height: 30, color: Colors.grey[300]),
+                      Expanded(
+                        flex: 3,
+                        child: Container(
+                          padding: EdgeInsets.symmetric(horizontal: 8),
+                          decoration: BoxDecoration(color: Colors.grey[50]),
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'OMR ${widget.productRow.vatAmount.toStringAsFixed(2)}',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.grey[800],
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 SizedBox(width: 8),
-
                 // Total
                 _buildFieldBlock(
                   header: 'TOTAL',
@@ -11486,7 +11557,6 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
                   ),
                 ),
                 SizedBox(width: 8),
-
                 // Actions
                 Container(
                   padding: EdgeInsets.only(top: 28),
@@ -11581,7 +11651,8 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
                   SizedBox(height: 14),
                   Row(
                     children: [
-                      Container(
+                      // Expense Amount
+                      SizedBox(
                         width: 180,
                         child: TextFormField(
                           controller: _serviceCostController,
@@ -11613,56 +11684,102 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
                         ),
                       ),
                       SizedBox(width: 16),
-                      Expanded(
-                        child: Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: ExpenseType.types.map((type) {
-                            final isSelected =
-                                widget.productRow.serviceType == type.id;
-                            return Container(
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? Colors.amber[200]
-                                    : Colors.white,
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: isSelected
-                                      ? Colors.amber[400]!
-                                      : Colors.grey[300]!,
-                                ),
+
+                      // Expense Type Dropdown
+                      SizedBox(
+                        width: 150,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Expense Type',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.grey[700],
                               ),
-                              child: InkWell(
-                                onTap: () {
-                                  if (mounted) {
-                                    setState(
-                                      () => _updateServiceTypeInModel(type.id),
-                                    );
-                                  }
-                                },
-                                borderRadius: BorderRadius.circular(20),
-                                child: Padding(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 14,
-                                    vertical: 8,
-                                  ),
-                                  child: Text(
-                                    type.name,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: isSelected
-                                          ? FontWeight.w600
-                                          : FontWeight.normal,
-                                      color: isSelected
-                                          ? Colors.amber[900]
-                                          : Colors.grey[700],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            );
-                          }).toList(),
+                            ),
+                            SizedBox(height: 4),
+                            _buildDropdown(
+                              items: expenseTypes,
+                              value: widget.productRow.serviceType,
+                              hint: 'Select Type',
+                              onChanged: _updateServiceTypeInModel,
+                            ),
+                          ],
                         ),
+                      ),
+                      SizedBox(width: 16),
+
+                      // Supplier Dropdown
+                      SizedBox(
+                        width: 180,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Supplier',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.grey[700],
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            _buildDropdown(
+                              items: supplierOptions,
+                              value: widget.productRow.supplierId,
+                              hint: 'Select Supplier',
+                              onChanged: _updateSupplierInModel,
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(width: 16),
+
+                      // Add to Purchase Cost Checkbox
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Add to Cost',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.grey[700],
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          SizedBox(
+                            height: 44,
+                            child: Row(
+                              children: [
+                                Checkbox(
+                                  value: _addToPurchaseCost,
+                                  onChanged: (value) {
+                                    if (mounted) {
+                                      _addToPurchaseCost = value ?? false;
+                                      setState(() {
+                                        _updateAddToPurchaseCost(
+                                          value ?? false,
+                                        );
+                                      });
+                                    }
+                                  },
+                                  materialTapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                Text(
+                                  'Include in\nPurchase Cost',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.grey[700],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -11737,8 +11854,17 @@ class _BillExpenseRowWidgetState extends State<BillExpenseRowWidget> {
   }
 
   void _updateType(ExpenseType? type) {
-    widget.expense.type = type;
+    setState(() {
+      widget.expense.type = type;
+    });
     _updateExpenseWithDebounce();
+  }
+
+  void _updateSupplier(SupplierModel? supplier) {
+    setState(() {
+      widget.expense.supplier = supplier;
+    });
+    _updateExpenseWithDebounce(); // Add this line
   }
 
   Widget _buildExpenseTypeDropdown() {
@@ -11756,7 +11882,9 @@ class _BillExpenseRowWidgetState extends State<BillExpenseRowWidget> {
             (type) => type.id == value,
             orElse: () => ExpenseType.types[0],
           );
-          if (mounted) setState(() => _updateType(selectedType));
+          _updateType(selectedType);
+        } else {
+          _updateType(null);
         }
       },
     );
@@ -11764,34 +11892,24 @@ class _BillExpenseRowWidgetState extends State<BillExpenseRowWidget> {
 
   Widget _buildSupplierTypeDropdown() {
     final Map<String, String> suppliers = {};
-    for (var type in widget.supplierList) {
-      suppliers[type.id!] = type.supplierName;
+    for (var supplier in widget.supplierList) {
+      suppliers[supplier.id!] = supplier.supplierName;
     }
+
     return CustomSearchableDropdown(
       hintText: 'Select Supplier',
       items: suppliers,
-      value: widget.expense.type?.id,
+      value: widget.expense.supplier?.id, // Fixed: was widget.expense.type?.id
       onChanged: (value) {
         if (value.isNotEmpty) {
-          final selectedType = widget.supplierList.firstWhere(
-            (type) => type.id == value,
-            //  orElse: () => ExpenseType.types[0],
+          final selectedSupplier = widget.supplierList.firstWhere(
+            (supplier) => supplier.id == value,
           );
-          //  if (mounted) setState(() => _updateType(selectedType));
+          _updateSupplier(selectedSupplier);
+        } else {
+          _updateSupplier(null); // Handle clear selection
         }
       },
-    );
-  }
-
-  Widget _buildDescriptionInput() {
-    return TextFormField(
-      controller: _descriptionController,
-      decoration: const InputDecoration(
-        labelText: 'Description',
-        border: OutlineInputBorder(),
-        contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      ),
-      onChanged: (value) => _updateDescription(value),
     );
   }
 
@@ -11834,7 +11952,6 @@ class _BillExpenseRowWidgetState extends State<BillExpenseRowWidget> {
           const SizedBox(width: 8),
           Expanded(flex: 2, child: _buildSupplierTypeDropdown()),
           const SizedBox(width: 8),
-
           IconButton(
             icon: const Icon(Icons.remove_circle, color: Colors.red, size: 20),
             onPressed: widget.onRemove,
