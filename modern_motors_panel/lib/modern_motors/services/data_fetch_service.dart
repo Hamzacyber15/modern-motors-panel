@@ -223,6 +223,16 @@ class DataFetchService {
   static Future<List<ProductModel>> fetchProducts() async {
     final querySnapshot = await FirebaseFirestore.instance
         .collection('products')
+        .where("includeInInventory", isNotEqualTo: false)
+        .get();
+    return querySnapshot.docs.map((doc) {
+      return ProductModel.fromMap((doc));
+    }).toList();
+  }
+
+  static Future<List<ProductModel>> fetchAllProducts() async {
+    final querySnapshot = await FirebaseFirestore.instance
+        .collection('products')
         .get();
     return querySnapshot.docs.map((doc) {
       return ProductModel.fromMap((doc));

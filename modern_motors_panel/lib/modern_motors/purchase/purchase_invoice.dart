@@ -7076,7 +7076,7 @@ class _PurchaseInvoiceState extends State<PurchaseInvoice>
     try {
       final results = await Future.wait([
         DataFetchService.fetchSuppliers(),
-        DataFetchService.fetchProducts(),
+        DataFetchService.fetchAllProducts(),
         DataFetchService.getCreditDays(),
       ]);
       allSuppliers = results[0] as List<SupplierModel>;
