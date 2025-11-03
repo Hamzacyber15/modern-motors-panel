@@ -6869,6 +6869,8 @@ class BillExpense {
   double amount = 0;
   String description = '';
   bool includeInProductCost = true;
+  String? vatType;
+  double vatAmount = 0;
 
   BillExpense({
     this.type,
@@ -6876,7 +6878,23 @@ class BillExpense {
     this.amount = 0,
     this.description = '',
     this.includeInProductCost = true,
+    this.vatType = 'none', // Default to none
+    this.vatAmount = 0,
   });
+
+  void calculateVat() {
+    switch (vatType) {
+      case 'standard':
+        vatAmount = amount * 0.05;
+        break;
+      case 'zero':
+      case 'exempt':
+      case 'none':
+      default:
+        vatAmount = 0.0;
+        break;
+    }
+  }
 }
 
 class ProductRow {
@@ -6906,6 +6924,8 @@ class ProductRow {
   late Key discountKey;
   late Key serviceCostKey;
   late Key serviceTypeKey;
+  String? directExpenseVatType = 'none';
+  double directExpenseVatAmount = 0;
 
   ProductRow({
     this.total = 0,
@@ -6921,6 +6941,8 @@ class ProductRow {
     this.serviceCost = 0,
     this.serviceType,
     this.vatType,
+    this.directExpenseVatType = 'none', // Add this
+    this.directExpenseVatAmount = 0,
   }) {
     dropdownKey = UniqueKey();
     priceKey = UniqueKey();
@@ -6930,21 +6952,91 @@ class ProductRow {
     serviceTypeKey = UniqueKey();
   }
 
+  //   void calculateTotals() {
+  //     // Calculate subtotal
+  //     subtotal = (avgPrice ?? selectedPrice ?? 0) * quantity;
+
+  //     // Apply discount based on type
+  //     double discountAmount = 0.0;
+  //     if (discountType == 'percentage') {
+  //       discountAmount = subtotal * (discount / 100);
+  //     } else {
+  //       discountAmount = discount; // Fixed amount
+  //     }
+
+  //     double amountAfterDiscount = subtotal - discountAmount;
+
+  //     // Calculate VAT
+  //     switch (vatType) {
+  //       case 'standard':
+  //         vatAmount = amountAfterDiscount * 0.05;
+  //         break;
+  //       case 'zero':
+  //       case 'exempt':
+  //       case 'none':
+  //       default:
+  //         vatAmount = 0.0;
+  //         break;
+  //     }
+
+  //     // Calculate total
+  //     total = amountAfterDiscount + serviceCost + vatAmount;
+  //   }
+  // }
+
+  // void calculateTotals() {
+  //   // Ensure no null values
+  //   final price = (avgPrice ?? selectedPrice ?? 0.0);
+  //   final qty = quantity;
+
+  //   // Calculate subtotal
+  //   subtotal = price * qty;
+
+  //   // Apply discount based on type
+  //   double discountAmount = 0.0;
+  //   if (discountType == 'percentage') {
+  //     discountAmount = subtotal * ((discount ?? 0.0) / 100);
+  //   } else {
+  //     discountAmount = discount ?? 0.0; // Fixed amount
+  //   }
+
+  //   double amountAfterDiscount = subtotal - discountAmount;
+
+  //   // Calculate VAT
+  //   switch (vatType) {
+  //     case 'standard':
+  //       vatAmount = amountAfterDiscount * 0.05;
+  //       break;
+  //     case 'zero':
+  //     case 'exempt':
+  //     case 'none':
+  //     default:
+  //       vatAmount = 0.0;
+  //       break;
+  //   }
+
+  //   // Calculate total
+  //   total = amountAfterDiscount + (serviceCost ?? 0.0) + vatAmount;
+  // }
   void calculateTotals() {
+    // Ensure no null values
+    final price = (avgPrice ?? selectedPrice ?? 0.0);
+    final qty = quantity;
+
     // Calculate subtotal
-    subtotal = (avgPrice ?? selectedPrice ?? 0) * quantity;
+    subtotal = price * qty;
 
     // Apply discount based on type
     double discountAmount = 0.0;
     if (discountType == 'percentage') {
-      discountAmount = subtotal * (discount / 100);
+      discountAmount = subtotal * ((discount ?? 0.0) / 100);
     } else {
-      discountAmount = discount; // Fixed amount
+      discountAmount = discount ?? 0.0; // Fixed amount
     }
 
     double amountAfterDiscount = subtotal - discountAmount;
 
-    // Calculate VAT
+    // Calculate VAT for this row only (no bill-level VAT)
     switch (vatType) {
       case 'standard':
         vatAmount = amountAfterDiscount * 0.05;
@@ -6957,8 +7049,24 @@ class ProductRow {
         break;
     }
 
-    // Calculate total
-    total = amountAfterDiscount + serviceCost + vatAmount;
+    // Ensure direct expense VAT is properly calculated
+    double directExpenseVat = 0.0;
+    if (serviceCost > 0 && directExpenseVatType == 'standard') {
+      directExpenseVat = serviceCost * 0.05;
+    } else {
+      directExpenseVat =
+          0.0; // Explicitly set to 0 when no expense or non-standard VAT
+    }
+
+    // Update the direct expense VAT amount
+    directExpenseVatAmount = directExpenseVat;
+
+    // Calculate total for this row (includes row-level VAT + direct expense VAT)
+    total =
+        amountAfterDiscount +
+        (serviceCost ?? 0.0) +
+        vatAmount +
+        directExpenseVat;
   }
 }
 
@@ -7012,6 +7120,7 @@ class _PurchaseInvoiceState extends State<PurchaseInvoice>
   double invNumber = 0;
   int? selectedCreditDays;
   Timer? _calculationTimer;
+  String selectSupplierId = "";
 
   // New fields for bill-level expenses
   List<BillExpense> billExpenses = [];
@@ -7096,7 +7205,7 @@ class _PurchaseInvoiceState extends State<PurchaseInvoice>
               ProductRow(
                 purchaseItem: element,
                 type: element.type,
-                avgPrice: element.cost,
+                avgPrice: element.buyingPrice,
                 quantity: element.quantity,
                 total: element.totalPrice,
                 subtotal: element.discount + element.totalPrice,
@@ -7186,10 +7295,11 @@ class _PurchaseInvoiceState extends State<PurchaseInvoice>
     final double subtotal = _getSubtotalForDiscount() + billExpensesTotal;
     final double discountAmount = p.discountAmount;
     final double amountAfterDiscount = subtotal - discountAmount;
-    final double taxAmount = p.getIsTaxApply
-        ? amountAfterDiscount * (p.taxPercent / 100)
-        : 0;
-    return amountAfterDiscount + taxAmount;
+    // final double taxAmount = p.getIsTaxApply
+    //     ? amountAfterDiscount * (p.taxPercent / 100)
+    //     : 0;
+    final double totalVatAmount = _calculateTotalVatAmount();
+    return amountAfterDiscount + totalVatAmount; //taxAmount;
   }
 
   List<PurchaseItem> mergeProductsAndServices(
@@ -7201,42 +7311,51 @@ class _PurchaseInvoiceState extends State<PurchaseInvoice>
     mergedList.addAll(
       products.map(
         (product) => PurchaseItem(
+          buyingPrice: 0,
+          discountType: "",
+          subtotal: 0,
+          amountAfterDiscount: 0,
+          total: 0,
+          vatType: "",
+          vatAmount: 0,
+          addToPurchaseCost: false,
+          directExpense: DirectExpense.empty(),
           discount: 0,
-          margin: 0,
-          minimumPrice: product.minimumPrice ?? 0,
           productId: product.id ?? '',
           productName: product.productName ?? '',
           quantity: 1,
-          sellingPrice: product.averageCost ?? product.lastCost ?? 0,
           totalPrice: (product.sellingPrice ?? product.lastCost ?? 0) * 1,
           unitPrice: product.averageCost ?? product.lastCost ?? 0,
           type: 'product',
-          cost: product.averageCost ?? 0,
         ),
       ),
     );
+    // mergedList.addAll(
+    //   services.map((service) {
+    //     double price = service.prices?.isNotEmpty == true
+    //         ? (service.prices?[0] as num).toDouble()
+    //         : 0;
 
-    mergedList.addAll(
-      services.map((service) {
-        double price = service.prices?.isNotEmpty == true
-            ? (service.prices?[0] as num).toDouble()
-            : 0;
-
-        return PurchaseItem(
-          discount: 0,
-          margin: 0,
-          productId: service.id ?? '',
-          productName: service.name,
-          minimumPrice: service.minimumPrice ?? 0,
-          quantity: 1,
-          sellingPrice: price,
-          totalPrice: price,
-          unitPrice: price,
-          type: 'service',
-          cost: price,
-        );
-      }),
-    );
+    //     return PurchaseItem(
+    //      buyingPrice: 0,
+    //       discountType: "",
+    //       subtotal: 0,
+    //       amountAfterDiscount: 0,
+    //       total: 0,
+    //       vatType: "",
+    //       vatAmount: 0,
+    //       addToPurchaseCost: false,
+    //       directExpense: DirectExpense.empty(),
+    //       discount: 0,
+    //       productId: ser.id ?? '',
+    //       productName: product.productName ?? '',
+    //       quantity: 1,
+    //       totalPrice: (product.sellingPrice ?? product.lastCost ?? 0) * 1,
+    //       unitPrice: product.averageCost ?? product.lastCost ?? 0,
+    //       type: 'service',
+    //     );
+    //   }),
+    // );
 
     return mergedList;
   }
@@ -7270,10 +7389,17 @@ class _PurchaseInvoiceState extends State<PurchaseInvoice>
   }
 
   void _calculateBillExpensesTotal(PurchaseInvoiceProvider p) {
-    billExpensesTotal = billExpenses.fold(
+    double expensesSubtotal = billExpenses.fold(
       0.0,
       (sum, expense) => sum + expense.amount,
     );
+
+    double vatTotal = billExpenses.fold(
+      0.0,
+      (sum, expense) => sum + expense.vatAmount,
+    );
+
+    billExpensesTotal = expensesSubtotal + vatTotal;
     p.billExpenseTotal = billExpensesTotal;
   }
 
@@ -7337,8 +7463,21 @@ class _PurchaseInvoiceState extends State<PurchaseInvoice>
     }
   }
 
+  // void _updateAllCalculations(PurchaseInvoiceProvider p) {
+  //   if (!mounted) return;
+  //   final double total = _calculateTotal(p);
+  //   _updateDepositCalculation(total, p);
+  // }
+
   void _updateAllCalculations(PurchaseInvoiceProvider p) {
     if (!mounted) return;
+
+    // Calculate total VAT from rows only
+    final double totalVatAmount = _calculateTotalVatAmount();
+
+    // Update provider with row-level VAT only
+    p.taxAmount = totalVatAmount;
+
     final double total = _calculateTotal(p);
     _updateDepositCalculation(total, p);
   }
@@ -7443,74 +7582,6 @@ class _PurchaseInvoiceState extends State<PurchaseInvoice>
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
-            // const Row(
-            //   children: [
-            //     Expanded(
-            //       flex: 1,
-            //       child: Text(
-            //         'Item',
-            //         style: TextStyle(fontWeight: FontWeight.bold),
-            //       ),
-            //     ),
-            //     Expanded(
-            //       flex: 1,
-            //       child: Text(
-            //         'Price',
-            //         style: TextStyle(fontWeight: FontWeight.bold),
-            //       ),
-            //     ),
-            //     Expanded(
-            //       flex: 1,
-            //       child: Text(
-            //         'Qty',
-            //         style: TextStyle(fontWeight: FontWeight.bold),
-            //       ),
-            //     ),
-            //     Expanded(
-            //       flex: 1,
-            //       child: Text(
-            //         'Discount',
-            //         style: TextStyle(fontWeight: FontWeight.bold),
-            //       ),
-            //     ),
-            //     // Expanded(
-            //     //   flex: 1,
-            //     //   child: Text(
-            //     //     'Product Expense',
-            //     //     style: TextStyle(fontWeight: FontWeight.bold),
-            //     //   ),
-            //     // ),
-            //     // Expanded(
-            //     //   flex: 1,
-            //     //   child: Text(
-            //     //     'Expense Type',
-            //     //     style: TextStyle(fontWeight: FontWeight.bold),
-            //     //   ),
-            //     // ),
-            //     Expanded(
-            //       flex: 1,
-            //       child: Text(
-            //         'Subtotal',
-            //         style: TextStyle(fontWeight: FontWeight.bold),
-            //       ),
-            //     ),
-            //     Expanded(
-            //       flex: 1,
-            //       child: Text(
-            //         'VAT',
-            //         style: TextStyle(fontWeight: FontWeight.bold),
-            //       ),
-            //     ),
-            //     Expanded(
-            //       flex: 1,
-            //       child: Text(
-            //         'Total',
-            //         style: TextStyle(fontWeight: FontWeight.bold),
-            //       ),
-            //     ),
-            //     SizedBox(width: 40),
-            //   ],
-            // ),
             const SizedBox(height: 8),
             ListView.builder(
               shrinkWrap: true,
@@ -7526,6 +7597,7 @@ class _PurchaseInvoiceState extends State<PurchaseInvoice>
                       _updateProductRow(index, updatedRow, p),
                   onRemove: () => _removeProductRow(index, p),
                   showRemoveButton: true,
+                  defaultSupplierId: p.supplierId,
                 );
               },
             ),
@@ -7620,6 +7692,13 @@ class _PurchaseInvoiceState extends State<PurchaseInvoice>
                   ),
                 ),
                 Expanded(
+                  flex: 1,
+                  child: Text(
+                    'Amount',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                Expanded(
                   flex: 2,
                   child: Text(
                     'Supplier',
@@ -7629,7 +7708,14 @@ class _PurchaseInvoiceState extends State<PurchaseInvoice>
                 Expanded(
                   flex: 1,
                   child: Text(
-                    'Amount',
+                    'VAT',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                Expanded(
+                  flex: 1,
+                  child: Text(
+                    'VAT Amount',
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
@@ -7649,6 +7735,7 @@ class _PurchaseInvoiceState extends State<PurchaseInvoice>
                   onUpdate: (updatedExpense) =>
                       _updateBillExpense(index, updatedExpense, p),
                   onRemove: () => _removeBillExpense(index, p),
+                  defaultSupplierId: p.supplierId, // Pass the selected supplier
                 );
               },
             ),
@@ -7723,7 +7810,7 @@ class _PurchaseInvoiceState extends State<PurchaseInvoice>
                     PageHeaderWidget(
                       title: 'Create Purchase Invoice',
                       buttonText: 'Back to Invoices',
-                      subTitle: 'Create New Purchase Invoice',
+                      subTitle: 'Create Invoice',
                       onCreateIcon: 'assets/images/back.png',
                       selectedItems: [],
                       buttonWidth: 0.25,
@@ -7803,43 +7890,63 @@ class _PurchaseInvoiceState extends State<PurchaseInvoice>
                             'depositPercentage': depositPercentage,
                             'nextPaymentAmount': nextPaymentAmount,
                           };
+                          // final paymentData = isAlreadyPaid
+                          //     ? {
+                          //         'isAlreadyPaid': true,
+                          //         'paymentMethods': paymentRows
+                          //             .map(
+                          //               (row) => {
+                          //                 'method': row.method?.id,
+                          //                 'methodName': row.method?.name,
+                          //                 'reference': row.reference,
+                          //                 'amount': row.amount,
+                          //               },
+                          //             )
+                          //             .toList(),
+                          //         'totalPaid': paymentRows.fold(
+                          //           0,
+                          //           (sum, row) => sum + row.amount as int,
+                          //         ),
+                          //         'remainingAmount': remainingAmount,
+                          //       }
+                          //     : {
+                          //         'isAlreadyPaid': false,
+                          //         'paymentMethods': [],
+                          //         'totalPaid': 0,
+                          //         'remainingAmount': p.total,
+                          //       };
                           final paymentData = isAlreadyPaid
                               ? {
                                   'isAlreadyPaid': true,
-                                  'paymentMethods': paymentRows
-                                      .map(
-                                        (row) => {
-                                          'method': row.method?.id,
-                                          'methodName': row.method?.name,
-                                          'reference': row.reference,
-                                          'amount': row.amount,
-                                        },
-                                      )
-                                      .toList(),
-                                  'totalPaid': paymentRows.fold(
-                                    0,
-                                    (sum, row) => sum + row.amount as int,
-                                  ),
+                                  'paymentMethods': paymentRows.map((row) {
+                                    return {
+                                      'method': row.method?.id ?? 'cash',
+                                      'methodName': row.method?.name ?? 'Cash',
+                                      'reference': row.reference ?? '',
+                                      'amount': row.amount ?? 0.0,
+                                    };
+                                  }).toList(),
+                                  'totalPaid': _getCurrentTotalPaid(),
                                   'remainingAmount': remainingAmount,
                                 }
                               : {
                                   'isAlreadyPaid': false,
                                   'paymentMethods': [],
-                                  'totalPaid': 0,
+                                  'totalPaid': 0.0,
                                   'remainingAmount': p.total,
                                 };
-                          final NewPurchaseModel saleDetails =
-                              Constants.parseToPurchaseModel(
-                                productsData: productsData,
-                                // expensesData: expensesData,
-                                depositData: depositData,
-                                paymentData: paymentData,
-                                totalRevenue: p.total,
-                                discount: d,
-                                taxAmount: p.taxAmount,
-                                supplierId: p.supplierId!,
-                                isEdit: false,
-                              );
+                          // final NewPurchaseModel saleDetails =
+                          //     Constants.parseToPurchaseModel(
+                          //       productsData: productsData,
+                          //       // expensesData: expensesData,
+                          //       depositData: depositData,
+                          //       paymentData: paymentData,
+                          //       totalRevenue: p.total,
+                          //       discount: d,
+                          //       taxAmount: p.taxAmount,
+                          //       supplierId: p.supplierId!,
+                          //       isEdit: false,
+                          //     );
                           // saleTemplate(saleDetails);
                         },
                         style: ElevatedButton.styleFrom(
@@ -7915,7 +8022,7 @@ class _PurchaseInvoiceState extends State<PurchaseInvoice>
                             expensesData: expensesData,
                             depositData: depositData,
                             context: context,
-                            onBack: widget.onBack!.call,
+                            // onBack: widget.onBack!.call,
                             isEdit: widget.purchase != null,
                             total: p.grandTotal,
                             discount: d,
@@ -8053,13 +8160,35 @@ class _PurchaseInvoiceState extends State<PurchaseInvoice>
     );
   }
 
+  // List<Map<String, dynamic>> _buildProductsData() {
+  //   return productRows.map((row) {
+  //     return {
+  //       'type': row.purchaseItem?.type,
+  //       'productId': row.purchaseItem?.productId,
+  //       'productName': row.purchaseItem?.productName,
+  //       'avgPrice': row.avgPrice,
+  //       'quantity': row.quantity,
+  //       'discount': row.discount,
+  //       'applyVat': row.applyVat,
+  //       'subtotal': row.subtotal,
+  //       'vatAmount': row.vatAmount,
+  //       'total': row.total,
+  //       'profit': row.profit,
+  //       'cost': row.cost,
+  //       'serviceCost': row.serviceCost,
+  //       'serviceType': row.serviceType,
+  //     };
+  //   }).toList();
+  // }
+
   List<Map<String, dynamic>> _buildProductsData() {
     return productRows.map((row) {
       return {
-        'type': row.purchaseItem?.type,
-        'productId': row.purchaseItem?.productId,
-        'productName': row.purchaseItem?.productName,
-        'avgPrice': row.avgPrice,
+        'type': row.purchaseItem?.type ?? 'product',
+        'productId': row.purchaseItem?.productId ?? '',
+        'productName': row.purchaseItem?.productName ?? '',
+        'avgPrice': row.avgPrice ?? 0.0,
+        'selectedPrice': row.selectedPrice ?? 0.0,
         'quantity': row.quantity,
         'discount': row.discount,
         'applyVat': row.applyVat,
@@ -8067,9 +8196,14 @@ class _PurchaseInvoiceState extends State<PurchaseInvoice>
         'vatAmount': row.vatAmount,
         'total': row.total,
         'profit': row.profit,
-        'cost': row.cost,
+        'cost': row.cost ?? 0.0,
         'serviceCost': row.serviceCost,
-        'serviceType': row.serviceType,
+        'serviceType': row.serviceType ?? '',
+        'vatType': row.vatType ?? 'none',
+        'supplierId': row.supplierId ?? '',
+        'addToPurchaseCost': row.addToPurchaseCost ?? false,
+        'discountType': row.discountType,
+        'sellingPrice': row.avgPrice ?? row.selectedPrice ?? 0.0,
       };
     }).toList();
   }
@@ -8077,14 +8211,29 @@ class _PurchaseInvoiceState extends State<PurchaseInvoice>
   List<Map<String, dynamic>> _buildExpensesData() {
     return billExpenses.map((expense) {
       return {
-        'type': expense.type?.id,
-        'typeName': expense.type?.name,
+        'type': expense.type?.id ?? '',
+        'typeName': expense.type?.name ?? '',
         'amount': expense.amount,
         'description': expense.description,
+        'supplierId': expense.supplier?.id ?? '',
+        'vatType': expense.vatType ?? 'none',
+        'vatAmount': expense.vatAmount,
         'includeInProductCost': expense.includeInProductCost,
       };
     }).toList();
   }
+
+  // List<Map<String, dynamic>> _buildExpensesData() {
+  //   return billExpenses.map((expense) {
+  //     return {
+  //       'type': expense.type?.id,
+  //       'typeName': expense.type?.name,
+  //       'amount': expense.amount,
+  //       'description': expense.description,
+  //       'includeInProductCost': expense.includeInProductCost,
+  //     };
+  //   }).toList();
+  // }
 
   double _getCurrentTotalPaid() {
     double total = 0.0;
@@ -8305,6 +8454,25 @@ class _PurchaseInvoiceState extends State<PurchaseInvoice>
     );
   }
 
+  double _calculateTotalVatAmount() {
+    // Calculate VAT from product rows
+    double productVatTotal = productRows.fold(0.0, (sum, row) {
+      return sum + (row.vatAmount ?? 0.0);
+    });
+
+    // Calculate VAT from bill expenses
+    double expenseVatTotal = billExpenses.fold(0.0, (sum, expense) {
+      return sum + (expense.vatAmount ?? 0.0);
+    });
+
+    // Calculate VAT from direct expenses in product rows
+    double directExpenseVatTotal = productRows.fold(0.0, (sum, row) {
+      return sum + (row.directExpenseVatAmount ?? 0.0);
+    });
+
+    return productVatTotal + expenseVatTotal + directExpenseVatTotal;
+  }
+
   Widget _buildBookingSummarySection(
     BuildContext context,
     PurchaseInvoiceProvider p,
@@ -8323,10 +8491,15 @@ class _PurchaseInvoiceState extends State<PurchaseInvoice>
 
     final double discountAmount = p.discountAmount;
     final double amountAfterDiscount = subtotal - discountAmount;
-    final double taxAmount = p.getIsTaxApply
-        ? amountAfterDiscount * (p.taxPercent / 100)
-        : 0;
-    final double total = amountAfterDiscount + taxAmount;
+
+    final double totalVatAmount = _calculateTotalVatAmount();
+
+    // final double taxAmount = p.getIsTaxApply
+    //     ? amountAfterDiscount * (p.taxPercent / 100)
+    //     : 0;
+    // final double total = amountAfterDiscount + taxAmount;
+    // p.grandTotal = total;
+    final double total = amountAfterDiscount + totalVatAmount;
     p.grandTotal = total;
 
     return Container(
@@ -8390,38 +8563,38 @@ class _PurchaseInvoiceState extends State<PurchaseInvoice>
                       bold: true,
                     ),
                     SizedBox(height: 4),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Row(
-                            children: [
-                              Text(
-                                'VAT (% 5)',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w400,
-                                  color: Colors.red,
-                                ),
-                              ),
-                              const SizedBox(width: 5),
-                              Transform.scale(
-                                scale: 0.9,
-                                child: Checkbox(
-                                  activeColor: AppTheme.greenColor,
-                                  value: p.getIsTaxApply,
-                                  onChanged: (v) =>
-                                      p.setTax(v ?? false, p.taxPercent),
-                                  materialTapTargetSize:
-                                      MaterialTapTargetSize.shrinkWrap,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        _buildRow("", taxAmount, color: Colors.red),
-                      ],
-                    ),
+                    // Row(
+                    //mainAxisAlignment: MainAxisAlignment.end,
+                    //  children: [
+                    // Expanded(
+                    //   child: Row(
+                    //     children: [
+                    //       Text(
+                    //         'VAT (% 5)',
+                    //         style: TextStyle(
+                    //           fontSize: 14,
+                    //           fontWeight: FontWeight.w400,
+                    //           color: Colors.red,
+                    //         ),
+                    //       ),
+                    //       const SizedBox(width: 5),
+                    //       Transform.scale(
+                    //         scale: 0.9,
+                    //         child: Checkbox(
+                    //           activeColor: AppTheme.greenColor,
+                    //           value: p.getIsTaxApply,
+                    //           onChanged: (v) =>
+                    //               p.setTax(v ?? false, p.taxPercent),
+                    //           materialTapTargetSize:
+                    //               MaterialTapTargetSize.shrinkWrap,
+                    //         ),
+                    //       ),
+                    //     ],
+                    //   ),
+                    // ),
+                    _buildRow("VAT", totalVatAmount, color: Colors.red),
+                    // ],
+                    // ),
                     _buildDivider(),
                     const SizedBox(height: 4),
                     _buildRow('Total', total, bold: true),
@@ -9054,79 +9227,399 @@ class _PurchaseInvoiceState extends State<PurchaseInvoice>
                     ),
                   ],
                 ),
+                //         SizedBox(
+                //           width: double.infinity,
+                //           height: 40,
+                //           child: ElevatedButton(
+                //             onPressed: () {
+                //               if (!_validatePaymentAmounts(total)) return;
+                //               setState(() => p.orderLoading = true);
+                //               double d = double.tryParse(discountController.text) ?? 0;
+                //               List<Map<String, dynamic>> productsData =
+                //                   _buildProductsData();
+                //               List<Map<String, dynamic>> expensesData =
+                //                   _buildExpensesData();
+                //               try {
+                //                 if (productsData.isEmpty) {
+                //                   Constants.showValidationError(
+                //                     context,
+                //                     "Items cannot be empty",
+                //                   );
+                //                   setState(() => p.orderLoading = false);
+                //                   return;
+                //                 }
+                //               } catch (e) {
+                //                 setState(() => p.orderLoading = false);
+                //                 Constants.showValidationError(context, e);
+                //                 return;
+                //               }
+                //               final depositData = {
+                //                 'requireDeposit': requireDeposit,
+                //                 'depositType': selectedDepositType.id,
+                //                 'depositAmount': depositAmount,
+                //                 'depositPercentage': depositPercentage,
+                //                 'nextPaymentAmount': nextPaymentAmount,
+                //               };
+                //               final paymentData = isAlreadyPaid
+                //                   ? {
+                //                       'isAlreadyPaid': true,
+                //                       'paymentMethods': paymentRows
+                //                           .map(
+                //                             (row) => {
+                //                               'method': row.method?.id,
+                //                               'methodName': row.method?.name,
+                //                               'reference': row.reference,
+                //                               'amount': row.amount,
+                //                             },
+                //                           )
+                //                           .toList(),
+                //                       'totalPaid': paymentRows.fold(
+                //                         0.0,
+                //                         (sum, row) => sum + (row.amount ?? 0.0),
+                //                       ),
+                //                       'remainingAmount': remainingAmount,
+                //                     }
+                //                   : {
+                //                       'isAlreadyPaid': false,
+                //                       'paymentMethods': [],
+                //                       'totalPaid': 0,
+                //                       'remainingAmount': total,
+                //                     };
+
+                //               p.savePurchaseInvoice(
+                //                 // productsData: productsData,
+                //                 // expensesData: expensesData,
+                //                 // depositData: depositData,
+                //                 // context: context,
+                //                 // onBack: widget.onBack!.call,
+                //                 // isEdit: widget.purchase != null,
+                //                 // total: total,
+                //                 // discount: d,
+                //                 // taxAmount: taxAmount,
+                //                 // paymentData: paymentData,
+                //                 // statusType: "pending",
+                //                   productsData: productsData,
+                // expensesData: expensesData,
+                // depositData: depositData,
+                // paymentData: paymentData,
+                // statusType: "pending",
+                // total: total,
+                // discount: discount,
+                // taxAmount: taxAmount,
+                // isEdit: isEdit,
+                // supplierId: supplierId!,
+                // supplierName: supplierNameController.text,
+                //               );
+                //             },
+                //             style: ElevatedButton.styleFrom(
+                //               backgroundColor: AppTheme.primaryColor,
+                //               foregroundColor: Colors.white,
+                //               shape: RoundedRectangleBorder(
+                //                 borderRadius: BorderRadius.circular(8),
+                //               ),
+                //             ),
+                //             child: p.loading.value
+                //                 ? SizedBox(
+                //                     width: 16,
+                //                     height: 16,
+                //                     child: CircularProgressIndicator(
+                //                       strokeWidth: 2,
+                //                       valueColor: AlwaysStoppedAnimation<Color>(
+                //                         Colors.white,
+                //                       ),
+                //                     ),
+                //                   )
+                //                 : Row(
+                //                     mainAxisAlignment: MainAxisAlignment.center,
+                //                     children: [
+                //                       Icon(
+                //                         widget.purchase != null
+                //                             ? Icons.update_rounded
+                //                             : Icons.add_circle_outline_rounded,
+                //                         size: 16,
+                //                       ),
+                //                       SizedBox(width: 6),
+                //                       Text(
+                //                         widget.purchase != null
+                //                             ? 'Update Invoice'
+                //                             : 'Create Invoice',
+                //                         style: TextStyle(
+                //                           fontSize: 14,
+                //                           fontWeight: FontWeight.w600,
+                //                         ),
+                //                       ),
+                //                     ],
+                //                   ),
+                //           ),
+                //         ),
                 SizedBox(
                   width: double.infinity,
                   height: 40,
                   child: ElevatedButton(
-                    onPressed: () {
-                      if (!_validatePaymentAmounts(total)) return;
-                      setState(() => p.orderLoading = true);
-                      double d = double.tryParse(discountController.text) ?? 0;
-                      List<Map<String, dynamic>> productsData =
-                          _buildProductsData();
-                      List<Map<String, dynamic>> expensesData =
-                          _buildExpensesData();
-                      try {
-                        if (productsData.isEmpty) {
-                          Constants.showValidationError(
-                            context,
-                            "Items cannot be empty",
-                          );
-                          setState(() => p.orderLoading = false);
-                          return;
-                        }
-                      } catch (e) {
-                        setState(() => p.orderLoading = false);
-                        Constants.showValidationError(context, e);
+                    onPressed: () async {
+                      // Validate required fields
+                      if (productRows.isEmpty) {
+                        Constants.showValidationError(
+                          context,
+                          "Items cannot be empty",
+                        );
                         return;
                       }
-                      final depositData = {
-                        'requireDeposit': requireDeposit,
-                        'depositType': selectedDepositType.id,
-                        'depositAmount': depositAmount,
-                        'depositPercentage': depositPercentage,
-                        'nextPaymentAmount': nextPaymentAmount,
-                      };
-                      final paymentData = isAlreadyPaid
-                          ? {
-                              'isAlreadyPaid': true,
-                              'paymentMethods': paymentRows
-                                  .map(
-                                    (row) => {
-                                      'method': row.method?.id,
-                                      'methodName': row.method?.name,
-                                      'reference': row.reference,
-                                      'amount': row.amount,
-                                    },
-                                  )
-                                  .toList(),
-                              'totalPaid': paymentRows.fold(
-                                0.0,
-                                (sum, row) => sum + (row.amount ?? 0.0),
-                              ),
-                              'remainingAmount': remainingAmount,
-                            }
-                          : {
-                              'isAlreadyPaid': false,
-                              'paymentMethods': [],
-                              'totalPaid': 0,
-                              'remainingAmount': total,
-                            };
 
-                      p.savePurchase(
-                        productsData: productsData,
-                        expensesData: expensesData,
-                        depositData: depositData,
-                        context: context,
-                        onBack: widget.onBack!.call,
-                        isEdit: widget.purchase != null,
-                        total: total,
-                        discount: d,
-                        taxAmount: taxAmount,
-                        paymentData: paymentData,
-                        statusType: "pending",
-                      );
+                      if (p.supplierId == null || p.supplierId!.isEmpty) {
+                        Constants.showValidationError(
+                          context,
+                          "Please select a supplier",
+                        );
+                        return;
+                      }
+
+                      setState(() => p.orderLoading = true);
+
+                      try {
+                        // Prepare data with proper validation
+                        List<Map<String, dynamic>> productsData =
+                            _buildProductsData();
+                        List<Map<String, dynamic>> expensesData =
+                            _buildExpensesData();
+
+                        // Validate that all required fields are present
+                        for (var product in productsData) {
+                          if (product['productId']?.isEmpty == true) {
+                            Constants.showValidationError(
+                              context,
+                              "Please select valid products",
+                            );
+                            setState(() => p.orderLoading = false);
+                            return;
+                          }
+                        }
+
+                        final depositData = {
+                          'requireDeposit': requireDeposit,
+                          'depositType': selectedDepositType.id,
+                          'depositAmount': depositAmount,
+                          'depositPercentage': depositPercentage,
+                          'nextPaymentAmount': nextPaymentAmount,
+                        };
+
+                        final paymentData = isAlreadyPaid
+                            ? {
+                                'isAlreadyPaid': true,
+                                'paymentMethods': paymentRows.map((row) {
+                                  return {
+                                    'method': row.method?.id ?? 'cash',
+                                    'methodName': row.method?.name ?? 'Cash',
+                                    'reference': row.reference,
+                                    'amount': row.amount,
+                                  };
+                                }).toList(),
+                                'totalPaid': _getCurrentTotalPaid(),
+                                'remainingAmount': remainingAmount,
+                              }
+                            : {
+                                'isAlreadyPaid': false,
+                                'paymentMethods': [],
+                                'totalPaid': 0.0,
+                                'remainingAmount': total,
+                              };
+
+                        double d =
+                            double.tryParse(discountController.text) ?? 0.0;
+
+                        // Call the save method
+                        await p.savePurchase(
+                          productsData: productsData,
+                          expensesData: expensesData,
+                          depositData: depositData,
+                          context: context,
+                          isEdit: widget.purchase != null,
+                          total: total,
+                          discount: d,
+                          taxAmount:
+                              _calculateTotalVatAmount(), //totalVatAmount,
+                          paymentData: paymentData,
+                          statusType: "save",
+                        );
+                      } catch (e) {
+                        setState(() => p.orderLoading = false);
+                        if (context.mounted) {
+                          Constants.showValidationError(
+                            context,
+                            "Failed to save: ${e.toString()}",
+                          );
+                        }
+                      }
                     },
+                    // onPressed: () async {
+                    //   // if (!_validatePaymentAmounts(total)) {
+                    //   //   Constants.showValidationError(
+                    //   //     context,
+                    //   //     "Payment amounts exceed total",
+                    //   //   );
+                    //   //   return;
+                    //   // }
+
+                    //   setState(() => p.orderLoading = true);
+
+                    //   try {
+                    //     // Validate required fields
+                    //     if (productRows.isEmpty) {
+                    //       Constants.showValidationError(
+                    //         context,
+                    //         "Items cannot be empty",
+                    //       );
+                    //       setState(() => p.orderLoading = false);
+                    //       return;
+                    //     }
+
+                    //     if (p.supplierId == null || p.supplierId!.isEmpty) {
+                    //       Constants.showValidationError(
+                    //         context,
+                    //         "Please select a supplier",
+                    //       );
+                    //       setState(() => p.orderLoading = false);
+                    //       return;
+                    //     }
+
+                    //     // Prepare data with proper validation
+                    //     List<Map<String, dynamic>> productsData =
+                    //         _buildProductsData();
+                    //     List<Map<String, dynamic>> expensesData =
+                    //         _buildExpensesData();
+
+                    //     final depositData = {
+                    //       'requireDeposit': requireDeposit,
+                    //       'depositType': selectedDepositType.id,
+                    //       'depositAmount': depositAmount,
+                    //       'depositPercentage': depositPercentage,
+                    //       'nextPaymentAmount': nextPaymentAmount,
+                    //     };
+
+                    //     final paymentData = isAlreadyPaid
+                    //         ? {
+                    //             'isAlreadyPaid': true,
+                    //             'paymentMethods': paymentRows.map((row) {
+                    //               return {
+                    //                 'method': row.method?.id ?? 'cash',
+                    //                 'methodName': row.method?.name ?? 'Cash',
+                    //                 'reference': row.reference,
+                    //                 'amount': row.amount,
+                    //               };
+                    //             }).toList(),
+                    //             'totalPaid': _getCurrentTotalPaid(),
+                    //             'remainingAmount': remainingAmount,
+                    //           }
+                    //         : {
+                    //             'isAlreadyPaid': false,
+                    //             'paymentMethods': [],
+                    //             'totalPaid': 0,
+                    //             'remainingAmount': total,
+                    //           };
+
+                    //     double d =
+                    //         double.tryParse(discountController.text) ?? 0;
+
+                    //     // Call the save method
+                    //     await p.savePurchase(
+                    //       productsData: productsData,
+                    //       expensesData: expensesData,
+                    //       depositData: depositData,
+                    //       context: context,
+                    //       isEdit: widget.purchase != null,
+                    //       total: total,
+                    //       discount: d,
+                    //       taxAmount: taxAmount,
+                    //       paymentData: paymentData,
+                    //       statusType: "save",
+                    //     );
+                    //   } catch (e) {
+                    //     setState(() => p.orderLoading = false);
+                    //     if (context.mounted) {
+                    //       Constants.showValidationError(
+                    //         context,
+                    //         "Failed to save: ${e.toString()}",
+                    //       );
+                    //     }
+                    //   }
+                    // },
+                    // onPressed: () async {
+                    //   // if (!_validatePaymentAmounts(total)) return;
+
+                    //   setState(() => p.orderLoading = true);
+                    //   double d = double.tryParse(discountController.text) ?? 0;
+
+                    //   try {
+                    //     if (productRows.isEmpty) {
+                    //       Constants.showValidationError(
+                    //         context,
+                    //         "Items cannot be empty",
+                    //       );
+                    //       setState(() => p.orderLoading = false);
+                    //       return;
+                    //     }
+
+                    //     // Prepare data for Firebase function
+                    //     List<Map<String, dynamic>> productsData =
+                    //         _buildProductsData();
+                    //     List<Map<String, dynamic>> expensesData =
+                    //         _buildExpensesData();
+
+                    //     final depositData = {
+                    //       'requireDeposit': requireDeposit,
+                    //       'depositType': selectedDepositType.id,
+                    //       'depositAmount': depositAmount,
+                    //       'depositPercentage': depositPercentage,
+                    //       'nextPaymentAmount': nextPaymentAmount,
+                    //     };
+
+                    //     final paymentData = isAlreadyPaid
+                    //         ? {
+                    //             'isAlreadyPaid': true,
+                    //             'paymentMethods': paymentRows
+                    //                 .map(
+                    //                   (row) => {
+                    //                     'method': row.method?.id,
+                    //                     'methodName': row.method?.name,
+                    //                     'reference': row.reference,
+                    //                     'amount': row.amount,
+                    //                   },
+                    //                 )
+                    //                 .toList(),
+                    //             'totalPaid': paymentRows.fold(
+                    //               0.0,
+                    //               (sum, row) => sum + (row.amount ?? 0.0),
+                    //             ),
+                    //             'remainingAmount': remainingAmount,
+                    //           }
+                    //         : {
+                    //             'isAlreadyPaid': false,
+                    //             'paymentMethods': [],
+                    //             'totalPaid': 0,
+                    //             'remainingAmount': total,
+                    //           };
+
+                    //     // Call the provider's save method which now uses Firebase function
+                    //     await p.savePurchase(
+                    //       // supplierId: selectSupplierId,
+                    //       productsData: productsData,
+                    //       expensesData: expensesData,
+                    //       depositData: depositData,
+                    //       context: context,
+                    //       // onBack: widget.onBack!.call,
+                    //       isEdit: widget.purchase != null,
+                    //       total: total,
+                    //       discount: d,
+                    //       taxAmount: taxAmount,
+                    //       paymentData: paymentData,
+                    //       statusType: "save",
+                    //     );
+                    //   } catch (e) {
+                    //     setState(() => p.orderLoading = false);
+                    //     Constants.showValidationError(context, e.toString());
+                    //     return;
+                    //   }
+                    // },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.primaryColor,
                       foregroundColor: Colors.white,
@@ -10906,6 +11399,7 @@ class ProductRowWidget extends StatefulWidget {
   final VoidCallback onRemove;
   final bool showRemoveButton;
   final List<SupplierModel> supplierList;
+  final String? defaultSupplierId;
   const ProductRowWidget({
     super.key,
     required this.productRow,
@@ -10915,6 +11409,7 @@ class ProductRowWidget extends StatefulWidget {
     required this.onRemove,
     required this.showRemoveButton,
     required this.supplierList,
+    this.defaultSupplierId,
   });
 
   @override
@@ -10932,6 +11427,8 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
   double _originalPrice = 0;
   Timer? _updateTimer;
   bool _showExpense = false;
+  String? _directExpenseVatType = 'none';
+  double _directExpenseVatAmount = 0;
 
   final Map<String, String> vatOptions = {
     'standard': '5%',
@@ -10970,6 +11467,34 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
     _initializeControllers();
     _priceFocusNode.addListener(_onPriceFocusChange);
     _showExpense = widget.productRow.serviceCost > 0;
+    // _directExpenseVatType = widget.productRow.serviceType ?? 'none';
+    // _calculateDirectExpenseVat();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.defaultSupplierId != null &&
+          widget.productRow.supplierId == null &&
+          mounted) {
+        _setDefaultSupplier();
+      }
+    });
+  }
+
+  // void _calculateDirectExpenseVat() {
+  //   final serviceCost = widget.productRow.serviceCost;
+  //   switch (_directExpenseVatType) {
+  //     case 'standard':
+  //       _directExpenseVatAmount = serviceCost * 0.05;
+  //       break;
+  //     case 'zero':
+  //     case 'exempt':
+  //     case 'none':
+  //     default:
+  //       _directExpenseVatAmount = 0.0;
+  //       break;
+  //   }
+  // }
+
+  void _setDefaultSupplier() {
+    _updateSupplierInModel(widget.defaultSupplierId!);
   }
 
   @override
@@ -10983,6 +11508,19 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
     _qtyFocusNode.dispose();
     _updateTimer?.cancel();
     super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(ProductRowWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.productRow != widget.productRow) _initializeControllers();
+
+    // Update supplier if default supplier changed
+    if (oldWidget.defaultSupplierId != widget.defaultSupplierId &&
+        widget.defaultSupplierId != null &&
+        mounted) {
+      _setDefaultSupplier();
+    }
   }
 
   void _initializeControllers() {
@@ -11000,6 +11538,9 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
       2,
     );
     _discountAmountController.text = widget.productRow.discount.toString();
+    if (widget.productRow.serviceCost > 0) {
+      _updateDirectExpenseVatInModel();
+    }
   }
 
   void _onPriceFocusChange() {
@@ -11040,10 +11581,26 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
     _updateProductWithDebounce();
   }
 
+  // void _updateServiceCostInModel(double serviceCost) {
+  //   widget.productRow.serviceCost = serviceCost;
+  //   widget.productRow.calculateTotals();
+  //   _updateProductWithDebounce();
+  // }
+
   void _updateServiceCostInModel(double serviceCost) {
-    widget.productRow.serviceCost = serviceCost;
-    widget.productRow.calculateTotals();
-    _updateProductWithDebounce();
+    if (mounted) {
+      setState(() {
+        widget.productRow.serviceCost = serviceCost;
+
+        // Recalculate direct expense VAT
+        _updateDirectExpenseVatInModel();
+
+        widget.productRow.calculateTotals();
+      });
+
+      // Use immediate update for cost changes to ensure real-time calculation
+      _updateProductImmediately();
+    }
   }
 
   void _updateServiceTypeInModel(String serviceType) {
@@ -11104,14 +11661,133 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
     _updateProductWithDebounce();
   }
 
-  void _updateProductWithDebounce() {
-    widget.productRow.calculateTotals();
-    _updateTimer?.cancel();
-    _updateTimer = Timer(
-      const Duration(milliseconds: 500),
-      () => widget.onUpdate(widget.productRow),
+  // void _updateDirectExpenseVatType(String vatType) {
+  //   setState(() {
+  //     _directExpenseVatType = vatType;
+  //     _calculateDirectExpenseVat();
+  //   });
+  //   _updateProductWithDebounce();
+  // }
+
+  // void _updateDirectExpenseVatType(String vatType) {
+  //   if (mounted) {
+  //     setState(() {
+  //       widget.productRow.directExpenseVatType = vatType;
+  //       widget.productRow.calculateTotals();
+  //       _updateProductWithDebounce();
+  //     });
+  //   }
+  // }
+
+  void _updateDirectExpenseVatType(String vatType) {
+    if (mounted) {
+      setState(() {
+        widget.productRow.directExpenseVatType = vatType;
+        _updateDirectExpenseVatInModel();
+        widget.productRow.calculateTotals();
+      });
+      _updateProductImmediately(); // Use immediate update for VAT changes
+    }
+  }
+
+  void _updateProductImmediately() {
+    _updateTimer?.cancel(); // Cancel any pending debounced updates
+    if (mounted) {
+      widget.onUpdate(widget.productRow);
+    }
+  }
+
+  Widget _buildVatDropdownForDirectExpense() {
+    return _buildDropdown(
+      items: vatOptions,
+      value: widget.productRow.directExpenseVatType,
+      onChanged: _updateDirectExpenseVatType,
     );
   }
+
+  Widget _buildVatAmountDisplayForDirectExpense() {
+    return Container(
+      height: 44,
+      padding: EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey[300]!),
+        borderRadius: BorderRadius.circular(4),
+        color: Colors.grey[50],
+      ),
+      alignment: Alignment.centerLeft,
+      child: Text(
+        'OMR ${widget.productRow.directExpenseVatAmount.toStringAsFixed(2)}',
+        style: TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+          color: Colors.grey[800],
+        ),
+      ),
+    );
+  }
+
+  // Add a method to clear direct expense completely
+  void _clearDirectExpense() {
+    if (mounted) {
+      setState(() {
+        _serviceCostController.text = '0';
+        widget.productRow.serviceCost = 0;
+        widget.productRow.serviceType = null;
+        widget.productRow.directExpenseVatType = 'none';
+        widget.productRow.directExpenseVatAmount = 0;
+        widget.productRow.calculateTotals();
+      });
+      _updateProductImmediately();
+    }
+  }
+
+  void _updateDirectExpenseVatInModel() {
+    // Reset VAT amount first
+    widget.productRow.directExpenseVatAmount = 0.0;
+
+    // Only calculate VAT if there's a service cost AND VAT type is standard
+    if (widget.productRow.serviceCost > 0 &&
+        widget.productRow.directExpenseVatType == 'standard') {
+      widget.productRow.directExpenseVatAmount =
+          widget.productRow.serviceCost * 0.05;
+    }
+  }
+
+  // void _updateProductWithDebounce() {
+  //   widget.productRow.calculateTotals();
+  //   _updateTimer?.cancel();
+  //   _updateTimer = Timer(
+  //     const Duration(milliseconds: 500),
+  //     () => widget.onUpdate(widget.productRow),
+  //   );
+  // }
+
+  void _updateProductWithDebounce() {
+    _updateTimer?.cancel();
+    _updateTimer = Timer(const Duration(milliseconds: 100), () {
+      if (mounted) {
+        widget.onUpdate(widget.productRow);
+      }
+    });
+  }
+
+  // void _updateProductWithDebounce() {
+  //   // Cancel any existing timer
+  //   _updateTimer?.cancel();
+
+  //   // Force a recalculation
+  //   widget.productRow.calculateTotals();
+
+  //   // Use a very short debounce to ensure state updates
+  //   _updateTimer = Timer(
+  //     const Duration(milliseconds: 50), // Reduced from 500ms to 50ms
+  //     () {
+  //       if (mounted) {
+  //         widget.onUpdate(widget.productRow);
+  //       }
+  //     },
+  //   );
+  // }
 
   // void _showMinimumPriceError(double minimumPrice) {
   //   ScaffoldMessenger.of(context).showSnackBar(
@@ -11125,11 +11801,11 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
   //   );
   // }
 
-  @override
-  void didUpdateWidget(ProductRowWidget oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.productRow != widget.productRow) _initializeControllers();
-  }
+  // @override
+  // void didUpdateWidget(ProductRowWidget oldWidget) {
+  //   super.didUpdateWidget(oldWidget);
+  //   if (oldWidget.productRow != widget.productRow) _initializeControllers();
+  // }
 
   // Professional field block with header
   Widget _buildFieldBlock({
@@ -11213,17 +11889,17 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
                 setState(() {
                   widget.productRow.purchaseItem = selected;
                   widget.productRow.type = selected.type;
-                  widget.productRow.avgPrice = selected.sellingPrice;
-                  _priceController.text = selected.sellingPrice.toStringAsFixed(
+                  widget.productRow.avgPrice = selected.buyingPrice;
+                  _priceController.text = selected.buyingPrice.toStringAsFixed(
                     2,
                   );
-                  widget.productRow.cost = selected.cost;
-                  widget.productRow.margin = selected.cost > 0
-                      ? ((selected.sellingPrice - selected.cost) /
-                                selected.cost) *
-                            100
-                      : 0;
-                  _originalPrice = selected.sellingPrice;
+                  widget.productRow.cost = selected.unitPrice;
+                  // widget.productRow.margin = selected.unitPrice > 0
+                  //     ? ((selected.sellingPrice - selected.cost) /
+                  //               selected.cost) *
+                  //           100
+                  //     : 0;
+                  _originalPrice = selected.unitPrice;
                   widget.productRow.calculateTotals();
                   widget.onUpdate(widget.productRow);
                   FocusScope.of(context).requestFocus(_qtyFocusNode);
@@ -11285,42 +11961,64 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
     );
   }
 
+  // Widget _buildDropdown({
+  //   required Map<String, String> items,
+  //   required String? value,
+  //   required String hint,
+  //   required Function(String) onChanged,
+  //   double? width,
+  // }) {
+  //   return Container(
+  //     width: width,
+  //     height: 44,
+  //     padding: EdgeInsets.symmetric(horizontal: 12),
+  //     child: DropdownButtonHideUnderline(
+  //       child: DropdownButton<String>(
+  //         isExpanded: true,
+  //         value: value,
+  //         hint: Text(
+  //           hint,
+  //           style: TextStyle(color: Colors.grey[600], fontSize: 14),
+  //         ),
+  //         items: items.entries.map((entry) {
+  //           return DropdownMenuItem(
+  //             value: entry.key,
+  //             child: Text(
+  //               entry.value,
+  //               style: TextStyle(fontSize: 14),
+  //               overflow: TextOverflow.ellipsis,
+  //             ),
+  //           );
+  //         }).toList(),
+  //         onChanged: (value) {
+  //           if (value != null) {
+  //             onChanged(value);
+  //           }
+  //         },
+  //       ),
+  //     ),
+  //   );
+  // }
+
   Widget _buildDropdown({
     required Map<String, String> items,
     required String? value,
-    required String hint,
     required Function(String) onChanged,
-    double? width,
   }) {
-    return Container(
-      width: width,
-      height: 44,
-      padding: EdgeInsets.symmetric(horizontal: 12),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          isExpanded: true,
-          value: value,
-          hint: Text(
-            hint,
-            style: TextStyle(color: Colors.grey[600], fontSize: 14),
-          ),
-          items: items.entries.map((entry) {
-            return DropdownMenuItem(
-              value: entry.key,
-              child: Text(
-                entry.value,
-                style: TextStyle(fontSize: 14),
-                overflow: TextOverflow.ellipsis,
-              ),
-            );
-          }).toList(),
-          onChanged: (value) {
-            if (value != null) {
-              onChanged(value);
-            }
-          },
-        ),
-      ),
+    // Ensure the current value exists in items, otherwise use null
+    final validValue = items.containsKey(value) ? value : null;
+
+    return DropdownButton<String>(
+      value: validValue,
+      onChanged: (newValue) {
+        if (newValue != null) {
+          onChanged(newValue);
+        }
+      },
+      items: items.entries.map((entry) {
+        return DropdownMenuItem(value: entry.key, child: Text(entry.value));
+      }).toList(),
+      hint: Text('Select...'),
     );
   }
 
@@ -11369,7 +12067,7 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
                       if (value.isNotEmpty) {
                         final newPrice = double.tryParse(value) ?? 0;
                         final minimumPrice =
-                            widget.productRow.purchaseItem?.minimumPrice ?? 0;
+                            widget.productRow.purchaseItem?.buyingPrice ?? 0;
                         if (newPrice >= minimumPrice) {
                           _updatePriceInModel(newPrice);
                         }
@@ -11655,6 +12353,16 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
                       SizedBox(
                         width: 180,
                         child: TextFormField(
+                          onChanged: (value) {
+                            if (value.isEmpty || value == '0') {
+                              // If field is cleared or set to 0, clear everything
+                              _clearDirectExpense();
+                            } else if (value.isNotEmpty) {
+                              _updateServiceCostInModel(
+                                double.tryParse(value) ?? 0,
+                              );
+                            }
+                          },
                           controller: _serviceCostController,
                           decoration: InputDecoration(
                             labelText: 'Amount (OMR)',
@@ -11674,12 +12382,20 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
                           keyboardType: TextInputType.numberWithOptions(
                             decimal: true,
                           ),
-                          onChanged: (value) {
-                            if (value.isNotEmpty) {
-                              _updateServiceCostInModel(
-                                double.tryParse(value) ?? 0,
-                              );
+                          // onChanged: (value) {
+                          //   if (value.isNotEmpty) {
+                          //     _updateServiceCostInModel(
+                          //       double.tryParse(value) ?? 0,
+                          //     );
+                          //   }
+                          // },
+                          onEditingComplete: () {
+                            // Force update when user presses enter
+                            if (_serviceCostController.text.isEmpty ||
+                                _serviceCostController.text == '0') {
+                              _clearDirectExpense();
                             }
+                            FocusScope.of(context).unfocus();
                           },
                         ),
                       ),
@@ -11703,7 +12419,7 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
                             _buildDropdown(
                               items: expenseTypes,
                               value: widget.productRow.serviceType,
-                              hint: 'Select Type',
+                              // hint: 'Select Type',
                               onChanged: _updateServiceTypeInModel,
                             ),
                           ],
@@ -11729,7 +12445,7 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
                             _buildDropdown(
                               items: supplierOptions,
                               value: widget.productRow.supplierId,
-                              hint: 'Select Supplier',
+                              //hint: 'Select Supplier',
                               onChanged: _updateSupplierInModel,
                             ),
                           ],
@@ -11738,6 +12454,107 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
                       SizedBox(width: 16),
 
                       // Add to Purchase Cost Checkbox
+                      // VAT Dropdown for Direct Expense
+                      SizedBox(
+                        width: 120,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'VAT',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.grey[700],
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            _buildVatDropdownForDirectExpense(), // Use the new method
+                          ],
+                        ),
+                      ),
+                      SizedBox(width: 16),
+
+                      // VAT Amount Display for Direct Expense
+                      SizedBox(
+                        width: 120,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'VAT Amount',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.grey[700],
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            _buildVatAmountDisplayForDirectExpense(), // Use the new method
+                          ],
+                        ),
+                      ),
+                      // SizedBox(
+                      //   width: 120,
+                      //   child: Column(
+                      //     crossAxisAlignment: CrossAxisAlignment.start,
+                      //     children: [
+                      //       Text(
+                      //         'VAT',
+                      //         style: TextStyle(
+                      //           fontSize: 12,
+                      //           fontWeight: FontWeight.w500,
+                      //           color: Colors.grey[700],
+                      //         ),
+                      //       ),
+                      //       SizedBox(height: 4),
+                      //       _buildDropdown(
+                      //         items: vatOptions,
+                      //         value: _directExpenseVatType,
+                      //         // hint: 'VAT',
+                      //         onChanged: _updateDirectExpenseVatType,
+                      //       ),
+                      //     ],
+                      //   ),
+                      // ),
+                      // SizedBox(width: 16),
+
+                      // // VAT Amount Display for Direct Expense
+                      // SizedBox(
+                      //   width: 120,
+                      //   child: Column(
+                      //     crossAxisAlignment: CrossAxisAlignment.start,
+                      //     children: [
+                      //       Text(
+                      //         'VAT Amount',
+                      //         style: TextStyle(
+                      //           fontSize: 12,
+                      //           fontWeight: FontWeight.w500,
+                      //           color: Colors.grey[700],
+                      //         ),
+                      //       ),
+                      //       SizedBox(height: 4),
+                      //       Container(
+                      //         height: 44,
+                      //         padding: EdgeInsets.symmetric(horizontal: 12),
+                      //         decoration: BoxDecoration(
+                      //           border: Border.all(color: Colors.grey[300]!),
+                      //           borderRadius: BorderRadius.circular(4),
+                      //           color: Colors.grey[50],
+                      //         ),
+                      //         alignment: Alignment.centerLeft,
+                      //         child: Text(
+                      //           'OMR ${_directExpenseVatAmount.toStringAsFixed(2)}',
+                      //           style: TextStyle(
+                      //             fontSize: 13,
+                      //             fontWeight: FontWeight.w500,
+                      //             color: Colors.grey[800],
+                      //           ),
+                      //         ),
+                      //       ),
+                      //     ],
+                      //   ),
+                      // ),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -11798,6 +12615,7 @@ class BillExpenseRowWidget extends StatefulWidget {
   final Function(BillExpense) onUpdate;
   final VoidCallback onRemove;
   final List<SupplierModel> supplierList;
+  final String? defaultSupplierId;
   const BillExpenseRowWidget({
     super.key,
     required this.expense,
@@ -11805,6 +12623,7 @@ class BillExpenseRowWidget extends StatefulWidget {
     required this.onUpdate,
     required this.onRemove,
     required this.supplierList,
+    this.defaultSupplierId,
   });
 
   @override
@@ -11816,10 +12635,24 @@ class _BillExpenseRowWidgetState extends State<BillExpenseRowWidget> {
   final TextEditingController _descriptionController = TextEditingController();
   Timer? _updateTimer;
 
+  final Map<String, String> vatOptions = {
+    'standard': '5%',
+    'zero': '0%',
+    'exempt': 'Exempt',
+    'none': 'None',
+  };
+
   @override
   void initState() {
     super.initState();
     _initializeControllers();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.defaultSupplierId != null &&
+          widget.expense.supplier == null &&
+          mounted) {
+        _setDefaultSupplier();
+      }
+    });
   }
 
   @override
@@ -11828,6 +12661,14 @@ class _BillExpenseRowWidgetState extends State<BillExpenseRowWidget> {
     _descriptionController.dispose();
     _updateTimer?.cancel();
     super.dispose();
+  }
+
+  void _setDefaultSupplier() {
+    final defaultSupplier = widget.supplierList.firstWhere(
+      (supplier) => supplier.id == widget.defaultSupplierId,
+      orElse: () => widget.supplierList.first,
+    );
+    _updateSupplier(defaultSupplier);
   }
 
   void _initializeControllers() {
@@ -11845,6 +12686,7 @@ class _BillExpenseRowWidgetState extends State<BillExpenseRowWidget> {
 
   void _updateAmount(double amount) {
     widget.expense.amount = amount;
+    widget.expense.calculateVat();
     _updateExpenseWithDebounce();
   }
 
@@ -11865,6 +12707,14 @@ class _BillExpenseRowWidgetState extends State<BillExpenseRowWidget> {
       widget.expense.supplier = supplier;
     });
     _updateExpenseWithDebounce(); // Add this line
+  }
+
+  void _updateVatType(String vatType) {
+    setState(() {
+      widget.expense.vatType = vatType;
+      widget.expense.calculateVat();
+    });
+    _updateExpenseWithDebounce();
   }
 
   Widget _buildExpenseTypeDropdown() {
@@ -11913,6 +12763,19 @@ class _BillExpenseRowWidgetState extends State<BillExpenseRowWidget> {
     );
   }
 
+  Widget _buildVatDropdown() {
+    return CustomSearchableDropdown(
+      hintText: 'VAT',
+      items: vatOptions,
+      value: widget.expense.vatType ?? 'none',
+      onChanged: (value) {
+        if (value.isNotEmpty) {
+          _updateVatType(value);
+        }
+      },
+    );
+  }
+
   Widget _buildAmountInput() {
     return TextFormField(
       controller: _amountController,
@@ -11928,10 +12791,31 @@ class _BillExpenseRowWidgetState extends State<BillExpenseRowWidget> {
     );
   }
 
+  Widget _buildVatAmountDisplay() {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        'OMR ${widget.expense.vatAmount.toStringAsFixed(2)}',
+        style: TextStyle(fontSize: 14),
+      ),
+    );
+  }
+
   @override
   void didUpdateWidget(BillExpenseRowWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.expense != widget.expense) _initializeControllers();
+
+    // Update supplier if default supplier changed
+    if (oldWidget.defaultSupplierId != widget.defaultSupplierId &&
+        widget.defaultSupplierId != null &&
+        mounted) {
+      _setDefaultSupplier();
+    }
   }
 
   @override
@@ -11952,6 +12836,9 @@ class _BillExpenseRowWidgetState extends State<BillExpenseRowWidget> {
           const SizedBox(width: 8),
           Expanded(flex: 2, child: _buildSupplierTypeDropdown()),
           const SizedBox(width: 8),
+          Expanded(flex: 1, child: _buildVatDropdown()),
+          const SizedBox(width: 8),
+          SizedBox(width: 100, child: _buildVatAmountDisplay()),
           IconButton(
             icon: const Icon(Icons.remove_circle, color: Colors.red, size: 20),
             onPressed: widget.onRemove,

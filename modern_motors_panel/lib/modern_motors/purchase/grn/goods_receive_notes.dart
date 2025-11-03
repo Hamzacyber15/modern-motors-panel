@@ -257,7 +257,7 @@ class _GoodsReceiveNotesState extends State<GoodsReceiveNotes> {
                         onSelectChanged: (value, inventory) {
                           setState(() {
                             if (value == true) {
-                              selectedPurchaseId.add(inventory.id!);
+                              selectedPurchaseId.add(inventory.id);
                             } else {
                               selectedPurchaseId.remove(inventory.id);
                             }
@@ -269,8 +269,7 @@ class _GoodsReceiveNotesState extends State<GoodsReceiveNotes> {
                           });
                         },
                         onStatus: (product) {},
-                        statusTextGetter: (item) =>
-                            item.status!.capitalizeFirst,
+                        statusTextGetter: (item) => item.status.capitalizeFirst,
                         onView: (product) {},
                         onSelectAll: (value) {
                           setState(() {

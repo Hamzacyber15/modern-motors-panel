@@ -173,16 +173,21 @@ class PurchaseInvoiceProvider extends ChangeNotifier {
     _productsList.add(productModel);
 
     final line = PurchaseItem(
+      discountType: 'none',
+      subtotal: 0,
+      amountAfterDiscount: 0,
+      total: 0,
+      vatType: 'none',
+      vatAmount: 0,
+      addToPurchaseCost: false,
+      buyingPrice: 0,
       discount: 0,
-      margin: 0,
+      directExpense: DirectExpense.empty(),
       productName: productModel.productName!,
-      sellingPrice: 0,
-      minimumPrice: productModel.minimumPrice ?? 0,
       unitPrice: productModel.sellingPrice!,
       type: "product",
       productId: inv.id!,
       quantity: 1,
-      cost: inv.salePrice,
       totalPrice: inv.salePrice,
     );
     items.add(line);
@@ -466,7 +471,7 @@ class PurchaseInvoiceProvider extends ChangeNotifier {
     for (final batchDoc in batchesQuery.docs) {
       if (remainingQuantity <= 0) break;
 
-      final batchData = batchDoc.data() as Map<String, dynamic>;
+      final batchData = batchDoc.data();
       final int batchQtyRemaining = batchData['quantityRemaining'] ?? 0;
       final double unitCost = (batchData['unitCost'] ?? 0).toDouble();
 
@@ -582,19 +587,354 @@ class PurchaseInvoiceProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  static final FirebaseFirestore _db = FirebaseFirestore.instance;
+  static final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  Future<Map<String, dynamic>> savePurchaseInvoice({
+    required List<Map<String, dynamic>> productsData,
+    required List<Map<String, dynamic>> expensesData,
+    required Map<String, dynamic> depositData,
+    required Map<String, dynamic> paymentData,
+    required String statusType,
+    required double total,
+    required double discount,
+    required double taxAmount,
+    required bool isEdit,
+    //required String supplierName,
+    String? existingInvoiceId,
+  }) async {
+    try {
+      // Generate or use existing invoice number
+      String invoiceNumber = await Constants.getUniqueNumber(
+        'purchase',
+      ); //await _generateInvoiceNumber();
+      if (isEdit && existingInvoiceId != null) {
+        invoiceNumber = existingInvoiceId;
+      }
+
+      // Process product items
+      List<Map<String, dynamic>> items = [];
+      double itemsSubtotal = 0;
+      double itemsVatTotal = 0;
+
+      for (var product in productsData) {
+        final item = _processProductItem(product);
+        items.add(item);
+        itemsSubtotal += item['subtotal'] as double;
+        itemsVatTotal += item['vatAmount'] as double;
+      }
+
+      // Process other expenses
+      List<Map<String, dynamic>> otherExpenses = [];
+      double expensesSubtotal = 0;
+      double expensesVatTotal = 0;
+
+      for (var expense in expensesData) {
+        final processedExpense = _processExpenseItem(expense);
+        otherExpenses.add(processedExpense);
+        expensesSubtotal += processedExpense['amount'] as double;
+        expensesVatTotal += processedExpense['vatAmount'] as double;
+      }
+
+      // Calculate totals
+      final double grandSubtotal = itemsSubtotal + expensesSubtotal;
+      final double grandVatTotal = itemsVatTotal + expensesVatTotal;
+      final double amountAfterDiscount = grandSubtotal - discount;
+      final double grandTotal = amountAfterDiscount + grandVatTotal;
+
+      // Get current user
+      final user = _auth.currentUser;
+
+      // Prepare the main invoice data
+      Map<String, dynamic> invoiceData = {
+        'invoice': invoiceNumber,
+        'invoiceDate': Timestamp.now(), //FieldValue.serverTimestamp(),
+        'status': statusType,
+        'supplierInfo': {'supplierId': supplierId},
+        'items': items,
+        'otherExpenses': otherExpenses,
+        //'totals': {
+        'itemsSubtotal': itemsSubtotal,
+        'taxAmount': itemsVatTotal,
+        'expensesSubtotal': expensesSubtotal,
+        'expensesVatTotal': expensesVatTotal,
+        'grandSubtotal': grandSubtotal,
+        'grandVatTotal': grandVatTotal,
+        'discount': discount,
+        'discountType': 'percentage',
+        'taxAmount': taxAmount,
+        'total': total,
+        'grandTotal': grandTotal,
+        //},
+        'paymentInfo': {
+          'depositData': depositData,
+          'paymentData': paymentData,
+          'isAlreadyPaid': paymentData['isAlreadyPaid'] ?? false,
+          'totalPaid': paymentData['totalPaid'] ?? 0,
+          'remainingAmount': paymentData['remainingAmount'] ?? grandTotal,
+        },
+        // 'metadata': {
+        //   'createdAt': FieldValue.serverTimestamp(),
+        //   'updatedAt': FieldValue.serverTimestamp(),
+        //   'createdBy': user?.uid ?? 'unknown',
+        //   'version': 1,
+        //   'isActive': true,
+        // }
+      };
+
+      // Save to Firestore
+      String id = FirebaseFirestore.instance.collection('purchases').doc().id;
+      final docRef = _db.collection('purchases').doc(id);
+      await docRef.set(invoiceData, SetOptions(merge: true));
+
+      // Update product quantities if status is "completed" or "pending"
+      // if (statusType == 'completed' || statusType == 'pending') {
+      //   await _updateProductQuantities(items);
+      // }
+
+      // Update supplier statistics
+      //  await _updateSupplierStats(supplierId, grandTotal);
+
+      return {
+        'success': true,
+        'invoiceId': invoiceNumber,
+        'message': 'Purchase invoice saved successfully',
+      };
+    } catch (e) {
+      print('Error saving purchase invoice: $e');
+      throw Exception('Failed to save purchase invoice: $e');
+    }
+  }
+
+  static Map<String, dynamic> _processProductItem(
+    Map<String, dynamic> product,
+  ) {
+    final String type = product['type'] ?? 'product';
+    final double unitPrice = (product['avgPrice'] as num?)?.toDouble() ?? 0;
+    final int quantity = (product['quantity'] as num?)?.toInt() ?? 1;
+    final double discount = (product['discount'] as num?)?.toDouble() ?? 0;
+    final String discountType = product['discountType'] ?? 'percentage';
+
+    // Calculate subtotal
+    double subtotal = unitPrice * quantity;
+
+    // Apply discount
+    double discountAmount = 0;
+    if (discountType == 'percentage') {
+      discountAmount = subtotal * (discount / 100);
+    } else {
+      discountAmount = discount;
+    }
+
+    double amountAfterDiscount = subtotal - discountAmount;
+
+    // Calculate VAT
+    final String vatType = product['vatType'] ?? 'none';
+    double vatAmount = 0;
+    switch (vatType) {
+      case 'standard':
+        vatAmount = amountAfterDiscount * 0.05;
+        break;
+      case 'zero':
+      case 'exempt':
+      case 'none':
+      default:
+        vatAmount = 0.0;
+    }
+
+    // Calculate total
+    final double serviceCost =
+        (product['serviceCost'] as num?)?.toDouble() ?? 0;
+    double total = amountAfterDiscount + serviceCost + vatAmount;
+
+    return {
+      'type': type,
+      'productId': product['productId'],
+      'productName': product['productName'],
+      'quantity': quantity,
+      'unitPrice': unitPrice,
+      'totalPrice': total,
+      'discount': discount,
+      'discountType': discountType,
+      'buyingPrice': unitPrice,
+      'vatType': vatType,
+      'vatAmount': vatAmount,
+      // 'serviceCost': serviceCost,
+      // 'serviceType': product['serviceType'],
+      //'supplierId': product['supplierId'],
+      'addToPurchaseCost': product['addToPurchaseCost'] ?? false,
+      'subtotal': subtotal,
+      'amountAfterDiscount': amountAfterDiscount,
+      'total': total,
+      'directExpense': {
+        'amount': serviceCost,
+        'type': product['serviceType'],
+        'supplierId': product['supplierId'],
+        'vatType': vatType,
+        'vatAmount': vatAmount,
+        'includeInCost': product['addToPurchaseCost'] ?? false,
+      },
+    };
+  }
+
+  static Map<String, dynamic> _processExpenseItem(
+    Map<String, dynamic> expense,
+  ) {
+    final double amount = (expense['amount'] as num?)?.toDouble() ?? 0;
+    final String vatType = expense['vatType'] ?? 'none';
+
+    double vatAmount = 0;
+    switch (vatType) {
+      case 'standard':
+        vatAmount = amount * 0.05;
+        break;
+      case 'zero':
+      case 'exempt':
+      case 'none':
+      default:
+        vatAmount = 0.0;
+    }
+
+    return {
+      'type': expense['type'] ?? "",
+      'typeName': expense['typeName'] ?? "",
+      'amount': amount,
+      'description': expense['description'] ?? '',
+      'supplierId': expense['supplierId'] ?? "",
+      'vatType': vatType,
+      'vatAmount': vatAmount,
+      'includeInProductCost': expense['includeInProductCost'] ?? true,
+      'totalAmount': amount + vatAmount,
+      //  'createdAt': DateTime.now(), //FieldValue.serverTimestamp(),
+    };
+  }
+
+  // static Future<String> _generateInvoiceNumber() async {
+  //   final now = DateTime.now();
+  //   final year = now.year.toString();
+  //   final month = now.month.toString().padLeft(2, '0');
+
+  //   // Get the last invoice number from Firestore
+  //   final lastInvoice = await _db
+  //       .collection('purchaseInvoices')
+  //       .orderBy('invoiceNumber', descending: true)
+  //       .limit(1)
+  //       .get();
+
+  //   int sequence = 1;
+  //   if (lastInvoice.docs.isNotEmpty) {
+  //     final lastNumber = lastInvoice.docs.first.id;
+  //     final parts = lastNumber.split('-');
+  //     if (parts.length == 4 && parts[0] == 'PUR') {
+  //       sequence = int.parse(parts[3]) + 1;
+  //     }
+  //   }
+
+  //   return 'PUR-$year-$month-${sequence.toString().padLeft(4, '0')}';
+  // }
+
+  // static Future<void> _updateProductQuantities(List<Map<String, dynamic>> items) async {
+  //   final batch = _db.batch();
+
+  //   for (var item in items) {
+  //     if (item['type'] == 'product' && item['productId'] != null) {
+  //       final productRef = _db.collection('products').doc(item['productId']);
+
+  //       // Get current product data
+  //       final productDoc = await productRef.get();
+
+  //       if (productDoc.exists) {
+  //         final currentStock = (productDoc.data()!['stockQuantity'] as num?)?.toInt() ?? 0;
+  //         final purchasedQty = item['quantity'] as int;
+  //         final newStock = currentStock + purchasedQty;
+
+  //         final currentAvgCost = (productDoc.data()!['averageCost'] as num?)?.toDouble() ?? 0;
+  //         final purchasePrice = item['buyingPrice'] as double;
+  //         final newAverageCost = _calculateAverageCost(
+  //           currentAvgCost,
+  //           currentStock,
+  //           purchasePrice,
+  //           purchasedQty,
+  //         );
+
+  //         batch.update(productRef, {
+  //           'stockQuantity': newStock,
+  //           'lastPurchasePrice': purchasePrice,
+  //           'averageCost': newAverageCost,
+  //           'lastPurchaseDate': FieldValue.serverTimestamp(),
+  //           'updatedAt': FieldValue.serverTimestamp(),
+  //         });
+  //       }
+  //     }
+  //   }
+
+  //   await batch.commit();
+  // }
+
+  static double _calculateAverageCost(
+    double currentAverage,
+    int currentStock,
+    double purchasePrice,
+    int purchaseQty,
+  ) {
+    if (currentStock + purchaseQty == 0) return purchasePrice;
+
+    final totalCost =
+        (currentAverage * currentStock) + (purchasePrice * purchaseQty);
+    return totalCost / (currentStock + purchaseQty);
+  }
+
+  // static Future<void> _updateSupplierStats(String supplierId, double amount) async {
+  //   final supplierRef = _db.collection('suppliers').doc(supplierId);
+  //   final now = DateTime.now();
+  //   final monthKey = '${now.year}-${now.month.toString().padLeft(2, '0')}';
+
+  //   await _db.runTransaction((transaction) async {
+  //     final supplierDoc = await transaction.get(supplierRef);
+
+  //     if (supplierDoc.exists) {
+  //       final currentTotal = (supplierDoc.data()!['totalPurchases'] as num?)?.toDouble() ?? 0;
+  //       final purchaseCount = (supplierDoc.data()!['purchaseCount'] as num?)?.toInt() ?? 0;
+
+  //       // Update monthly stats
+  //       final monthlyStats = supplierDoc.data()!['monthlyStats'] ?? {};
+  //       final currentMonthTotal = (monthlyStats[monthKey] as num?)?.toDouble() ?? 0;
+
+  //       transaction.update(supplierRef, {
+  //         'totalPurchases': currentTotal + amount,
+  //         'purchaseCount': purchaseCount + 1,
+  //         'lastPurchaseDate': FieldValue.serverTimestamp(),
+  //         'lastPurchaseAmount': amount,
+  //         'updatedAt': FieldValue.serverTimestamp(),
+  //         'monthlyStats.$monthKey': currentMonthTotal + amount,
+  //       });
+  //     }
+  //   });
+  // }
+
   Future<void> savePurchase({
     required BuildContext context,
-    required List<Map<String, Object?>> productsData,
-    required List<Map<String, Object?>> expensesData,
-    required Map<String, Object> depositData,
-    required Map<String, Object> paymentData,
-    //required List<Map<String, Object?>> servicesData,
-    required double total,
-    required double taxAmount,
-    required double discount,
+    // required List<Map<String, Object?>> productsData,
+    // required List<Map<String, Object?>> expensesData,
+    // required Map<String, Object> depositData,
+    // required Map<String, Object> paymentData,
+    // //required List<Map<String, Object?>> servicesData,
+    // required double total,
+    // required double taxAmount,
+    // required double discount,
+    // required String statusType,
+    // VoidCallback? onBack,
+    // bool isEdit = false,
+    // NewPurchaseModel? purchase,
+    required List<Map<String, dynamic>> productsData,
+    required List<Map<String, dynamic>> expensesData,
+    required Map<String, dynamic> depositData,
+    required Map<String, dynamic> paymentData,
     required String statusType,
-    VoidCallback? onBack,
-    bool isEdit = false,
+    required double total,
+    required double discount,
+    required double taxAmount,
+    required bool isEdit,
     NewPurchaseModel? purchase,
   }) async {
     try {
@@ -722,10 +1062,34 @@ class PurchaseInvoiceProvider extends ChangeNotifier {
               .toList(),
         };
       } else {
+        List<Map<String, dynamic>> items = [];
+        double itemsSubtotal = 0;
+        double itemsVatTotal = 0;
+
+        for (var product in productsData) {
+          final item = _processProductItem(product);
+          items.add(item);
+          itemsSubtotal += item['subtotal'] as double;
+          itemsVatTotal += item['vatAmount'] as double;
+        }
+        List<Map<String, dynamic>> otherExpenses = [];
+        double expensesSubtotal = 0;
+        double expensesVatTotal = 0;
+        final double grandSubtotal = itemsSubtotal + expensesSubtotal;
+        final double grandVatTotal = itemsVatTotal + expensesVatTotal;
+        final double amountAfterDiscount = grandSubtotal - discount;
+        final double grandTotal = amountAfterDiscount + grandVatTotal;
+        for (var expense in expensesData) {
+          final processedExpense = _processExpenseItem(expense);
+          otherExpenses.add(processedExpense);
+          debugPrint("${"expenses"}${otherExpenses.toString()}");
+          expensesSubtotal += processedExpense['amount'] as double;
+          expensesVatTotal += processedExpense['vatAmount'] as double;
+        }
         purchaseData = {
           'dueDate': paymentDate,
           'branchId': branch.id,
-          
+          'supplierInfo': {'supplierId': supplierId},
           'invoice': isEdit ? purchase!.invoice : invoiceNumber,
           'purchaseId': isEdit ? purchase!.id : purchaseDocId,
           "discountType": discountType,
@@ -745,23 +1109,37 @@ class PurchaseInvoiceProvider extends ChangeNotifier {
           'previousStock':
               0, //selectedSaleItems.first.product.totalStockOnHand,
           'paymentMethod': 'cash',
+          'expenseData': otherExpenses,
           'taxAmount': taxAmount,
           'paymentData': paymentData,
           'deposit': d,
-          'items': productsData
-              .map(
-                (item) => {
-                  'type': item['type'],
-                  'productId': item["productId"],
-                  'productName': item["productName"],
-                  'quantity': item["quantity"],
-                  'unitPrice': item["sellingPrice"] ?? 0,
-                  'totalPrice': item["total"] ?? 0,
-                  'discount': item['discount'] ?? 0,
-                  'sellingPrice': item['sellingPrice'] ?? 0,
-                },
-              )
-              .toList(),
+          'items': items,
+          'totals': {
+            'itemsSubtotal': itemsSubtotal,
+            'taxAmount': taxAmount, //itemsVatTotal,
+            'expensesSubtotal': expensesSubtotal,
+            'expensesVatTotal': expensesVatTotal,
+            'grandSubtotal': grandSubtotal,
+            'grandVatTotal': grandVatTotal,
+            'discount': discount,
+            'discountType': 'percentage',
+            'total': total,
+            'grandTotal': grandTotal,
+          },
+          // productsData
+          //     .map(
+          //       (item) => {
+          //         'type': item['type'],
+          //         'productId': item["productId"],
+          //         'productName': item["productName"],
+          //         'quantity': item["quantity"],
+          //         'unitPrice': item["sellingPrice"] ?? 0,
+          //         'totalPrice': item["total"] ?? 0,
+          //         'discount': item['discount'] ?? 0,
+          //         'sellingPrice': item['sellingPrice'] ?? 0,
+          //       },
+          //     )
+          //     .toList(),
         };
       }
       if (!isEdit) {
@@ -841,13 +1219,13 @@ class PurchaseInvoiceProvider extends ChangeNotifier {
       );
 
       clearData();
-      onBack?.call();
+      // onBack?.call();
     } catch (e) {
       if (context.mounted) {
         debugPrint("${"sale error"} ${e.toString()}");
         Constants.showMessage(context, 'Failed to save booking: $e');
         updateLoadingStatus(false);
-        onBack?.call();
+        // onBack?.call();
       }
     } finally {
       updateLoadingStatus(false);

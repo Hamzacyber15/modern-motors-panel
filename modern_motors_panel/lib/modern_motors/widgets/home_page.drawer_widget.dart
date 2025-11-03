@@ -15,7 +15,11 @@ import 'package:modern_motors_panel/modern_motors/products/dummy_pages.dart';
 import 'package:modern_motors_panel/modern_motors/products/manage_products.dart';
 import 'package:modern_motors_panel/modern_motors/products/products_category_list.dart';
 import 'package:modern_motors_panel/modern_motors/products/sub_category/sub_category_page.dart';
+import 'package:modern_motors_panel/modern_motors/purchase/grn/goods_receive_notes.dart';
 import 'package:modern_motors_panel/modern_motors/purchase/purchase_invoice_main_page.dart';
+import 'package:modern_motors_panel/modern_motors/purchase/purchase_requisition.dart';
+import 'package:modern_motors_panel/modern_motors/purchase/qoutations.dart';
+import 'package:modern_motors_panel/modern_motors/sales/sale_payment.dart';
 import 'package:modern_motors_panel/modern_motors/sales/sales_main_page.dart';
 import 'package:modern_motors_panel/modern_motors/sales/sales_settings.dart';
 import 'package:modern_motors_panel/modern_motors/services_maintenance/create_booking_main_page.dart';
@@ -107,7 +111,7 @@ Widget getSelectedPageWidget({
     case MainContainer.vendor:
       return const CreateMaintenanceBooking();
     case MainContainer.procurementQuotation:
-      return const CreateMaintenanceBooking();
+      return const Qoutations();
     case MainContainer.branches:
       return const BranchesPage();
     case MainContainer.roles:
@@ -125,7 +129,7 @@ Widget getSelectedPageWidget({
     case MainContainer.country:
       return CountryPage();
     case MainContainer.purchaseRequisition:
-      return CreateMaintenanceBooking();
+      return PurchaseRequisitionPage();
     case MainContainer.discount:
       return CreateMaintenanceBooking();
     case MainContainer.procurmentPurchaseOrderPage:
@@ -186,7 +190,11 @@ Widget getSelectedPageWidget({
       return ComingSoonWidget();
     case MainContainer.supplier:
       return ManageSupplier();
-        case MainContainer.purchaseInvoice:
+    case MainContainer.purchaseInvoice:
       return PurchaseInvoiceMainPage();
+    case MainContainer.goodsReceiveNotes:
+      return GoodsReceiveNotes();
+    case MainContainer.salePayment:
+      return SalePaymentsScreen();
   }
 }

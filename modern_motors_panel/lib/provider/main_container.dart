@@ -25,6 +25,20 @@ enum MainContainer {
       iconPath: "assets/images/dashboard.png",
     ),
   ),
+  salePayment(
+    ContainerData(
+      key: "salePayment",
+      label: 'Sale Payment',
+      iconPath: "assets/images/dashboard.png",
+    ),
+  ),
+  goodsReceiveNotes(
+    ContainerData(
+      key: "goodReceivedNotes",
+      label: 'GRN',
+      iconPath: "assets/images/dashboard.png",
+    ),
+  ),
   supplier(
     ContainerData(
       key: "supplier",

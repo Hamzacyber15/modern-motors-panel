@@ -1741,15 +1741,15 @@ class _DynamicDataTableState<T> extends State<DynamicDataTable<T>>
                                           ),
 
                                         // Actions column
-                                        if (widget.onEdit != null)
-                                          SizedBox(
-                                            width: 120,
-                                            child: _buildEnhancedHeader(
-                                              title: "Actions".tr(),
-                                              index: widget.columns.length + 1,
-                                              isActionColumn: true,
-                                            ),
+                                        //if (widget.onEdit != null)
+                                        SizedBox(
+                                          width: 120,
+                                          child: _buildEnhancedHeader(
+                                            title: "Actions".tr(),
+                                            index: widget.columns.length + 1,
+                                            isActionColumn: true,
                                           ),
+                                        ),
                                       ],
                                     ),
                                   ),
@@ -2096,35 +2096,34 @@ class _DynamicDataTableState<T> extends State<DynamicDataTable<T>>
                                             ),
 
                                           // Actions cell
-                                          if (widget.onEdit != null ||
-                                              widget.onView != null ||
-                                              widget.onEmail != null)
-                                            DataCell(
-                                              Container(
-                                                width: 120,
-                                                // you can reduce to ~56 if only menu/edit icon
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      vertical: 8,
-                                                    ),
-                                                alignment: Alignment.center,
-                                                child: Consumer<MmResourceProvider>(
-                                                  builder: (context, resource, child) {
-                                                    debugPrint(
-                                                      'resource: ${resource.employeeModel!.profileAccessKey}',
-                                                    );
-                                                    return _buildActionArea(
-                                                      item,
-                                                      resource,
-                                                      widget
-                                                          .editProfileAccessKey,
-                                                      widget
-                                                          .deleteProfileAccessKey,
-                                                    );
-                                                  },
-                                                ),
+                                          // if (widget.onEdit != null ||
+                                          //     widget.onView != null ||
+                                          //     widget.onEmail != null)
+                                          DataCell(
+                                            Container(
+                                              width: 120,
+                                              // you can reduce to ~56 if only menu/edit icon
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    vertical: 8,
+                                                  ),
+                                              alignment: Alignment.center,
+                                              child: Consumer<MmResourceProvider>(
+                                                builder: (context, resource, child) {
+                                                  debugPrint(
+                                                    'resource: ${resource.employeeModel!.profileAccessKey}',
+                                                  );
+                                                  return _buildActionArea(
+                                                    item,
+                                                    resource,
+                                                    widget.editProfileAccessKey,
+                                                    widget
+                                                        .deleteProfileAccessKey,
+                                                  );
+                                                },
                                               ),
                                             ),
+                                          ),
 
                                           // if (widget.onEdit != null)
                                           //   DataCell(

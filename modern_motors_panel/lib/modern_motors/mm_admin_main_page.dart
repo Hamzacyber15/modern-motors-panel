@@ -2631,6 +2631,7 @@ class _MmAdminMainPageState extends State<MmAdminMainPage> {
         MainContainer.createEstimate,
         MainContainer.creditNotes,
         MainContainer.refundReceipts,
+        MainContainer.salePayment,
         MainContainer.salesSettings,
       ],
       // 'Create Bookings'.tr(): [
@@ -2665,9 +2666,10 @@ class _MmAdminMainPageState extends State<MmAdminMainPage> {
         MainContainer.treasury,
       ],
       'Purchase'.tr(): [
-        // MainContainer.purchaseRequisition,
-        // MainContainer.procurementQuotation,
-        // MainContainer.procurmentPurchaseOrderPage,
+        MainContainer.purchaseRequisition,
+        MainContainer.procurementQuotation,
+        MainContainer.goodsReceiveNotes,
+        MainContainer.procurmentPurchaseOrderPage,
         MainContainer.purchaseInvoice,
         MainContainer.supplier,
       ],

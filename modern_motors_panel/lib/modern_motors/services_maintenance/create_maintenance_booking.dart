@@ -1072,19 +1072,19 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                                   'totalPaid': 0,
                                   'remainingAmount': p.total,
                                 };
-                          final SaleModel saleDetails =
-                              Constants.parseToSaleModel(
-                                productsData: productsData,
-                                depositData: depositData,
-                                paymentData: paymentData,
-                                totalRevenue: p.total,
-                                discount: d,
-                                taxAmount: p.taxAmount,
-                                customerName: p.customerId!,
-                                truckId: p.truckId ?? "",
-                                isEdit: false, //widget.sale != null,
-                              );
-                          saleTemplate(saleDetails);
+                          // final SaleModel saleDetails =
+                          //     Constants.parseToSaleModel(
+                          //       productsData: productsData,
+                          //       depositData: depositData,
+                          //       paymentData: paymentData,
+                          //       totalRevenue: p.total,
+                          //       discount: d,
+                          //       taxAmount: p.taxAmount,
+                          //       customerName: p.customerId!,
+                          //       truckId: p.truckId ?? "",
+                          //       isEdit: false, //widget.sale != null,
+                          //     );
+                          // saleTemplate(saleDetails);
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppTheme.primaryColor,

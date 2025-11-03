@@ -95,6 +95,7 @@ class MmResourceProvider with ChangeNotifier {
       false,
       false,
       false,
+      false,
     ];
     futureValues = await Future.wait([
       getEmployees(),
@@ -117,6 +118,7 @@ class MmResourceProvider with ChangeNotifier {
       getUnits(),
       getCurrencies(),
       getCountries(),
+      getSuppliers(),
       //fetchTerms(),
     ]);
     for (int i = 0; i < futureValues.length; i++) {
@@ -136,6 +138,25 @@ class MmResourceProvider with ChangeNotifier {
     setLoading(false);
 
     return result;
+  }
+
+  Future<bool> getSuppliers() async {
+    try {
+      await FirebaseFirestore.instance.collection('suppliers').get().then((
+        value,
+      ) async {
+        for (QueryDocumentSnapshot<Map<String, dynamic>> doc in value.docs) {
+          SupplierModel supplier = SupplierModel.fromDoc(doc);
+          if (supplier.id!.isNotEmpty) {
+            suppliersList.add(supplier);
+          }
+        }
+      });
+      return true;
+    } catch (e) {
+      debugPrint(e.toString());
+      return false;
+    }
   }
 
   Future<bool> getCountries() async {

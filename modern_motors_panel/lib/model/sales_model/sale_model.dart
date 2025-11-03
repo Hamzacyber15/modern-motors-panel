@@ -545,8 +545,9 @@
 // }
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:modern_motors_panel/model/deposit_model.dart';
 import 'package:modern_motors_panel/model/payment_data.dart';
-import 'package:modern_motors_panel/model/purchase_models/new_purchase_model.dart';
+import 'package:modern_motors_panel/model/sales_model/product_updated.dart';
 
 class SaleModel {
   final String id;

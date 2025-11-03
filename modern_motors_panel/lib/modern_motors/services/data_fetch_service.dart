@@ -29,6 +29,7 @@ import 'package:modern_motors_panel/model/product_models/product_category_model.
 import 'package:modern_motors_panel/model/product_models/product_model.dart';
 import 'package:modern_motors_panel/model/product_models/product_sub_category_model.dart';
 import 'package:modern_motors_panel/model/purchase_models/grn/grn_model.dart';
+import 'package:modern_motors_panel/model/purchase_models/new_purchase_model.dart';
 import 'package:modern_motors_panel/model/purchase_models/purchase_model.dart';
 import 'package:modern_motors_panel/model/purchase_models/purchase_order_model.dart';
 import 'package:modern_motors_panel/model/purchase_models/purchase_requisition_model.dart';
@@ -143,16 +144,16 @@ class DataFetchService {
     }
   }
 
-  static Future<List<SaleModel>> fetchPurchase() async {
+  static Future<List<NewPurchaseModel>> fetchPurchase() async {
     try {
       final querySnapshot = await FirebaseFirestore.instance
           .collection('purchases')
-          .where('status', isEqualTo: "pending")
+          .where('status', isEqualTo: "save")
           .orderBy("createdAt", descending: true)
           .get();
 
       return querySnapshot.docs.map((doc) {
-        return SaleModel.fromFirestore(doc);
+        return NewPurchaseModel.fromFirestore(doc);
       }).toList();
     } catch (e, stackTrace) {
       debugPrint("${"Error"} :${e.toString()}");

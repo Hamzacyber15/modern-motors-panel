@@ -1891,7 +1891,7 @@ class _SalesListViewState extends State<SalesListView> {
     if (widget.type == "estimation") {
       salesList = await DataFetchService.fetchEstimates();
     } else if (widget.type == "purchase") {
-      salesList = await DataFetchService.fetchPurchase();
+      // salesList = await DataFetchService.fetchPurchase();
     } else {
       salesList = await DataFetchService.fetchSales();
     }

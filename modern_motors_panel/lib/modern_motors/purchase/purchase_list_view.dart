@@ -10,11 +10,13 @@ import 'package:modern_motors_panel/model/payment_data.dart';
 import 'package:modern_motors_panel/model/product_models/product_category_model.dart';
 import 'package:modern_motors_panel/model/product_models/product_model.dart';
 import 'package:modern_motors_panel/model/product_models/product_sub_category_model.dart';
+import 'package:modern_motors_panel/model/purchase_models/new_purchase_model.dart';
 import 'package:modern_motors_panel/model/sales_model/sale_model.dart';
 import 'package:modern_motors_panel/model/supplier/supplier_model.dart';
 import 'package:modern_motors_panel/modern_motors/invoices/invoice_logs_timeline.dart';
 import 'package:modern_motors_panel/modern_motors/products/DataTableProductCell.dart';
 import 'package:modern_motors_panel/modern_motors/products/product_details_dialogue.dart';
+import 'package:modern_motors_panel/modern_motors/purchase/purchase_payment_page.dart';
 import 'package:modern_motors_panel/modern_motors/services/data_fetch_service.dart';
 import 'package:modern_motors_panel/modern_motors/services_maintenance/create_booking_main_page.dart';
 import 'package:modern_motors_panel/modern_motors/widgets/customer_name_tile.dart';
@@ -189,7 +191,7 @@ class PurchaseFilter {
 }
 
 class PurchaseCard extends StatelessWidget {
-  final SaleModel sale;
+  final NewPurchaseModel sale;
   final String type;
   final ProductCategoryModel category;
   final ProductSubCategoryModel subCategory;
@@ -366,7 +368,7 @@ class PurchaseCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    CustomerNameTile(customerId: sale.customerName),
+                    CustomerNameTile(customerId: sale.supplierId),
                     const SizedBox(height: 2),
                     // Text(
                     //   sale.paymentMethod,
@@ -386,9 +388,9 @@ class PurchaseCard extends StatelessWidget {
               Expanded(
                 flex: 2,
                 child: InkWell(
-                  onTap: sale.items.length > 1
-                      ? () => ProductDetailsDialog.show(context, sale)
-                      : null,
+                  // onTap: sale.items.length > 1
+                  //     ? () => ProductDetailsDialog.show(context, sale)
+                  //     : null,
                   borderRadius: BorderRadius.circular(8),
                   hoverColor: Colors.grey.withOpacity(0.05),
                   child: Container(
@@ -431,114 +433,117 @@ class PurchaseCard extends StatelessWidget {
                             children: [
                               // Product Details
                               if (sale.items.isNotEmpty)
-                                Expanded(
-                                  child: DataTableProductCell(
-                                    productId: sale.items[0].productId,
-                                    // saleDetails: sale,
-                                    saleItem: sale.items[0],
-                                  ),
-                                ),
-                              _buildPaymentDepositSummary(sale),
-
-                              // Bottom Row
-                              Row(
-                                children: [
-                                  // More Items Badge
-                                  if (sale.items.length > 1) ...[
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 6,
-                                        vertical: 2,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: const Color(
-                                          0xFF4F46E5,
-                                        ).withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(6),
-                                        border: Border.all(
+                                //   Expanded(
+                                //     child: DataTableProductCell(
+                                //       productId: sale.items[0].productId,
+                                //       // saleDetails: sale,
+                                //       saleItem: sale.items[0],
+                                //     ),
+                                //   ),
+                                // _buildPaymentDepositSummary(sale),
+                                // Bottom Row
+                                Row(
+                                  children: [
+                                    // More Items Badge
+                                    if (sale.items.length > 1) ...[
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 6,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
                                           color: const Color(
                                             0xFF4F46E5,
-                                          ).withOpacity(0.3),
-                                          width: 0.5,
+                                          ).withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(
+                                            6,
+                                          ),
+                                          border: Border.all(
+                                            color: const Color(
+                                              0xFF4F46E5,
+                                            ).withOpacity(0.3),
+                                            width: 0.5,
+                                          ),
                                         ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Icon(
+                                              Icons.add_rounded,
+                                              size: 10,
+                                              color: Color(0xFF4F46E5),
+                                            ),
+                                            const SizedBox(width: 2),
+                                            Text(
+                                              '${sale.items.length - 1}',
+                                              style: const TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.w700,
+                                                color: Color(0xFF4F46E5),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                    ],
+
+                                    const Spacer(),
+
+                                    // Sale Summary - Compact
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        gradient: const LinearGradient(
+                                          colors: [
+                                            Color(0xFF1F2937),
+                                            Color(0xFF374151),
+                                          ],
+                                        ),
+                                        borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          const Icon(
-                                            Icons.add_rounded,
-                                            size: 10,
-                                            color: Color(0xFF4F46E5),
-                                          ),
-                                          const SizedBox(width: 2),
                                           Text(
-                                            '${sale.items.length - 1}',
+                                            'Item: ${sale.items.length}',
                                             style: const TextStyle(
-                                              fontSize: 10,
+                                              fontSize: 12,
                                               fontWeight: FontWeight.w700,
-                                              color: Color(0xFF4F46E5),
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Container(
+                                            width: 1,
+                                            height: 10,
+                                            color: Colors.white.withOpacity(
+                                              0.3,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            Constants.formatPrice(
+                                              sale.items.fold(
+                                                0,
+                                                (sum, invoice) =>
+                                                    sum! + invoice.totalPrice,
+                                              ),
+                                            ),
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.white,
                                             ),
                                           ),
                                         ],
                                       ),
                                     ),
-                                    const SizedBox(width: 8),
                                   ],
-
-                                  const Spacer(),
-
-                                  // Sale Summary - Compact
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      gradient: const LinearGradient(
-                                        colors: [
-                                          Color(0xFF1F2937),
-                                          Color(0xFF374151),
-                                        ],
-                                      ),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          'Item: ${sale.items.length}',
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w700,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Container(
-                                          width: 1,
-                                          height: 10,
-                                          color: Colors.white.withOpacity(0.3),
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          Constants.formatPrice(
-                                            sale.items.fold(
-                                              0,
-                                              (sum, invoice) =>
-                                                  sum! + invoice.totalPrice,
-                                            ),
-                                          ),
-                                          style: const TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
+                                ),
                             ],
                           ),
                         ),
@@ -656,14 +661,27 @@ class PurchaseCard extends StatelessWidget {
                         fontWeight: FontWeight.w500,
                       ),
                     ),
-                    Text(
-                      'Total: ${sale.total!.toStringAsFixed(2)}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.orange.shade700,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
+                    sale.subInvoices.isNotEmpty
+                        ? Text(
+                            'Total: ${sale.mainInvoiceTotal
+                            //sale.total!.toStringAsFixed(2)
+                            }',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.orange.shade700,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          )
+                        : Text(
+                            'Total: ${sale.totals.total
+                            //sale.total!.toStringAsFixed(2)
+                            }',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.orange.shade700,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
                     Text(
                       'Paid: ${sale.paymentData.totalPaid.toStringAsFixed(2)}',
                       style: TextStyle(
@@ -753,10 +771,11 @@ class PurchaseCard extends StatelessWidget {
                           size: 16,
                           color: Colors.green.shade600,
                         ),
-                        onPressed: () => PaymentDetailsDialog.show(
-                          context,
-                          sale.paymentData,
-                        ),
+                        onPressed: () {},
+                        // onPressed: () => PaymentDetailsDialog.show(
+                        //   context,
+                        //   sale.paymentData,
+                        // ),
                         padding: EdgeInsets.zero,
                         constraints: BoxConstraints(
                           minWidth: 24,
@@ -764,52 +783,52 @@ class PurchaseCard extends StatelessWidget {
                         ),
                         tooltip: 'View payment details',
                       ),
-                    // Batch Allocation Indicator (NEW)
-                    if (sale.batchAllocations.isNotEmpty)
-                      Container(
-                        margin: const EdgeInsets.only(bottom: 2),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 4,
-                          vertical: 1,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.purple.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(3),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.inventory,
-                              size: 12,
-                              color: Colors.purple,
-                            ),
-                            const SizedBox(width: 2),
-                            Text(
-                              'Batch: ${sale.batchAllocations.length}',
-                              style: TextStyle(
-                                color: Colors.purple,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            if (sale.url != null && sale.url!.isNotEmpty)
-                              IconButton(
-                                onPressed: () => showDialog(
-                                  context: context,
-                                  builder: (context) => ImageGalleryDialog(
-                                    imageUrls: sale.url!,
-                                    thumbnailSize: 40.0,
-                                    spacing: 6.0,
-                                  ),
-                                ),
-                                icon: Icon(Icons.preview_sharp),
-                              ),
-                          ],
-                        ),
-                      ),
 
+                    // Batch Allocation Indicator (NEW)
+                    // if (sale.batchAllocations.isNotEmpty)
+                    //   Container(
+                    //     margin: const EdgeInsets.only(bottom: 2),
+                    //     padding: const EdgeInsets.symmetric(
+                    //       horizontal: 4,
+                    //       vertical: 1,
+                    //     ),
+                    //     decoration: BoxDecoration(
+                    //       color: Colors.purple.withOpacity(0.1),
+                    //       borderRadius: BorderRadius.circular(3),
+                    //     ),
+                    //     child: Row(
+                    //       mainAxisSize: MainAxisSize.min,
+                    //       children: [
+                    //         Icon(
+                    //           Icons.inventory,
+                    //           size: 12,
+                    //           color: Colors.purple,
+                    //         ),
+                    //         const SizedBox(width: 2),
+                    //         Text(
+                    //           'Batch: ${sale.batchAllocations.length}',
+                    //           style: TextStyle(
+                    //             color: Colors.purple,
+                    //             fontSize: 12,
+                    //             fontWeight: FontWeight.w600,
+                    //           ),
+                    //         ),
+                    //         const SizedBox(height: 2),
+                    //         if (sale.url != null && sale.url!.isNotEmpty)
+                    //           IconButton(
+                    //             onPressed: () => showDialog(
+                    //               context: context,
+                    //               builder: (context) => ImageGalleryDialog(
+                    //                 imageUrls: sale.url!,
+                    //                 thumbnailSize: 40.0,
+                    //                 spacing: 6.0,
+                    //               ),
+                    //             ),
+                    //             icon: Icon(Icons.preview_sharp),
+                    //           ),
+                    //       ],
+                    //     ),
+                    //   ),
                     const SizedBox(height: 2),
                     Text(
                       'Paid: ${sale.paymentData.totalPaid.toStringAsFixed(2)}',
@@ -823,15 +842,15 @@ class PurchaseCard extends StatelessWidget {
                     ),
 
                     const SizedBox(height: 4),
-                    Text(
-                      getPaymentMethodNames(sale.paymentData),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade600,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    // Text(
+                    //   getPaymentMethodNames(sale.paymentData),
+                    //   style: TextStyle(
+                    //     fontSize: 12,
+                    //     color: Colors.grey.shade600,
+                    //   ),
+                    //   maxLines: 1,
+                    //   overflow: TextOverflow.ellipsis,
+                    // ),
                     // Status Badge
 
                     // Tax Amount (NEW)
@@ -1032,21 +1051,21 @@ class PurchaseCard extends StatelessWidget {
     );
   }
 
-  String getPaymentMethodNames(PaymentData paymentData) {
-    if (!paymentData.isAlreadyPaid) {
-      return ''; // Return empty string if not paid
-    }
+  // String getPaymentMethodNames(PurchaseDeposit paymentData) {
+  //   if (!paymentData.depositAlreadyPaid!) {
+  //     return ''; // Return empty string if not paid
+  //   }
 
-    if (paymentData.paymentMethods.isEmpty) {
-      return 'No payment methods'; // Fallback if no methods
-    }
+  //   if (paymentData.paymentMethods.isEmpty) {
+  //     return 'No payment methods'; // Fallback if no methods
+  //   }
 
-    // Extract method names and join with commas
-    return paymentData.paymentMethods
-        .map((method) => method.methodName)
-        .where((name) => name.isNotEmpty) // Filter out empty names
-        .join(', ');
-  }
+  //   // Extract method names and join with commas
+  //   return paymentData.paymentMethods
+  //       .map((method) => method.methodName)
+  //       .where((name) => name.isNotEmpty) // Filter out empty names
+  //       .join(', ');
+  // }
 
   IconData _getPaymentMethodIcon(String method) {
     switch (method.toLowerCase()) {
@@ -1848,7 +1867,7 @@ class PurchaseListView extends StatefulWidget {
   final String? type;
   //  final List<SaleModel> sales;
   final Set<String> selectedIds;
-  final Function(bool?, SaleModel) onSelectChanged;
+  final Function(bool?, NewPurchaseModel) onSelectChanged;
   final bool enableSearch;
 
   const PurchaseListView({
@@ -1866,7 +1885,7 @@ class PurchaseListView extends StatefulWidget {
 
 class _PurchaseListViewState extends State<PurchaseListView> {
   final TextEditingController _searchController = TextEditingController();
-  List<SaleModel> _filteredSales = [];
+  List<NewPurchaseModel> _filteredSales = [];
   String _searchQuery = '';
   PurchaseFilter _currentFilter = PurchaseFilter();
   List<ProductCategoryModel> _categories = [];
@@ -1874,7 +1893,7 @@ class _PurchaseListViewState extends State<PurchaseListView> {
   List<BrandModel> _brands = [];
   List<String> _createdByUsers = [];
   List<SupplierModel> suppliers = [];
-  List<SaleModel> salesList = [];
+  List<NewPurchaseModel> salesList = [];
 
   @override
   void initState() {
@@ -1887,11 +1906,11 @@ class _PurchaseListViewState extends State<PurchaseListView> {
 
   Future<void> getList() async {
     if (widget.type == "estimation") {
-      salesList = await DataFetchService.fetchEstimates();
+      //  salesList = await DataFetchService.fetchEstimates();
     } else if (widget.type == "purchase") {
       salesList = await DataFetchService.fetchPurchase();
     } else {
-      salesList = await DataFetchService.fetchSales();
+      // salesList = await DataFetchService.fetchSales();
     }
 
     setState(() {
@@ -1977,26 +1996,27 @@ class _PurchaseListViewState extends State<PurchaseListView> {
   }
 
   void _applyCombinedFilters() {
-    List<SaleModel> filtered = salesList;
+    List<NewPurchaseModel> filtered = salesList;
 
     // Apply search query filter
     if (_currentFilter.searchQuery?.isNotEmpty ?? false) {
       final query = _currentFilter.searchQuery!.toLowerCase();
       filtered = filtered.where((sale) {
-        return sale.customerName.toLowerCase().contains(query) ||
+        return sale.supplierId.toLowerCase().contains(query) ||
             sale.invoice.toLowerCase().contains(query) ||
             sale.id.toLowerCase().contains(query) ||
             sale.createdBy.toLowerCase().contains(query) ||
             sale.items.any(
               (item) => item.productName.toLowerCase().contains(query),
-            ) ||
-            (sale.draft?.toLowerCase().contains(query) ?? false);
+            );
+        //||
+        //(sale.draft?.toLowerCase().contains(query) ?? false);
       }).toList();
     }
 
     if (_currentFilter.supplierId != null) {
       filtered = filtered
-          .where((sale) => sale.customerName == _currentFilter.supplierId)
+          .where((sale) => sale.supplierId == _currentFilter.supplierId)
           .toList();
     }
 
@@ -2050,7 +2070,7 @@ class _PurchaseListViewState extends State<PurchaseListView> {
     if (_currentFilter.supplierId != null) {
       filtered = filtered
           .where(
-            (sale) => sale.customerName.toLowerCase().contains(
+            (sale) => sale.supplierId.toLowerCase().contains(
               _currentFilter.supplierId!.toLowerCase(),
             ),
           )
@@ -2148,13 +2168,13 @@ class _PurchaseListViewState extends State<PurchaseListView> {
 
     // Apply amount range filter
     if (_currentFilter.amountRange != null) {
-      filtered = filtered
-          .where(
-            (sale) =>
-                sale.totalRevenue >= _currentFilter.amountRange!.start &&
-                sale.totalRevenue <= _currentFilter.amountRange!.end,
-          )
-          .toList();
+      // filtered = filtered
+      //     .where(
+      //       (sale) =>
+      //           sale.totalRevenue >= _currentFilter.amountRange!.start &&
+      //           sale.totalRevenue <= _currentFilter.amountRange!.end,
+      //     )
+      //     .toList();
     }
 
     if (mounted) {
@@ -2179,32 +2199,32 @@ class _PurchaseListViewState extends State<PurchaseListView> {
     // CreateBookingMainPage()
   }
 
-  void _handleActionSelected(SaleModel sale, SaleAction action) async {
+  void _handleActionSelected(NewPurchaseModel sale, SaleAction action) async {
     switch (action) {
       case SaleAction.view:
         // Navigate to sale details
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) {
-              return SalesInvoiceDropdownView(type: "sale", sale: sale);
-            },
-          ),
-        );
+        // Navigator.of(context).push(
+        //   MaterialPageRoute(
+        //     builder: (_) {
+        //       return SalesInvoiceDropdownView(type: "sale", sale: sale);
+        //     },
+        //   ),
+        // );
 
         debugPrint('View sale: ${sale.id}');
         break;
       case SaleAction.clone:
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) {
-              return CreateBookingMainPage(
-                sale: sale,
-                tapped: () {},
-                type: "clone",
-              );
-            },
-          ),
-        );
+        // Navigator.of(context).push(
+        //   MaterialPageRoute(
+        //     builder: (_) {
+        //       return CreateBookingMainPage(
+        //         sale: sale,
+        //         tapped: () {},
+        //         type: "clone",
+        //       );
+        //     },
+        //   ),
+        // );
         debugPrint('Print receipt: ${sale.createdAt}');
         break;
       case SaleAction.duplicate:
@@ -2212,9 +2232,11 @@ class _PurchaseListViewState extends State<PurchaseListView> {
         debugPrint('Add Payment : ${sale.createdBy}');
         break;
       case SaleAction.payment:
-        // Navigator.of(context).push<bool>(
-        //   MaterialPageRoute(builder: (context) => PaymentPage(sale: sale)),
-        // );
+        Navigator.of(context).push<bool>(
+          MaterialPageRoute(
+            builder: (context) => PurchasePaymentPage(purchase: sale),
+          ),
+        );
         getList();
       // if (result == true) {
       //   // Payment was successful, refresh the sale data or update UI
@@ -2226,17 +2248,17 @@ class _PurchaseListViewState extends State<PurchaseListView> {
       //   );
       // }
       case SaleAction.edit:
-        await Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) {
-              return CreateBookingMainPage(
-                sale: sale,
-                type: "edit",
-                tapped: () {},
-              );
-            },
-          ),
-        );
+        // await Navigator.of(context).push(
+        //   MaterialPageRoute(
+        //     builder: (_) {
+        //       return CreateBookingMainPage(
+        //         sale: sale,
+        //         type: "edit",
+        //         tapped: () {},
+        //       );
+        //     },
+        //   ),
+        // );
         await getList();
         debugPrint('Edit sale: ${sale.createdBy}');
         break;
@@ -2249,22 +2271,22 @@ class _PurchaseListViewState extends State<PurchaseListView> {
         );
       case SaleAction.refund:
         // Process refund
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) {
-              return CreateBookingMainPage(
-                type: "refund",
-                sale: sale,
-                tapped: () {},
-              );
-            },
-          ),
-        );
+        // Navigator.of(context).push(
+        //   MaterialPageRoute(
+        //     builder: (_) {
+        //       return CreateBookingMainPage(
+        //         type: "refund",
+        //         sale: sale,
+        //         tapped: () {},
+        //       );
+        //     },
+        //   ),
+        // );
         await getList();
         debugPrint('Edit sale: ${sale.createdBy}');
         break;
       case SaleAction.delete:
-        _showDeleteConfirmation(sale);
+        //  _showDeleteConfirmation(sale);
         break;
     }
   }
@@ -2419,9 +2441,7 @@ class _PurchaseListViewState extends State<PurchaseListView> {
                     ),
                   ),
                 ),
-
               const SizedBox(width: 12),
-
               // Filter Button
               SizedBox(
                 height: 50,

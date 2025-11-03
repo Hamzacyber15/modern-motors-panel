@@ -159,7 +159,7 @@ class _PurchaseInvoiceMainPageState extends State<PurchaseInvoiceMainPage> {
                     selectedIds: selectedSalesIds,
                     onSelectChanged: (isSelected, sale) {
                       setState(() {
-                        bookingBeingEdited = sale;
+                        //bookingBeingEdited = sale;
                         showMaintenanceList = false;
                       });
                     },
