@@ -1089,7 +1089,7 @@ class PurchaseInvoiceProvider extends ChangeNotifier {
         purchaseData = {
           'dueDate': paymentDate,
           'branchId': branch.id,
-          'supplierInfo': {'supplierId': supplierId},
+          //'supplierInfo': {'supplierId': supplierId},
           'invoice': isEdit ? purchase!.invoice : invoiceNumber,
           'purchaseId': isEdit ? purchase!.id : purchaseDocId,
           "discountType": discountType,

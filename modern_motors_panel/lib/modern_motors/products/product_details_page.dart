@@ -660,65 +660,66 @@ class _ProductDetailsPageState extends State<ProductDetailsPage>
       final branch = context.read<MmResourceProvider>().getBranchByID(
         BranchIdSp.getBranchId(),
       );
+      await context.read<MmResourceProvider>().loadChartAccounts(branch.id!);
 
-      // Load revenue accounts (4000)
-      final revenueParentAccounts =
-          await DataFetchService.getChartAccountsByCode(branch.id!, '4000');
+      // // Load revenue accounts (4000)
+      // final revenueParentAccounts =
+      //     await DataFetchService.getChartAccountsByCode(branch.id!, '4000');
 
-      List<ChartAccount> allRevenueAccounts = [];
-      for (var parentAccount in revenueParentAccounts) {
-        allRevenueAccounts.add(parentAccount);
-        if (parentAccount.childAccountIds.isNotEmpty) {
-          final childAccounts = await DataFetchService.getChildAccounts(
-            branch.id!,
-            parentAccount.childAccountIds,
-          );
-          allRevenueAccounts.addAll(childAccounts);
-        }
-      }
+      // List<ChartAccount> allRevenueAccounts = [];
+      // for (var parentAccount in revenueParentAccounts) {
+      //   allRevenueAccounts.add(parentAccount);
+      //   if (parentAccount.childAccountIds.isNotEmpty) {
+      //     final childAccounts = await DataFetchService.getChildAccounts(
+      //       branch.id!,
+      //       parentAccount.childAccountIds,
+      //     );
+      //     allRevenueAccounts.addAll(childAccounts);
+      //   }
+      // }
 
-      // Load cost of sales accounts (5100)
-      final costParentAccounts = await DataFetchService.getChartAccountsByCode(
-        branch.id!,
-        '5100',
-      );
+      // // Load cost of sales accounts (5100)
+      // final costParentAccounts = await DataFetchService.getChartAccountsByCode(
+      //   branch.id!,
+      //   '5100',
+      // );
 
-      List<ChartAccount> allCostAccounts = [];
-      for (var parentAccount in costParentAccounts) {
-        allCostAccounts.add(parentAccount);
-        if (parentAccount.childAccountIds.isNotEmpty) {
-          final childAccounts = await DataFetchService.getChildAccounts(
-            branch.id!,
-            parentAccount.childAccountIds,
-          );
-          allCostAccounts.addAll(childAccounts);
-        }
-      }
+      // List<ChartAccount> allCostAccounts = [];
+      // for (var parentAccount in costParentAccounts) {
+      //   allCostAccounts.add(parentAccount);
+      //   if (parentAccount.childAccountIds.isNotEmpty) {
+      //     final childAccounts = await DataFetchService.getChildAccounts(
+      //       branch.id!,
+      //       parentAccount.childAccountIds,
+      //     );
+      //     allCostAccounts.addAll(childAccounts);
+      //   }
+      // }
 
-      // Load asset accounts (1000)
-      final assetParentAccounts = await DataFetchService.getChartAccountsByCode(
-        branch.id!,
-        '1000',
-      );
+      // // Load asset accounts (1000)
+      // final assetParentAccounts = await DataFetchService.getChartAccountsByCode(
+      //   branch.id!,
+      //   '1000',
+      // );
 
-      List<ChartAccount> allAssetAccounts = [];
-      for (var parentAccount in assetParentAccounts) {
-        allAssetAccounts.add(parentAccount);
-        if (parentAccount.childAccountIds.isNotEmpty) {
-          final childAccounts = await DataFetchService.getChildAccounts(
-            branch.id!,
-            parentAccount.childAccountIds,
-          );
-          allAssetAccounts.addAll(childAccounts);
-        }
-      }
+      // List<ChartAccount> allAssetAccounts = [];
+      // for (var parentAccount in assetParentAccounts) {
+      //   allAssetAccounts.add(parentAccount);
+      //   if (parentAccount.childAccountIds.isNotEmpty) {
+      //     final childAccounts = await DataFetchService.getChildAccounts(
+      //       branch.id!,
+      //       parentAccount.childAccountIds,
+      //     );
+      //     allAssetAccounts.addAll(childAccounts);
+      //   }
+      // }
 
-      setState(() {
-        _revenueAccounts = allRevenueAccounts;
-        _costOfSalesAccounts = allCostAccounts;
-        _assetAccounts = allAssetAccounts;
-        _isLoading = false;
-      });
+      // setState(() {
+      //   _revenueAccounts = allRevenueAccounts;
+      //   _costOfSalesAccounts = allCostAccounts;
+      //   _assetAccounts = allAssetAccounts;
+      //   _isLoading = false;
+      // });
     } catch (e) {
       debugPrint('Error loading chart accounts: $e');
       setState(() {

@@ -461,7 +461,13 @@ enum MainContainer {
       iconPath: "assets/images/dollar.png",
     ),
   ),
-
+  expenseCategory(
+    ContainerData(
+      key: "expenseCategory",
+      label: "Expense Category",
+      iconPath: "assets/images/dollar.png",
+    ),
+  ),
   nationality(
     ContainerData(
       key: "nationality",

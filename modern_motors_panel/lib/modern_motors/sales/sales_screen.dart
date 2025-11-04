@@ -14,6 +14,7 @@ import 'package:modern_motors_panel/model/sales_model/sale_model.dart';
 import 'package:modern_motors_panel/modern_motors/invoices/invoice_logs_timeline.dart';
 import 'package:modern_motors_panel/modern_motors/products/DataTableProductCell.dart';
 import 'package:modern_motors_panel/modern_motors/products/product_details_dialogue.dart';
+import 'package:modern_motors_panel/modern_motors/sales/sales_logs_timeline.dart';
 import 'package:modern_motors_panel/modern_motors/services/data_fetch_service.dart';
 import 'package:modern_motors_panel/modern_motors/services_maintenance/create_booking_main_page.dart';
 import 'package:modern_motors_panel/modern_motors/trucks/manage_trucks_page.dart';
@@ -985,6 +986,23 @@ class SaleCard extends StatelessWidget {
                           ),
                         ),
                       ],
+                      if (permissions.contains(refund) ||
+                          user!.uid == Constants.adminId) ...[
+                        PopupMenuItem<SaleAction>(
+                          value: SaleAction.logs,
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.view_agenda,
+                                size: 18,
+                                color: Colors.blue,
+                              ),
+                              const SizedBox(width: 8),
+                              Text('View Logs'),
+                            ],
+                          ),
+                        ),
+                      ],
                       if (permissions.contains(delete) ||
                           user!.uid == Constants.adminId) ...[
                         const PopupMenuDivider(),
@@ -1002,27 +1020,27 @@ class SaleCard extends StatelessWidget {
                           ),
                         ),
                       ],
-                      if (permissions.contains(delete) ||
-                          user!.uid == Constants.adminId) ...[
-                        const PopupMenuDivider(),
-                        PopupMenuItem<SaleAction>(
-                          value: SaleAction.logs,
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.timeline,
-                                size: 16,
-                                color: Colors.deepOrange,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'View Logs',
-                                style: TextStyle(color: Colors.deepOrange),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                      // if (permissions.contains(delete) ||
+                      //     user!.uid == Constants.adminId) ...[
+                      //   const PopupMenuDivider(),
+                      //   PopupMenuItem<SaleAction>(
+                      //     value: SaleAction.logs,
+                      //     child: Row(
+                      //       children: [
+                      //         Icon(
+                      //           Icons.timeline,
+                      //           size: 16,
+                      //           color: Colors.deepOrange,
+                      //         ),
+                      //         const SizedBox(width: 8),
+                      //         Text(
+                      //           'View Logs',
+                      //           style: TextStyle(color: Colors.deepOrange),
+                      //         ),
+                      //       ],
+                      //     ),
+                      //   ),
+                      // ],
                     ],
                   );
                 },
@@ -2243,10 +2261,16 @@ class _SalesListViewState extends State<SalesListView> {
         debugPrint('Edit sale: ${sale.createdBy}');
         break;
       case SaleAction.logs:
-        await Navigator.push(
+        // await Navigator.push(
+        //   context,
+        //   MaterialPageRoute(
+        //     builder: (context) => InvoiceLogsTimeline(saleId: sale.id),
+        //   ),
+        // );
+        Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => InvoiceLogsTimeline(saleId: sale.id),
+            builder: (context) => SalesLogsTimeline(saleId: sale.id),
           ),
         );
       case SaleAction.refund:

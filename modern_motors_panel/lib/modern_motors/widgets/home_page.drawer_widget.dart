@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:modern_motors_panel/brands/brands_page.dart';
+import 'package:modern_motors_panel/modern_motors/accounts/add_journal_entries.dart';
 import 'package:modern_motors_panel/modern_motors/branch/branches_page.dart';
 import 'package:modern_motors_panel/modern_motors/customers/customers_main_page.dart';
 import 'package:modern_motors_panel/modern_motors/dashboard/coming_soon.dart';
@@ -15,6 +16,7 @@ import 'package:modern_motors_panel/modern_motors/products/dummy_pages.dart';
 import 'package:modern_motors_panel/modern_motors/products/manage_products.dart';
 import 'package:modern_motors_panel/modern_motors/products/products_category_list.dart';
 import 'package:modern_motors_panel/modern_motors/products/sub_category/sub_category_page.dart';
+import 'package:modern_motors_panel/modern_motors/purchase/expense_category_page.dart';
 import 'package:modern_motors_panel/modern_motors/purchase/grn/goods_receive_notes.dart';
 import 'package:modern_motors_panel/modern_motors/purchase/purchase_invoice_main_page.dart';
 import 'package:modern_motors_panel/modern_motors/purchase/purchase_requisition.dart';
@@ -181,7 +183,7 @@ Widget getSelectedPageWidget({
     case MainContainer.chartOfAccounts:
       return ChartOfAccountsScreen();
     case MainContainer.journalEntries:
-      return ComingSoonWidget();
+      return AddJournalEntryWidget();
     case MainContainer.income:
       return ComingSoonWidget();
     case MainContainer.treasury:
@@ -196,5 +198,7 @@ Widget getSelectedPageWidget({
       return GoodsReceiveNotes();
     case MainContainer.salePayment:
       return SalePaymentsScreen();
+    case MainContainer.expenseCategory:
+      return ExpenseCategoryPage();
   }
 }

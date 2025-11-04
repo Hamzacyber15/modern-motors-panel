@@ -123,7 +123,7 @@ class _PurchaseInvoiceMainPageState extends State<PurchaseInvoiceMainPage> {
               children: [
                 PageHeaderWidget(
                   title: 'Purchase Invoice'.tr(),
-                  buttonText: 'Create Purchase Invoice'.tr(),
+                  buttonText: 'Create Invoice'.tr(),
                   subTitle: 'Manage Purchase Invoice'.tr(),
                   selectedItems: selectedBookingIds.toList(),
                   requiredPermission: 'Create Purchase Invoices',

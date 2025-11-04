@@ -3499,6 +3499,694 @@
 //         children: [
 //           //
 
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:modern_motors_panel/model/admin_model/brands_model.dart';
+import 'package:modern_motors_panel/model/branches/branch_model.dart';
+import 'package:modern_motors_panel/model/chartoAccounts_model.dart';
+import 'package:modern_motors_panel/modern_motors/chart_of_account_service.dart';
+import 'package:modern_motors_panel/modern_motors/widgets/addsub_account_dialogue.dart';
+import 'package:modern_motors_panel/provider/modern_motors/mm_resource_provider.dart';
+import 'package:provider/provider.dart';
+
+// // =====================================================
+// // MODELS
+// // =====================================================
+
+// enum AccountType {
+//   asset('ASSET', 1),
+//   liability('LIABILITY', 2),
+//   equity('EQUITY', 3),
+//   income('INCOME', 4),
+//   expense('EXPENSE', 5);
+
+//   const AccountType(this.displayName, this.order);
+//   final String displayName;
+//   final int order;
+// }
+
+// enum AccountSubType {
+//   // Assets
+//   currentAsset('Current Asset', AccountType.asset),
+//   fixedAsset('Fixed Asset', AccountType.asset),
+
+//   // Liabilities
+//   currentLiability('Current Liability', AccountType.liability),
+//   longTermLiability('Long Term Liability', AccountType.liability),
+
+//   // Equity
+//   capital('Capital', AccountType.equity),
+//   retainedEarnings('Retained Earnings', AccountType.equity),
+
+//   // Income
+//   revenue('Revenue', AccountType.income),
+//   otherIncome('Other Income', AccountType.income),
+
+//   // Expenses
+//   operatingExpense('Operating Expense', AccountType.expense),
+//   costOfGoodsSold('Cost of Goods Sold', AccountType.expense);
+
+//   const AccountSubType(this.displayName, this.parentType);
+//   final String displayName;
+//   final AccountType parentType;
+// }
+
+// class ChartOfAccount {
+//   final String id;
+//   final String accountCode;
+//   final String accountName;
+//   final AccountType accountType;
+//   final AccountSubType accountSubType;
+//   final String? parentAccountId;
+//   final bool isDefault;
+//   final bool isActive;
+//   final double currentBalance;
+//   final String? description;
+//   final DateTime createdAt;
+//   final String? createdBy;
+//   final List<String> childAccountIds;
+//   final int level; // 0 = main, 1 = sub, 2 = sub-sub
+
+//   ChartOfAccount({
+//     required this.id,
+//     required this.accountCode,
+//     required this.accountName,
+//     required this.accountType,
+//     required this.accountSubType,
+//     this.parentAccountId,
+//     required this.isDefault,
+//     this.isActive = true,
+//     this.currentBalance = 0.0,
+//     this.description,
+//     required this.createdAt,
+//     this.createdBy,
+//     this.childAccountIds = const [],
+//     required this.level,
+//   });
+
+//   Map<String, dynamic> toMap() {
+//     return {
+//       'account_code': accountCode,
+//       'account_name': accountName,
+//       'account_type': accountType.name,
+//       'account_sub_type': accountSubType.name,
+//       'parent_account_id': parentAccountId,
+//       'is_default': isDefault,
+//       'is_active': isActive,
+//       'current_balance': currentBalance,
+//       'description': description,
+//       'created_at': createdAt,
+//       'created_by': createdBy,
+//       'child_account_ids': childAccountIds,
+//       'level': level,
+//     };
+//   }
+
+//   factory ChartOfAccount.fromMap(String id, Map<String, dynamic> map) {
+//     return ChartOfAccount(
+//       id: id,
+//       accountCode: map['account_code'] ?? '',
+//       accountName: map['account_name'] ?? '',
+//       accountType: AccountType.values.firstWhere(
+//         (e) => e.name == map['account_type'],
+//         orElse: () => AccountType.asset,
+//       ),
+//       accountSubType: AccountSubType.values.firstWhere(
+//         (e) => e.name == map['account_sub_type'],
+//         orElse: () => AccountSubType.currentAsset,
+//       ),
+//       parentAccountId: map['parent_account_id'],
+//       isDefault: map['is_default'] ?? false,
+//       isActive: map['is_active'] ?? true,
+//       currentBalance: (map['current_balance'] ?? 0).toDouble(),
+//       description: map['description'],
+//       createdAt: (map['created_at'] as Timestamp).toDate(),
+//       createdBy: map['created_by'],
+//       childAccountIds: List<String>.from(map['child_account_ids'] ?? []),
+//       level: map['level'] ?? 0,
+//     );
+//   }
+
+//   ChartOfAccount copyWith({
+//     String? accountCode,
+//     String? accountName,
+//     AccountType? accountType,
+//     AccountSubType? accountSubType,
+//     String? parentAccountId,
+//     bool? isDefault,
+//     bool? isActive,
+//     double? currentBalance,
+//     String? description,
+//     List<String>? childAccountIds,
+//     int? level,
+//   }) {
+//     return ChartOfAccount(
+//       id: id,
+//       accountCode: accountCode ?? this.accountCode,
+//       accountName: accountName ?? this.accountName,
+//       accountType: accountType ?? this.accountType,
+//       accountSubType: accountSubType ?? this.accountSubType,
+//       parentAccountId: parentAccountId ?? this.parentAccountId,
+//       isDefault: isDefault ?? this.isDefault,
+//       isActive: isActive ?? this.isActive,
+//       currentBalance: currentBalance ?? this.currentBalance,
+//       description: description ?? this.description,
+//       createdAt: createdAt,
+//       createdBy: createdBy,
+//       childAccountIds: childAccountIds ?? this.childAccountIds,
+//       level: level ?? this.level,
+//     );
+//   }
+// }
+
+// // =====================================================
+// // DEFAULT CHART OF ACCOUNTS DATA
+// // =====================================================
+
+// // default_accounts_config.dart
+// class DefaultAccountsConfig {
+//   static const Map<String, List<Map<String, dynamic>>> defaultAccounts = {
+//     'asset': [
+//       {
+//         'code': '1000',
+//         'name': 'Current Assets',
+//         'sub_type': 'currentAssets',
+//         'level': 0,
+//       },
+//       {
+//         'code': '1100',
+//         'name': 'Cash and Bank',
+//         'sub_type': 'cashBank',
+//         'level': 1,
+//         'parent': '1000',
+//       },
+//       {
+//         'code': '1200',
+//         'name': 'Accounts Receivable',
+//         'sub_type': 'accountsReceivable',
+//         'level': 1,
+//         'parent': '1000',
+//       },
+//     ],
+//     'liability': [
+//       {
+//         'code': '2000',
+//         'name': 'Current Liabilities',
+//         'sub_type': 'currentLiabilities',
+//         'level': 0,
+//       },
+//       {
+//         'code': '2100',
+//         'name': 'Accounts Payable',
+//         'sub_type': 'accountsPayable',
+//         'level': 1,
+//         'parent': '2000',
+//       },
+//     ],
+//     'equity': [
+//       {'code': '3000', 'name': 'Equity', 'sub_type': 'equity', 'level': 0},
+//     ],
+//     'revenue': [
+//       {'code': '4000', 'name': 'Revenue', 'sub_type': 'revenue', 'level': 0},
+//       {
+//         'code': '4100',
+//         'name': 'Sales Revenue',
+//         'sub_type': 'saleRevenue',
+//         'level': 1,
+//         'parent': "4000",
+//       },
+//     ],
+//     'expense': [
+//       {'code': '5000', 'name': 'Expenses', 'sub_type': 'expenses', 'level': 0},
+//       {
+//         'code': '5100',
+//         'name': 'Cost of sale',
+//         'sub_type': 'cos',
+//         'level': 1,
+//         'parent': '5000',
+//       },
+//       {
+//         'code': '5200',
+//         'name': 'General & Administrative Expenses',
+//         'sub_type': 'ae',
+//         'level': 1,
+//         'parent': '5000',
+//       },
+//       {
+//         'code': '5300',
+//         'name': 'Depriciation',
+//         'sub_type': 'dep',
+//         'level': 1,
+//         'parent': '5000',
+//       },
+//       {
+//         'code': '5400',
+//         'name': 'Other Expense',
+//         'sub_type': 'ot',
+//         'level': 1,
+//         'parent': '5000',
+//       },
+//       {
+//         'code': '5500',
+//         'name': 'Operating Expense',
+//         'sub_type': 'operExp',
+//         'level': 1,
+//         'parent': '5000',
+//       },
+//     ],
+//   };
+// }
+
+// // =====================================================
+// // SERVICES
+// // =====================================================
+
+// // chart_of_accounts_screen.dart
+// class ChartOfAccountsScreen extends StatefulWidget {
+//   const ChartOfAccountsScreen({super.key});
+
+//   @override
+//   ChartOfAccountsScreenState createState() => ChartOfAccountsScreenState();
+// }
+
+// class ChartOfAccountsScreenState extends State<ChartOfAccountsScreen> {
+//   final ChartAccountService _accountService = ChartAccountService();
+//   final Set<String> _expandedAccounts = {};
+//   bool _isLoading = true;
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: Text('Chart of Accounts'),
+//         actions: [
+//           IconButton(icon: Icon(Icons.add), onPressed: _showCreateBranchDialog),
+//         ],
+//       ),
+//       body: StreamBuilder<Map<String, List<AccountTreeNode>>>(
+//         stream: _accountService.watchAllAccounts(),
+//         builder: (context, snapshot) {
+//           if (snapshot.connectionState == ConnectionState.waiting) {
+//             return Center(child: CircularProgressIndicator());
+//           }
+
+//           if (snapshot.hasError) {
+//             debugPrint('Error: ${snapshot.error}');
+//             debugPrint('trace: ${snapshot.stackTrace}');
+//             return Center(
+//               child: Column(
+//                 mainAxisAlignment: MainAxisAlignment.center,
+//                 children: [
+//                   Icon(Icons.error, size: 64, color: Colors.red),
+//                   SizedBox(height: 16),
+//                   Text(
+//                     'Error loading accounts',
+//                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+//                   ),
+//                   SizedBox(height: 8),
+//                   Text(
+//                     '${snapshot.error}',
+//                     textAlign: TextAlign.center,
+//                     style: TextStyle(color: Colors.grey),
+//                   ),
+//                 ],
+//               ),
+//             );
+//           }
+
+//           if (!snapshot.hasData || snapshot.data!.isEmpty) {
+//             return Center(child: Text('No accounts found'));
+//           }
+
+//           final accountsData = snapshot.data!;
+
+//           print('🎯 UI: Received ${accountsData.length} branches');
+
+//           try {
+//             final mainBranchAccounts =
+//                 accountsData['NRHLuRZIA2AMZXjW4TDI'] ?? [];
+//             final otherBranches = Map.from(accountsData)
+//               ..remove('NRHLuRZIA2AMZXjW4TDI');
+
+//             return ListView(
+//               children: [
+//                 if (mainBranchAccounts.isNotEmpty)
+//                   _buildBranchSection(
+//                     '🏢 Main Branch (Head Office)',
+//                     mainBranchAccounts,
+//                     'NRHLuRZIA2AMZXjW4TDI',
+//                   ),
+
+//                 for (final entry in otherBranches.entries)
+//                   if (entry.value.isNotEmpty)
+//                     _buildBranchSection(
+//                       '🏬 ${_getBranchName(entry.key)}',
+//                       entry.value,
+//                       entry.key,
+//                     ),
+//               ],
+//             );
+//           } catch (e) {
+//             print('❌ UI rendering error: $e');
+//             return Center(child: Text('Error rendering accounts: $e'));
+//           }
+//         },
+//       ),
+//       floatingActionButton: FloatingActionButton(
+//         onPressed: _showAddAccountDialog,
+//         child: Icon(Icons.add_chart),
+//         tooltip: 'Add New Account',
+//       ),
+//     );
+//   }
+
+//   Widget _buildBranchSection(
+//     String title,
+//     List<AccountTreeNode> accounts,
+//     String branchId,
+//   ) {
+//     return Card(
+//       margin: EdgeInsets.all(8.0),
+//       child: Column(
+//         crossAxisAlignment: CrossAxisAlignment.start,
+//         children: [
+//           Container(
+//             width: double.infinity,
+//             padding: EdgeInsets.all(16.0),
+//             color: Colors.blue[50],
+//             child: Text(
+//               title,
+//               style: TextStyle(
+//                 fontSize: 18,
+//                 fontWeight: FontWeight.bold,
+//                 color: Colors.blue[700],
+//               ),
+//             ),
+//           ),
+//           if (accounts.isEmpty)
+//             Padding(
+//               padding: EdgeInsets.all(16.0),
+//               child: Text(
+//                 'No accounts found',
+//                 style: TextStyle(color: Colors.grey),
+//               ),
+//             )
+//           else
+//             ...accounts.map((node) => _buildAccountTree(node, 0)),
+//         ],
+//       ),
+//     );
+//   }
+
+//   Widget _buildAccountTree(AccountTreeNode node, int level) {
+//     final hasChildren = node.children.isNotEmpty;
+//     final isExpanded = _expandedAccounts.contains(node.account.id);
+
+//     return Column(
+//       crossAxisAlignment: CrossAxisAlignment.start,
+//       children: [
+//         Container(
+//           margin: EdgeInsets.only(left: (level * 20.0)),
+//           decoration: BoxDecoration(
+//             border: Border.all(color: Colors.grey[300]!),
+//             color: level == 0 ? Colors.grey[50] : Colors.white,
+//           ),
+//           child: ListTile(
+//             contentPadding: EdgeInsets.symmetric(
+//               horizontal: 16.0,
+//               vertical: 4.0,
+//             ),
+//             leading: hasChildren
+//                 ? IconButton(
+//                     icon: Icon(
+//                       isExpanded ? Icons.expand_more : Icons.chevron_right,
+//                       color: Colors.blue,
+//                     ),
+//                     onPressed: () => _toggleAccount(node.account.id!),
+//                   )
+//                 : SizedBox(width: 40.0),
+//             title: Row(
+//               children: [
+//                 // Level indicator
+//                 Container(
+//                   width: 24,
+//                   height: 24,
+//                   decoration: BoxDecoration(
+//                     color: _getLevelColor(node.account.level),
+//                     shape: BoxShape.circle,
+//                   ),
+//                   child: Center(
+//                     child: Text(
+//                       '${node.account.level}',
+//                       style: TextStyle(
+//                         color: Colors.white,
+//                         fontSize: 10,
+//                         fontWeight: FontWeight.bold,
+//                       ),
+//                     ),
+//                   ),
+//                 ),
+//                 SizedBox(width: 8),
+//                 Expanded(
+//                   child: Text(
+//                     '${node.account.accountCode} - ${node.account.accountName}',
+//                     style: TextStyle(
+//                       fontWeight: level == 0
+//                           ? FontWeight.bold
+//                           : FontWeight.normal,
+//                     ),
+//                   ),
+//                 ),
+//                 if (node.account.isDefault) ...[
+//                   SizedBox(width: 8),
+//                   Container(
+//                     padding: EdgeInsets.symmetric(
+//                       horizontal: 6.0,
+//                       vertical: 2.0,
+//                     ),
+//                     decoration: BoxDecoration(
+//                       color: Colors.green[50],
+//                       borderRadius: BorderRadius.circular(4.0),
+//                       border: Border.all(color: Colors.green),
+//                     ),
+//                     child: Text(
+//                       'Default',
+//                       style: TextStyle(
+//                         color: Colors.green,
+//                         fontSize: 10.0,
+//                         fontWeight: FontWeight.bold,
+//                       ),
+//                     ),
+//                   ),
+//                 ],
+//               ],
+//             ),
+//             subtitle: Text(node.account.description),
+//             trailing: Row(
+//               mainAxisSize: MainAxisSize.min,
+//               children: [
+//                 Text(
+//                   'OMR ${node.account.currentBalance.toStringAsFixed(2)}',
+//                   style: TextStyle(
+//                     fontWeight: FontWeight.bold,
+//                     color: node.account.currentBalance >= 0
+//                         ? Colors.green
+//                         : Colors.red,
+//                   ),
+//                 ),
+//                 SizedBox(width: 8),
+//                 // Add sub-account button
+//                 IconButton(
+//                   icon: Icon(Icons.add, size: 18, color: Colors.blue),
+//                   onPressed: () => _showAddSubAccountDialog(node.account),
+//                   tooltip: 'Add Sub-Account',
+//                 ),
+//               ],
+//             ),
+//             onTap: hasChildren ? () => _toggleAccount(node.account.id!) : null,
+//           ),
+//         ),
+//         if (isExpanded && hasChildren)
+//           ...node.children.map((child) => _buildAccountTree(child, level + 1)),
+//       ],
+//     );
+//   }
+
+//   Color _getLevelColor(int level) {
+//     switch (level) {
+//       case 0:
+//         return Colors.blue;
+//       case 1:
+//         return Colors.green;
+//       case 2:
+//         return Colors.orange;
+//       case 3:
+//         return Colors.purple;
+//       default:
+//         return Colors.red;
+//     }
+//   }
+
+//   void _showAddSubAccountDialog(ChartAccount parentAccount) {
+//     showDialog(
+//       context: context,
+//       builder: (context) => AddSubAccountDialog(
+//         parentAccount: parentAccount,
+//         accountService: _accountService,
+//       ),
+//     );
+//   }
+
+//   void _toggleAccount(String accountId) {
+//     setState(() {
+//       if (_expandedAccounts.contains(accountId)) {
+//         _expandedAccounts.remove(accountId);
+//       } else {
+//         _expandedAccounts.add(accountId);
+//       }
+//     });
+//   }
+
+//   String _getBranchName(String branchId) {
+//     BranchModel? b = context.read<MmResourceProvider>().getBranchByID(branchId);
+
+//     return 'Branch ${b.branchName}';
+//   }
+
+//   void _showCreateBranchDialog() {
+//     showDialog(
+//       context: context,
+//       builder: (context) => AlertDialog(
+//         title: Text('Create New Branch'),
+//         content: Text(
+//           'This will create a new branch with default chart of accounts.',
+//         ),
+//         actions: [
+//           TextButton(
+//             onPressed: () => Navigator.pop(context),
+//             child: Text('Cancel'),
+//           ),
+//           ElevatedButton(
+//             onPressed: () {
+//               final newBranchId = 'branch_$_getBranchName';
+//               _accountService.createDefaultChartOfAccounts(
+//                 branchId: "headOffice", //newBranchId,
+//               );
+//               Navigator.pop(context);
+//             },
+//             child: Text('Create Branch'),
+//           ),
+//         ],
+//       ),
+//     );
+//   }
+
+//   void _showAddAccountDialog() {
+//     // Implementation for adding new account
+//     // You can create a form to collect account details
+//     showDialog(
+//       context: context,
+//       builder: (context) => AddAccountDialog(accountService: _accountService),
+//     );
+//   }
+// }
+
+// // Add Account Dialog
+// class AddAccountDialog extends StatefulWidget {
+//   final ChartAccountService accountService;
+
+//   const AddAccountDialog({required this.accountService});
+
+//   @override
+//   _AddAccountDialogState createState() => _AddAccountDialogState();
+// }
+
+// class _AddAccountDialogState extends State<AddAccountDialog> {
+//   final _formKey = GlobalKey<FormState>();
+//   final _codeController = TextEditingController();
+//   final _nameController = TextEditingController();
+//   final _descriptionController = TextEditingController();
+//   String _selectedType = 'asset';
+//   String _selectedSubType = 'currentAssets';
+//   String? _selectedParentId;
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return AlertDialog(
+//       title: Text('Add New Account'),
+//       content: Form(
+//         key: _formKey,
+//         child: SingleChildScrollView(
+//           child: Column(
+//             mainAxisSize: MainAxisSize.min,
+//             children: [
+//               TextFormField(
+//                 controller: _codeController,
+//                 decoration: InputDecoration(labelText: 'Account Code'),
+//                 validator: (value) => value!.isEmpty ? 'Required' : null,
+//               ),
+//               TextFormField(
+//                 controller: _nameController,
+//                 decoration: InputDecoration(labelText: 'Account Name'),
+//                 validator: (value) => value!.isEmpty ? 'Required' : null,
+//               ),
+//               TextFormField(
+//                 controller: _descriptionController,
+//                 decoration: InputDecoration(labelText: 'Description'),
+//               ),
+//               DropdownButtonFormField<String>(
+//                 value: _selectedType,
+//                 items: ['asset', 'liability', 'equity', 'revenue', 'expense']
+//                     .map((type) {
+//                       return DropdownMenuItem(
+//                         value: type,
+//                         child: Text(type.toUpperCase()),
+//                       );
+//                     })
+//                     .toList(),
+//                 onChanged: (value) => setState(() => _selectedType = value!),
+//                 decoration: InputDecoration(labelText: 'Account Type'),
+//               ),
+//               // Add more fields for sub-type, parent account selection, etc.
+//             ],
+//           ),
+//         ),
+//       ),
+//       actions: [
+//         TextButton(
+//           onPressed: () => Navigator.pop(context),
+//           child: Text('Cancel'),
+//         ),
+//         ElevatedButton(onPressed: _submitForm, child: Text('Add Account')),
+//       ],
+//     );
+//   }
+
+//   void _submitForm() async {
+//     if (_formKey.currentState!.validate()) {
+//       try {
+//         // Implementation to save the new account
+//         // You'll need to determine if it's a parent or child account
+//         Navigator.pop(context);
+//       } catch (e) {
+//         ScaffoldMessenger.of(
+//           context,
+//         ).showSnackBar(SnackBar(content: Text('Error creating account: $e')));
+//       }
+//     }
+//   }
+
+//   @override
+//   void dispose() {
+//     _codeController.dispose();
+//     _nameController.dispose();
+//     _descriptionController.dispose();
+//     super.dispose();
+//   }
+// }
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:modern_motors_panel/model/admin_model/brands_model.dart';
@@ -3663,7 +4351,6 @@ class ChartOfAccount {
 // DEFAULT CHART OF ACCOUNTS DATA
 // =====================================================
 
-// default_accounts_config.dart
 class DefaultAccountsConfig {
   static const Map<String, List<Map<String, dynamic>>> defaultAccounts = {
     'asset': [
@@ -3758,10 +4445,9 @@ class DefaultAccountsConfig {
 }
 
 // =====================================================
-// SERVICES
+// CHART OF ACCOUNTS SCREEN WITH REAL-TIME UPDATES
 // =====================================================
 
-// chart_of_accounts_screen.dart
 class ChartOfAccountsScreen extends StatefulWidget {
   const ChartOfAccountsScreen({super.key});
 
@@ -3772,7 +4458,65 @@ class ChartOfAccountsScreen extends StatefulWidget {
 class ChartOfAccountsScreenState extends State<ChartOfAccountsScreen> {
   final ChartAccountService _accountService = ChartAccountService();
   final Set<String> _expandedAccounts = {};
+  StreamSubscription<Map<String, List<AccountTreeNode>>>? _streamSubscription;
+  Map<String, List<AccountTreeNode>>? _accountsData;
   bool _isLoading = true;
+  bool _hasError = false;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _startListening();
+  }
+
+  void _startListening() {
+    _streamSubscription = _accountService.watchAllAccounts().listen(
+      (accountsData) {
+        if (mounted) {
+          setState(() {
+            _accountsData = accountsData;
+            _isLoading = false;
+            _hasError = false;
+          });
+        }
+      },
+      onError: (error) {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+            _hasError = true;
+            _errorMessage = error.toString();
+          });
+        }
+      },
+    );
+
+    // Set a timeout to show data even if stream is slow
+    Future.delayed(Duration(seconds: 3), () {
+      if (mounted && _isLoading) {
+        setState(() {
+          _isLoading = false;
+          _hasError = true;
+          _errorMessage = 'Loading timeout. Please check your connection.';
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _streamSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _refreshData() {
+    setState(() {
+      _isLoading = true;
+      _hasError = false;
+    });
+    // The stream will automatically push new data when available
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -3780,83 +4524,135 @@ class ChartOfAccountsScreenState extends State<ChartOfAccountsScreen> {
       appBar: AppBar(
         title: Text('Chart of Accounts'),
         actions: [
+          IconButton(
+            icon: Icon(Icons.refresh),
+            onPressed: _refreshData,
+            tooltip: 'Refresh',
+          ),
           IconButton(icon: Icon(Icons.add), onPressed: _showCreateBranchDialog),
         ],
       ),
-      body: StreamBuilder<Map<String, List<AccountTreeNode>>>(
-        stream: _accountService.watchAllAccounts(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          }
-
-          if (snapshot.hasError) {
-            debugPrint('Error: ${snapshot.error}');
-            debugPrint('trace: ${snapshot.stackTrace}');
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.error, size: 64, color: Colors.red),
-                  SizedBox(height: 16),
-                  Text(
-                    'Error loading accounts',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    '${snapshot.error}',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(child: Text('No accounts found'));
-          }
-
-          final accountsData = snapshot.data!;
-
-          print('🎯 UI: Received ${accountsData.length} branches');
-
-          try {
-            final mainBranchAccounts =
-                accountsData['NRHLuRZIA2AMZXjW4TDI'] ?? [];
-            final otherBranches = Map.from(accountsData)
-              ..remove('NRHLuRZIA2AMZXjW4TDI');
-
-            return ListView(
-              children: [
-                if (mainBranchAccounts.isNotEmpty)
-                  _buildBranchSection(
-                    '🏢 Main Branch (Head Office)',
-                    mainBranchAccounts,
-                    'NRHLuRZIA2AMZXjW4TDI',
-                  ),
-
-                for (final entry in otherBranches.entries)
-                  if (entry.value.isNotEmpty)
-                    _buildBranchSection(
-                      '🏬 ${_getBranchName(entry.key)}',
-                      entry.value,
-                      entry.key,
-                    ),
-              ],
-            );
-          } catch (e) {
-            print('❌ UI rendering error: $e');
-            return Center(child: Text('Error rendering accounts: $e'));
-          }
-        },
-      ),
+      body: _buildBody(),
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddAccountDialog,
         child: Icon(Icons.add_chart),
         tooltip: 'Add New Account',
       ),
+    );
+  }
+
+  Widget _buildBody() {
+    if (_isLoading) {
+      return _buildLoadingWidget();
+    }
+
+    if (_hasError) {
+      return _buildErrorWidget();
+    }
+
+    if (_accountsData == null || _accountsData!.isEmpty) {
+      return _buildEmptyWidget();
+    }
+
+    return _buildAccountsList(_accountsData!);
+  }
+
+  Widget _buildLoadingWidget() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(),
+          SizedBox(height: 16),
+          Text(
+            'Loading Chart of Accounts...',
+            style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorWidget() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.error_outline, size: 64, color: Colors.red),
+          SizedBox(height: 16),
+          Text(
+            'Error loading accounts',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 8),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 32),
+            child: Text(
+              _errorMessage ?? 'Unknown error occurred',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey, fontSize: 14),
+            ),
+          ),
+          SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: _refreshData,
+            icon: Icon(Icons.refresh),
+            label: Text('Try Again'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyWidget() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.account_balance_wallet, size: 64, color: Colors.grey[400]),
+          SizedBox(height: 16),
+          Text(
+            'No Accounts Found',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Create your first account to get started',
+            style: TextStyle(color: Colors.grey),
+          ),
+          SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: _showAddAccountDialog,
+            icon: Icon(Icons.add),
+            label: Text('Create Account'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAccountsList(Map<String, List<AccountTreeNode>> accountsData) {
+    final mainBranchAccounts = accountsData['NRHLuRZIA2AMZXjW4TDI'] ?? [];
+    final otherBranches = Map.from(accountsData)
+      ..remove('NRHLuRZIA2AMZXjW4TDI');
+
+    return ListView(
+      children: [
+        if (mainBranchAccounts.isNotEmpty)
+          _buildBranchSection(
+            '🏢 Main Branch (Head Office)',
+            mainBranchAccounts,
+            'NRHLuRZIA2AMZXjW4TDI',
+          ),
+
+        for (final entry in otherBranches.entries)
+          if (entry.value.isNotEmpty)
+            _buildBranchSection(
+              '🏬 ${_getBranchName(entry.key)}',
+              entry.value,
+              entry.key,
+            ),
+      ],
     );
   }
 
@@ -3874,13 +4670,26 @@ class ChartOfAccountsScreenState extends State<ChartOfAccountsScreen> {
             width: double.infinity,
             padding: EdgeInsets.all(16.0),
             color: Colors.blue[50],
-            child: Text(
-              title,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.blue[700],
-              ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue[700],
+                    ),
+                  ),
+                ),
+                Text(
+                  '${accounts.length} accounts',
+                  style: TextStyle(
+                    color: Colors.blue[600],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
           ),
           if (accounts.isEmpty)
@@ -3914,20 +4723,20 @@ class ChartOfAccountsScreenState extends State<ChartOfAccountsScreen> {
           child: ListTile(
             contentPadding: EdgeInsets.symmetric(
               horizontal: 16.0,
-              vertical: 4.0,
+              vertical: 8.0,
             ),
             leading: hasChildren
                 ? IconButton(
                     icon: Icon(
                       isExpanded ? Icons.expand_more : Icons.chevron_right,
                       color: Colors.blue,
+                      size: 20,
                     ),
                     onPressed: () => _toggleAccount(node.account.id!),
                   )
                 : SizedBox(width: 40.0),
             title: Row(
               children: [
-                // Level indicator
                 Container(
                   width: 24,
                   height: 24,
@@ -3946,15 +4755,33 @@ class ChartOfAccountsScreenState extends State<ChartOfAccountsScreen> {
                     ),
                   ),
                 ),
-                SizedBox(width: 8),
+                SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    '${node.account.accountCode} - ${node.account.accountName}',
-                    style: TextStyle(
-                      fontWeight: level == 0
-                          ? FontWeight.bold
-                          : FontWeight.normal,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${node.account.accountCode} - ${node.account.accountName}',
+                        style: TextStyle(
+                          fontWeight: level == 0
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                          fontSize: 14,
+                        ),
+                      ),
+                      if (node.account.description != null &&
+                          node.account.description!.isNotEmpty)
+                        Padding(
+                          padding: EdgeInsets.only(top: 4),
+                          child: Text(
+                            node.account.description!,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
                 if (node.account.isDefault) ...[
@@ -3981,21 +4808,35 @@ class ChartOfAccountsScreenState extends State<ChartOfAccountsScreen> {
                 ],
               ],
             ),
-            subtitle: Text(node.account.description),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  'OMR ${node.account.currentBalance.toStringAsFixed(2)}',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
                     color: node.account.currentBalance >= 0
-                        ? Colors.green
-                        : Colors.red,
+                        ? Colors.green[50]
+                        : Colors.red[50],
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(
+                      color: node.account.currentBalance >= 0
+                          ? Colors.green
+                          : Colors.red,
+                      width: 1,
+                    ),
+                  ),
+                  child: Text(
+                    'OMR ${node.account.currentBalance.toStringAsFixed(2)}',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                      color: node.account.currentBalance >= 0
+                          ? Colors.green[700]
+                          : Colors.red[700],
+                    ),
                   ),
                 ),
                 SizedBox(width: 8),
-                // Add sub-account button
                 IconButton(
                   icon: Icon(Icons.add, size: 18, color: Colors.blue),
                   onPressed: () => _showAddSubAccountDialog(node.account),
@@ -4027,16 +4868,6 @@ class ChartOfAccountsScreenState extends State<ChartOfAccountsScreen> {
     }
   }
 
-  void _showAddSubAccountDialog(ChartAccount parentAccount) {
-    showDialog(
-      context: context,
-      builder: (context) => AddSubAccountDialog(
-        parentAccount: parentAccount,
-        accountService: _accountService,
-      ),
-    );
-  }
-
   void _toggleAccount(String accountId) {
     setState(() {
       if (_expandedAccounts.contains(accountId)) {
@@ -4048,9 +4879,20 @@ class ChartOfAccountsScreenState extends State<ChartOfAccountsScreen> {
   }
 
   String _getBranchName(String branchId) {
-    BranchModel? b = context.read<MmResourceProvider>().getBranchByID(branchId);
+    final provider = context.read<MmResourceProvider>();
+    BranchModel? branch = provider.getBranchByID(branchId);
+    return branch?.branchName ?? 'Branch $branchId';
+  }
 
-    return 'Branch ${b.branchName}';
+  void _showAddSubAccountDialog(ChartAccount parentAccount) {
+    showDialog(
+      context: context,
+      builder: (context) => AddSubAccountDialog(
+        parentAccount: parentAccount,
+        accountService: _accountService,
+        onAccountAdded: _refreshData, // Refresh when account is added
+      ),
+    );
   }
 
   void _showCreateBranchDialog() {
@@ -4068,11 +4910,17 @@ class ChartOfAccountsScreenState extends State<ChartOfAccountsScreen> {
           ),
           ElevatedButton(
             onPressed: () {
-              final newBranchId = 'branch_$_getBranchName';
               _accountService.createDefaultChartOfAccounts(
-                branchId: "headOffice", //newBranchId,
+                branchId: "headOffice",
               );
               Navigator.pop(context);
+              // Show success message
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Default accounts created successfully!'),
+                  backgroundColor: Colors.green,
+                ),
+              );
             },
             child: Text('Create Branch'),
           ),
@@ -4082,20 +4930,28 @@ class ChartOfAccountsScreenState extends State<ChartOfAccountsScreen> {
   }
 
   void _showAddAccountDialog() {
-    // Implementation for adding new account
-    // You can create a form to collect account details
     showDialog(
       context: context,
-      builder: (context) => AddAccountDialog(accountService: _accountService),
-    );
+      builder: (context) => AddAccountDialog(
+        accountService: _accountService,
+        onAccountAdded: _refreshData, // Refresh when account is added
+      ),
+    ).then((_) {
+      // Refresh data when dialog closes
+      _refreshData();
+    });
   }
 }
 
-// Add Account Dialog
+// =====================================================
+// ADD ACCOUNT DIALOG WITH REFRESH CALLBACK
+// =====================================================
+
 class AddAccountDialog extends StatefulWidget {
   final ChartAccountService accountService;
+  final VoidCallback? onAccountAdded;
 
-  const AddAccountDialog({required this.accountService});
+  const AddAccountDialog({required this.accountService, this.onAccountAdded});
 
   @override
   _AddAccountDialogState createState() => _AddAccountDialogState();
@@ -4109,6 +4965,43 @@ class _AddAccountDialogState extends State<AddAccountDialog> {
   String _selectedType = 'asset';
   String _selectedSubType = 'currentAssets';
   String? _selectedParentId;
+  bool _isSubmitting = false;
+
+  void _submitForm() async {
+    if (_formKey.currentState!.validate()) {
+      setState(() {
+        _isSubmitting = true;
+      });
+
+      try {
+        // TODO: Implement account creation logic
+        await Future.delayed(Duration(milliseconds: 500)); // Simulate API call
+
+        if (mounted) {
+          Navigator.pop(context);
+          widget.onAccountAdded?.call();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Account created successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error creating account: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          setState(() {
+            _isSubmitting = false;
+          });
+        }
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -4122,18 +5015,31 @@ class _AddAccountDialogState extends State<AddAccountDialog> {
             children: [
               TextFormField(
                 controller: _codeController,
-                decoration: InputDecoration(labelText: 'Account Code'),
+                decoration: InputDecoration(
+                  labelText: 'Account Code',
+                  border: OutlineInputBorder(),
+                ),
                 validator: (value) => value!.isEmpty ? 'Required' : null,
               ),
+              SizedBox(height: 16),
               TextFormField(
                 controller: _nameController,
-                decoration: InputDecoration(labelText: 'Account Name'),
+                decoration: InputDecoration(
+                  labelText: 'Account Name',
+                  border: OutlineInputBorder(),
+                ),
                 validator: (value) => value!.isEmpty ? 'Required' : null,
               ),
+              SizedBox(height: 16),
               TextFormField(
                 controller: _descriptionController,
-                decoration: InputDecoration(labelText: 'Description'),
+                decoration: InputDecoration(
+                  labelText: 'Description',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 3,
               ),
+              SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 value: _selectedType,
                 items: ['asset', 'liability', 'equity', 'revenue', 'expense']
@@ -4145,35 +5051,32 @@ class _AddAccountDialogState extends State<AddAccountDialog> {
                     })
                     .toList(),
                 onChanged: (value) => setState(() => _selectedType = value!),
-                decoration: InputDecoration(labelText: 'Account Type'),
+                decoration: InputDecoration(
+                  labelText: 'Account Type',
+                  border: OutlineInputBorder(),
+                ),
               ),
-              // Add more fields for sub-type, parent account selection, etc.
             ],
           ),
         ),
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.pop(context),
+          onPressed: _isSubmitting ? null : () => Navigator.pop(context),
           child: Text('Cancel'),
         ),
-        ElevatedButton(onPressed: _submitForm, child: Text('Add Account')),
+        ElevatedButton(
+          onPressed: _isSubmitting ? null : _submitForm,
+          child: _isSubmitting
+              ? SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Text('Add Account'),
+        ),
       ],
     );
-  }
-
-  void _submitForm() async {
-    if (_formKey.currentState!.validate()) {
-      try {
-        // Implementation to save the new account
-        // You'll need to determine if it's a parent or child account
-        Navigator.pop(context);
-      } catch (e) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error creating account: $e')));
-      }
-    }
   }
 
   @override

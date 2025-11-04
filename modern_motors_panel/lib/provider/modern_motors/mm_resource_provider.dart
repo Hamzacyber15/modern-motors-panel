@@ -7,6 +7,7 @@ import 'package:modern_motors_panel/model/admin_model/country_model.dart';
 import 'package:modern_motors_panel/model/admin_model/currency_model.dart';
 import 'package:modern_motors_panel/model/admin_model/unit_model.dart';
 import 'package:modern_motors_panel/model/branches/branch_model.dart';
+import 'package:modern_motors_panel/model/chartoAccounts_model.dart';
 import 'package:modern_motors_panel/model/customer_models/customer_models.dart';
 import 'package:modern_motors_panel/model/hr_models/allowance_model.dart';
 import 'package:modern_motors_panel/model/hr_models/employees/emlpoyee_model.dart';
@@ -24,6 +25,7 @@ import 'package:modern_motors_panel/model/terms/terms_of_sale_model.dart';
 import 'package:modern_motors_panel/model/trucks/mm_trucks_models.dart/mmtruck_model.dart';
 import 'package:modern_motors_panel/model/vendor/vendors_model.dart';
 import 'package:modern_motors_panel/model/vendor/ventor_logos_model.dart';
+import 'package:modern_motors_panel/modern_motors/services/data_fetch_service.dart';
 import 'package:modern_motors_panel/services/local/branch_id_sp.dart';
 
 class MmResourceProvider with ChangeNotifier {
@@ -66,6 +68,95 @@ class MmResourceProvider with ChangeNotifier {
   void setLoading(bool value) {
     _isLoading = value;
     notifyListeners();
+  }
+
+  // Add to MmResourceProvider
+  List<ChartAccount> _revenueAccounts = [];
+  List<ChartAccount> _costOfSalesAccounts = [];
+  List<ChartAccount> _assetAccounts = [];
+  bool _isChartAccountsLoading = false;
+
+  List<ChartAccount> get revenueAccounts => _revenueAccounts;
+  List<ChartAccount> get costOfSalesAccounts => _costOfSalesAccounts;
+  List<ChartAccount> get assetAccounts => _assetAccounts;
+  bool get isChartAccountsLoading => _isChartAccountsLoading;
+
+  Future<void> loadChartAccounts(String branchId) async {
+    if (_revenueAccounts.isNotEmpty &&
+        _costOfSalesAccounts.isNotEmpty &&
+        _assetAccounts.isNotEmpty) {
+      return; // Already loaded
+    }
+
+    _isChartAccountsLoading = true;
+    notifyListeners();
+
+    try {
+      // Load revenue accounts (4000)
+      final revenueParentAccounts =
+          await DataFetchService.getChartAccountsByCode(branchId, '4000');
+      List<ChartAccount> allRevenueAccounts = [];
+      for (var parentAccount in revenueParentAccounts) {
+        allRevenueAccounts.add(parentAccount);
+        if (parentAccount.childAccountIds.isNotEmpty) {
+          final childAccounts = await DataFetchService.getChildAccounts(
+            branchId,
+            parentAccount.childAccountIds,
+          );
+          allRevenueAccounts.addAll(childAccounts);
+        }
+      }
+
+      // Load cost of sales accounts (5100)
+      final costParentAccounts = await DataFetchService.getChartAccountsByCode(
+        branchId,
+        '5100',
+      );
+      List<ChartAccount> allCostAccounts = [];
+      for (var parentAccount in costParentAccounts) {
+        allCostAccounts.add(parentAccount);
+        if (parentAccount.childAccountIds.isNotEmpty) {
+          final childAccounts = await DataFetchService.getChildAccounts(
+            branchId,
+            parentAccount.childAccountIds,
+          );
+          allCostAccounts.addAll(childAccounts);
+        }
+      }
+
+      // Load asset accounts (1000)
+      final assetParentAccounts = await DataFetchService.getChartAccountsByCode(
+        branchId,
+        '1000',
+      );
+      List<ChartAccount> allAssetAccounts = [];
+      for (var parentAccount in assetParentAccounts) {
+        allAssetAccounts.add(parentAccount);
+        if (parentAccount.childAccountIds.isNotEmpty) {
+          final childAccounts = await DataFetchService.getChildAccounts(
+            branchId,
+            parentAccount.childAccountIds,
+          );
+          allAssetAccounts.addAll(childAccounts);
+        }
+      }
+
+      _revenueAccounts = allRevenueAccounts;
+      _costOfSalesAccounts = allCostAccounts;
+      _assetAccounts = allAssetAccounts;
+    } catch (e) {
+      debugPrint('Error loading chart accounts: $e');
+    } finally {
+      _isChartAccountsLoading = false;
+      notifyListeners();
+    }
+
+    void clearChartAccounts() {
+      _revenueAccounts = [];
+      _costOfSalesAccounts = [];
+      _assetAccounts = [];
+      notifyListeners();
+    }
   }
 
   Future<bool> start() async {

@@ -10,6 +10,8 @@ import 'package:modern_motors_panel/model/handling_orders/order_model.dart';
 import 'package:modern_motors_panel/model/hr_models/allowance_model.dart';
 import 'package:modern_motors_panel/model/package_models/package_model.dart';
 import 'package:modern_motors_panel/model/profile_models/public_profile_model.dart';
+import 'package:modern_motors_panel/model/purchase_models/expense_category_model.dart';
+import 'package:modern_motors_panel/model/purchase_models/expense_model.dart';
 import 'package:modern_motors_panel/model/trucks/new_trucks_model.dart';
 import 'package:modern_motors_panel/model/trucks/truck_model.dart';
 
@@ -32,6 +34,8 @@ class ResourceProvider with ChangeNotifier {
   bool walletLoading = false;
   double walletBalance = 0;
   double? labourOrderFilter;
+  List<ExpenseModel> expenseList = [];
+  List<ExpenseCategoryModel> expenseCategoryList = [];
 
   void updateFilter(double i) {
     labourOrderFilter = i;
@@ -160,6 +164,39 @@ class ResourceProvider with ChangeNotifier {
       debugPrint(e.toString());
       return false;
     }
+  }
+
+  void updateExpenseCategory({
+    String? id,
+    required ExpenseCategoryModel model,
+  }) {
+    if (id == null) {
+      expenseCategoryList.insert(0, model);
+    } else {
+      final index = expenseCategoryList.indexWhere((ven) => ven.id == id);
+      if (index != -1) {
+        final expense = expenseCategoryList[index];
+        model.timestamp = expense.timestamp;
+        model.id = expense.id ?? 'NO ASSIGNED';
+        expenseCategoryList[index] = model;
+      }
+    }
+    notifyListeners();
+  }
+
+  void updateExpense({String? id, required ExpenseModel model}) {
+    if (id == null) {
+      expenseList.insert(0, model);
+    } else {
+      final index = expenseList.indexWhere((ven) => ven.id == id);
+      if (index != -1) {
+        final expense = expenseList[index];
+        model.createdAt = expense.createdAt;
+        model.id = expense.id ?? 'NO ASSIGNED';
+        expenseList[index] = model;
+      }
+    }
+    notifyListeners();
   }
 
   Future<bool> getTruckList() async {

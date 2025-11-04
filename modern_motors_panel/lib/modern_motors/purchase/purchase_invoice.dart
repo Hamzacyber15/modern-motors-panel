@@ -6765,6 +6765,7 @@ import 'package:modern_motors_panel/constants.dart';
 import 'package:modern_motors_panel/extensions.dart';
 import 'package:modern_motors_panel/model/attachment_model.dart';
 import 'package:modern_motors_panel/model/product_models/product_model.dart';
+import 'package:modern_motors_panel/model/purchase_models/expense_category_model.dart';
 import 'package:modern_motors_panel/model/purchase_models/new_purchase_model.dart';
 import 'package:modern_motors_panel/model/sales_model/credit_days_model.dart';
 import 'package:modern_motors_panel/model/services_model/services_model.dart';
@@ -7098,6 +7099,7 @@ class _PurchaseInvoiceState extends State<PurchaseInvoice>
   List<SupplierModel> filteredSuppliers = [];
   List<ServiceTypeModel> allServices = [];
   List<ProductModel> allProducts = [];
+  List<ExpenseCategoryModel> expensesList = [];
   CreditDaysModel? creditDays;
   List<ProductRow> productRows = [];
   double productsGrandTotal = 0;
@@ -7187,10 +7189,12 @@ class _PurchaseInvoiceState extends State<PurchaseInvoice>
         DataFetchService.fetchSuppliers(),
         DataFetchService.fetchAllProducts(),
         DataFetchService.getCreditDays(),
+        DataFetchService.fetchExpenseCategories(),
       ]);
       allSuppliers = results[0] as List<SupplierModel>;
       allProducts = results[1] as List<ProductModel>;
       creditDays = results[2] as CreditDaysModel;
+      expensesList = results[3] as List<ExpenseCategoryModel>;
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         if (widget.purchase != null) {
           SupplierModel? supplier;
@@ -7275,7 +7279,7 @@ class _PurchaseInvoiceState extends State<PurchaseInvoice>
           });
         }
       });
-      purchaseItem = mergeProductsAndServices(allProducts, allServices);
+      purchaseItem = mergeProductsAndServices(allProducts, expensesList);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
@@ -7304,7 +7308,7 @@ class _PurchaseInvoiceState extends State<PurchaseInvoice>
 
   List<PurchaseItem> mergeProductsAndServices(
     List<ProductModel> products,
-    List<ServiceTypeModel> services,
+    List<ExpenseCategoryModel> expenses,
   ) {
     List<PurchaseItem> mergedList = [];
 
@@ -7330,32 +7334,28 @@ class _PurchaseInvoiceState extends State<PurchaseInvoice>
         ),
       ),
     );
-    // mergedList.addAll(
-    //   services.map((service) {
-    //     double price = service.prices?.isNotEmpty == true
-    //         ? (service.prices?[0] as num).toDouble()
-    //         : 0;
-
-    //     return PurchaseItem(
-    //      buyingPrice: 0,
-    //       discountType: "",
-    //       subtotal: 0,
-    //       amountAfterDiscount: 0,
-    //       total: 0,
-    //       vatType: "",
-    //       vatAmount: 0,
-    //       addToPurchaseCost: false,
-    //       directExpense: DirectExpense.empty(),
-    //       discount: 0,
-    //       productId: ser.id ?? '',
-    //       productName: product.productName ?? '',
-    //       quantity: 1,
-    //       totalPrice: (product.sellingPrice ?? product.lastCost ?? 0) * 1,
-    //       unitPrice: product.averageCost ?? product.lastCost ?? 0,
-    //       type: 'service',
-    //     );
-    //   }),
-    // );
+    mergedList.addAll(
+      expenses.map((expense) {
+        return PurchaseItem(
+          buyingPrice: 0,
+          discountType: "",
+          subtotal: 0,
+          amountAfterDiscount: 0,
+          total: 0,
+          vatType: "",
+          vatAmount: 0,
+          addToPurchaseCost: false,
+          directExpense: DirectExpense.empty(),
+          discount: 0,
+          productId: expense.id ?? '',
+          productName: expense.name ?? 'Expense', // Use expense name
+          quantity: 1,
+          totalPrice: 0, // Default to 0, user will enter amount
+          unitPrice: 0, // Default to 0
+          type: 'expense', // Mark as expense type
+        );
+      }),
+    );
 
     return mergedList;
   }
@@ -8204,6 +8204,7 @@ class _PurchaseInvoiceState extends State<PurchaseInvoice>
         'addToPurchaseCost': row.addToPurchaseCost ?? false,
         'discountType': row.discountType,
         'sellingPrice': row.avgPrice ?? row.selectedPrice ?? 0.0,
+        'isExpense': row.purchaseItem?.type == 'expense',
       };
     }).toList();
   }
@@ -9439,7 +9440,7 @@ class _PurchaseInvoiceState extends State<PurchaseInvoice>
                           taxAmount:
                               _calculateTotalVatAmount(), //totalVatAmount,
                           paymentData: paymentData,
-                          statusType: "save",
+                          statusType: "pending", //"save",
                         );
                       } catch (e) {
                         setState(() => p.orderLoading = false);
@@ -11763,6 +11764,13 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
   // }
 
   void _updateProductWithDebounce() {
+    // For expense items, quantity should always be 1
+    if (widget.productRow.type == 'expense') {
+      widget.productRow.quantity = 1;
+      _qtyController.text = '1';
+    }
+
+    widget.productRow.calculateTotals();
     _updateTimer?.cancel();
     _updateTimer = Timer(const Duration(milliseconds: 100), () {
       if (mounted) {
@@ -11770,24 +11778,6 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
       }
     });
   }
-
-  // void _updateProductWithDebounce() {
-  //   // Cancel any existing timer
-  //   _updateTimer?.cancel();
-
-  //   // Force a recalculation
-  //   widget.productRow.calculateTotals();
-
-  //   // Use a very short debounce to ensure state updates
-  //   _updateTimer = Timer(
-  //     const Duration(milliseconds: 50), // Reduced from 500ms to 50ms
-  //     () {
-  //       if (mounted) {
-  //         widget.onUpdate(widget.productRow);
-  //       }
-  //     },
-  //   );
-  // }
 
   // void _showMinimumPriceError(double minimumPrice) {
   //   ScaffoldMessenger.of(context).showSnackBar(
@@ -11848,67 +11838,160 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
     );
   }
 
+  // Widget _buildProductDropdown() {
+  //   final Map<String, String> itemMap = {};
+
+  //   // for (var item in widget.allItems) {
+  //   //   String displayName = item.productName;
+
+  //   //   // Add icons and labels based on type
+  //   //   if (item.type == 'service') {
+  //   //     displayName = '⚡ $displayName (Service)';
+  //   //   } else if (item.type == 'expense') {
+  //   //     displayName = '💰 $displayName (Expense)';
+  //   //   } else {
+  //   //     displayName = '📦 $displayName (Product)';
+  //   //   }
+
+  //   //   itemMap[item.productId] = displayName;
+  //   // }
+  //   for (var item in widget.allItems) {
+  //     String displayName = item.productName;
+  //     Color? textColor;
+  //     IconData? prefixIcon;
+
+  //     // Style based on item type
+  //     switch (item.type) {
+  //       case 'service':
+  //         displayName = '⚡ $displayName';
+  //         textColor = Colors.orange[800];
+  //         prefixIcon = Icons.flash_on;
+  //         break;
+  //       case 'expense':
+  //         displayName = '💰 $displayName';
+  //         textColor = Colors.purple[800];
+  //         prefixIcon = Icons.receipt_long;
+  //         break;
+  //       default: // product
+  //         displayName = '📦 $displayName';
+  //         textColor = Colors.blue[800];
+  //         prefixIcon = Icons.inventory_2;
+  //         break;
+  //     }
+
+  //     itemMap[item.productId] = displayName;
+  //   }
+
+  //   return Container(
+  //     height: 44,
+  //     padding: EdgeInsets.symmetric(horizontal: 12),
+  //     child: DropdownButtonHideUnderline(
+  //       child: DropdownButton<String>(
+  //         isExpanded: true,
+  //         value: widget.productRow.purchaseItem?.productId,
+  //         hint: Text(
+  //           'Select Item',
+  //           style: TextStyle(color: Colors.grey[600], fontSize: 14),
+  //         ),
+  //         items: itemMap.entries.map((entry) {
+  //           return DropdownMenuItem(
+  //             value: entry.key,
+  //             child: Text(
+  //               entry.value,
+  //               style: TextStyle(fontSize: 14),
+  //               overflow: TextOverflow.ellipsis,
+  //             ),
+  //           );
+  //         }).toList(),
+  //         onChanged: (value) {
+  //           if (value != null && value.isNotEmpty) {
+  //             final selected = widget.allItems.firstWhere(
+  //               (item) => item.productId == value,
+  //             );
+  //             if (mounted) {
+  //               setState(() {
+  //                 widget.productRow.purchaseItem = selected;
+  //                 widget.productRow.type = selected.type;
+
+  //                 // Set different default prices based on type
+  //                 if (selected.type == 'expense') {
+  //                   // For expenses, default price is 0 since user will enter the expense amount
+  //                   widget.productRow.avgPrice = 0;
+  //                   _priceController.text = '0.00';
+  //                 } else {
+  //                   // For products, use the buying price
+  //                   widget.productRow.avgPrice = selected.buyingPrice;
+  //                   _priceController.text = selected.buyingPrice
+  //                       .toStringAsFixed(2);
+  //                 }
+
+  //                 widget.productRow.cost = selected.unitPrice;
+  //                 _originalPrice = selected.unitPrice;
+  //                 widget.productRow.calculateTotals();
+  //                 widget.onUpdate(widget.productRow);
+  //                 FocusScope.of(context).requestFocus(_qtyFocusNode);
+  //               });
+  //             }
+  //           }
+  //         },
+  //       ),
+  //     ),
+  //   );
+  // }
+
   Widget _buildProductDropdown() {
     final Map<String, String> itemMap = {};
+
     for (var item in widget.allItems) {
       String displayName = item.productName;
+
+      // Add icons and labels based on type
       if (item.type == 'service') {
-        displayName = '⚡ $displayName';
+        displayName = '⚡ $displayName (Service)';
+      } else if (item.type == 'expense') {
+        displayName = '💰 $displayName (Expense)';
       } else {
-        displayName = '📦 $displayName';
+        displayName = '📦 $displayName (Product)';
       }
+
       itemMap[item.productId] = displayName;
     }
-    return Container(
-      height: 44,
-      padding: EdgeInsets.symmetric(horizontal: 12),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          isExpanded: true,
-          value: widget.productRow.purchaseItem?.productId,
-          hint: Text(
-            'Select Item',
-            style: TextStyle(color: Colors.grey[600], fontSize: 14),
-          ),
-          items: itemMap.entries.map((entry) {
-            return DropdownMenuItem(
-              value: entry.key,
-              child: Text(
-                entry.value,
-                style: TextStyle(fontSize: 14),
-                overflow: TextOverflow.ellipsis,
-              ),
-            );
-          }).toList(),
-          onChanged: (value) {
-            if (value != null && value.isNotEmpty) {
-              final selected = widget.allItems.firstWhere(
-                (item) => item.productId == value,
-              );
-              if (mounted) {
-                setState(() {
-                  widget.productRow.purchaseItem = selected;
-                  widget.productRow.type = selected.type;
-                  widget.productRow.avgPrice = selected.buyingPrice;
-                  _priceController.text = selected.buyingPrice.toStringAsFixed(
-                    2,
-                  );
-                  widget.productRow.cost = selected.unitPrice;
-                  // widget.productRow.margin = selected.unitPrice > 0
-                  //     ? ((selected.sellingPrice - selected.cost) /
-                  //               selected.cost) *
-                  //           100
-                  //     : 0;
-                  _originalPrice = selected.unitPrice;
-                  widget.productRow.calculateTotals();
-                  widget.onUpdate(widget.productRow);
-                  FocusScope.of(context).requestFocus(_qtyFocusNode);
-                });
+
+    return CustomSearchableDropdown(
+      key: widget.productRow.dropdownKey,
+      hintText: 'Select Item',
+      items: itemMap,
+      value: widget.productRow.purchaseItem?.productId,
+      onChanged: (value) {
+        if (value.isNotEmpty) {
+          final selected = widget.allItems.firstWhere(
+            (item) => item.productId == value,
+          );
+          if (mounted) {
+            setState(() {
+              widget.productRow.purchaseItem = selected;
+              widget.productRow.type = selected.type;
+
+              // Set different default prices based on type
+              if (selected.type == 'expense') {
+                // For expenses, default price is 0 since user will enter the expense amount
+                widget.productRow.avgPrice = 0;
+                _priceController.text = '0.00';
+              } else {
+                // For products, use the buying price
+                widget.productRow.avgPrice = selected.buyingPrice;
+                _priceController.text = selected.buyingPrice.toStringAsFixed(2);
               }
-            }
-          },
-        ),
-      ),
+
+              widget.productRow.cost = selected.unitPrice;
+              _originalPrice = selected.unitPrice;
+              widget.productRow.calculateTotals();
+              widget.onUpdate(widget.productRow);
+              FocusScope.of(context).requestFocus(_qtyFocusNode);
+            });
+          }
+        }
+      },
     );
   }
 
@@ -12025,6 +12108,7 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
   bool _addToPurchaseCost = false;
   @override
   Widget build(BuildContext context) {
+    final isExpense = widget.productRow.type == 'expense';
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -12057,20 +12141,20 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
 
                 // Price
                 _buildFieldBlock(
-                  header: 'PRICE',
+                  header: isExpense ? 'AMOUNT' : 'PRICE',
                   flex: 2,
                   child: _buildTextField(
                     controller: _priceController,
                     focusNode: _priceFocusNode,
-                    hint: '0.00',
+                    hint: isExpense ? 'Expense Amount' : '0.00',
                     onChanged: (value) {
                       if (value.isNotEmpty) {
                         final newPrice = double.tryParse(value) ?? 0;
-                        final minimumPrice =
-                            widget.productRow.purchaseItem?.buyingPrice ?? 0;
-                        if (newPrice >= minimumPrice) {
-                          _updatePriceInModel(newPrice);
-                        }
+                        // final minimumPrice =
+                        //   widget.productRow.purchaseItem?.buyingPrice ?? 0;
+                        //if (newPrice >= minimumPrice) {
+                        _updatePriceInModel(newPrice);
+                        // }
                       }
                     },
                     onEditingComplete: () {
@@ -12085,26 +12169,32 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
                 _buildFieldBlock(
                   header: 'QTY',
                   flex: 1,
-                  child: _buildTextField(
-                    controller: _qtyController,
-                    focusNode: _qtyFocusNode,
-                    hint: '1',
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                      LengthLimitingTextInputFormatter(5),
-                    ],
-                    onChanged: (value) {
-                      if (value.isNotEmpty) {
-                        final quantity = int.tryParse(value) ?? 1;
-                        if (quantity > 0 && quantity <= 999999 && mounted) {
-                          setState(() {
-                            widget.productRow.quantity = quantity;
-                            widget.productRow.calculateTotals();
-                            _updateProductWithDebounce();
-                          });
-                        }
-                      }
-                    },
+                  child: IgnorePointer(
+                    ignoring: widget.productRow.type == 'expense',
+                    child: Opacity(
+                      opacity: widget.productRow.type == 'expense' ? 0.5 : 1.0,
+                      child: _buildTextField(
+                        controller: _qtyController,
+                        focusNode: _qtyFocusNode,
+                        hint: '1',
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(5),
+                        ],
+                        onChanged: (value) {
+                          if (value.isNotEmpty) {
+                            final quantity = int.tryParse(value) ?? 1;
+                            if (quantity > 0 && quantity <= 999999 && mounted) {
+                              setState(() {
+                                widget.productRow.quantity = quantity;
+                                widget.productRow.calculateTotals();
+                                _updateProductWithDebounce();
+                              });
+                            }
+                          }
+                        },
+                      ),
+                    ),
                   ),
                 ),
                 SizedBox(width: 8),

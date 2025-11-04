@@ -28,6 +28,7 @@ import 'package:modern_motors_panel/model/product_models/category_model.dart';
 import 'package:modern_motors_panel/model/product_models/product_category_model.dart';
 import 'package:modern_motors_panel/model/product_models/product_model.dart';
 import 'package:modern_motors_panel/model/product_models/product_sub_category_model.dart';
+import 'package:modern_motors_panel/model/purchase_models/expense_category_model.dart';
 import 'package:modern_motors_panel/model/purchase_models/grn/grn_model.dart';
 import 'package:modern_motors_panel/model/purchase_models/new_purchase_model.dart';
 import 'package:modern_motors_panel/model/purchase_models/purchase_model.dart';
@@ -69,6 +70,15 @@ class DataFetchService {
         .get();
     return querySnapshot.docs.map((doc) {
       return EstimationTemplatePreviewModel.fromDoc((doc));
+    }).toList();
+  }
+
+  static Future<List<ExpenseCategoryModel>> fetchExpenseCategories() async {
+    final querySnapshot = await FirebaseFirestore.instance
+        .collection('expenseCategory')
+        .get();
+    return querySnapshot.docs.map((doc) {
+      return ExpenseCategoryModel.fromDoc(doc);
     }).toList();
   }
 
@@ -148,7 +158,7 @@ class DataFetchService {
     try {
       final querySnapshot = await FirebaseFirestore.instance
           .collection('purchases')
-          .where('status', isEqualTo: "save")
+          .where('status', isNotEqualTo: "")
           .orderBy("createdAt", descending: true)
           .get();
 

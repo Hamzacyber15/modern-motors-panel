@@ -831,7 +831,7 @@ class NewPurchaseModel {
   final DateTime dueDate;
   final List<PurchaseItem> items;
   final List<ExpenseItem> expenseData;
-  final String status;
+  String status;
   final String createdBy;
   final String createBy;
   final String invoice;

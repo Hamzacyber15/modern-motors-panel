@@ -5,11 +5,13 @@ import 'package:modern_motors_panel/modern_motors/chart_of_account_service.dart'
 class AddSubAccountDialog extends StatefulWidget {
   final ChartAccount parentAccount;
   final ChartAccountService accountService;
+  final VoidCallback onAccountAdded;
 
   const AddSubAccountDialog({
     super.key,
     required this.parentAccount,
     required this.accountService,
+    required this.onAccountAdded,
   });
 
   @override
@@ -35,6 +37,7 @@ class AddSubAccountDialogState extends State<AddSubAccountDialog> {
   }
 
   void _updateSubTypes() {
+    widget.onAccountAdded;
     // Set appropriate sub-type based on account type
     switch (_selectedType) {
       case 'asset':

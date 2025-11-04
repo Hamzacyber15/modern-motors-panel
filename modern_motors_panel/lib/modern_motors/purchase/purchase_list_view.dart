@@ -1,4 +1,6 @@
 // ignore_for_file: deprecated_member_use
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
@@ -217,6 +219,35 @@ class PurchaseCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     User? user = FirebaseAuth.instance.currentUser;
+    bool _isLoading = false;
+
+    Future<void> updatePurchaseStatus(NewPurchaseModel purchase) async {
+      try {
+        // await FirebaseFirestore.instance
+        //     .collection('purchases')
+        //     .doc(purchaseId)
+        //     .update({
+        //       'status': 'save',
+        //       // 'updatedAt': FieldValue.serverTimestamp(), // Optional: add update timestamp
+        //     });
+        purchase.status = "save";
+        // print('Purchase status updated to "save" for ID: $purchaseId');
+        HttpsCallable callable = FirebaseFunctions.instance.httpsCallable(
+          'savePurchase',
+        );
+        final results = await callable({
+          'purchaseId': purchase.id, //'000testSale',
+          'status': "save",
+          //"purchaseData": purchase,
+          ///'expenseData': purchase.expenseData,
+        });
+        debugPrint(results.data.toString());
+      } catch (e) {
+        print('Error updating purchase status: $e');
+        throw e; // Re-throw to handle in UI
+      }
+    }
+
     return Container(
       height: 105,
       margin: const EdgeInsets.only(bottom: 2),
@@ -309,37 +340,78 @@ class PurchaseCard extends StatelessWidget {
                         ),
                       ),
                     )
-                  : Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            Theme.of(context).primaryColor,
-                            Theme.of(context).primaryColor.withOpacity(0.8),
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: sale.status == "draft"
-                          ? Text(
-                              '${"Draft"}-${sale.invoice}',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            )
-                          : Text(
-                              '${"MM"}-${sale.invoice}',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                              ),
+                  : Column(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                Theme.of(context).primaryColor,
+                                Theme.of(context).primaryColor.withOpacity(0.8),
+                              ],
                             ),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: sale.status == "draft"
+                              ? Text(
+                                  '${"Draft"}-${sale.invoice}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                )
+                              : Text(
+                                  '${"MM"}-${sale.invoice}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                        ),
+                        const SizedBox(height: 5),
+                        ElevatedButton.icon(
+                          onPressed: _isLoading
+                              ? null
+                              : () => updatePurchaseStatus(sale),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.orange.shade700,
+                            foregroundColor: Colors.white,
+                            elevation: 2,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          icon: _isLoading
+                              ? SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
+                                    ),
+                                  ),
+                                )
+                              : const Icon(Icons.save_alt_rounded, size: 18),
+                          label: Text(
+                            _isLoading ? 'Updating...' : 'Save as Final',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
 
               const SizedBox(width: 20),
