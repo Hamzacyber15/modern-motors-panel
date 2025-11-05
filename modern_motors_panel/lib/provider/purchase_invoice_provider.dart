@@ -1105,7 +1105,7 @@ class PurchaseInvoiceProvider extends ChangeNotifier {
           //'profit': 0,
           'supplierId': supplierId,
           // 'notes': notesController.text.isNotEmpty ? notesController.text : '',
-          'status': statusType, //'pending',
+          // 'status': statusType, //'pending',
           'previousStock':
               0, //selectedSaleItems.first.product.totalStockOnHand,
           'paymentMethod': 'cash',
@@ -1150,6 +1150,7 @@ class PurchaseInvoiceProvider extends ChangeNotifier {
           'purchaseId': purchaseDocId, //'000testSale',
           "purchaseData": purchaseData,
           'expenseData': expensesData,
+          'status': statusType,
         });
         debugPrint(results.data.toString());
       } else if (isEdit) {

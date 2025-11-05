@@ -241,7 +241,7 @@ class PurchaseCard extends StatelessWidget {
           //"purchaseData": purchase,
           ///'expenseData': purchase.expenseData,
         });
-        debugPrint(results.data.toString());
+        debugPrint("${"confirm purchase"}${results.data.toString()}");
       } catch (e) {
         print('Error updating purchase status: $e');
         throw e; // Re-throw to handle in UI

@@ -9385,16 +9385,16 @@ class _PurchaseInvoiceState extends State<PurchaseInvoice>
                             _buildExpensesData();
 
                         // Validate that all required fields are present
-                        for (var product in productsData) {
-                          if (product['productId']?.isEmpty == true) {
-                            Constants.showValidationError(
-                              context,
-                              "Please select valid products",
-                            );
-                            setState(() => p.orderLoading = false);
-                            return;
-                          }
-                        }
+                        // for (var product in productsData) {
+                        //   if (product['productId']?.isEmpty == true) {
+                        //     Constants.showValidationError(
+                        //       context,
+                        //       "Please select valid products",
+                        //     );
+                        //     setState(() => p.orderLoading = false);
+                        //     return;
+                        //   }
+                        // }
 
                         final depositData = {
                           'requireDeposit': requireDeposit,
