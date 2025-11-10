@@ -70,7 +70,7 @@ class AppTheme {
         indicatorColor: primaryColor,
         elevation: 0,
       ),
-      bottomAppBarTheme: BottomAppBarTheme(
+      bottomAppBarTheme: BottomAppBarThemeData(
         color: isDark ? raisinColor : whiteColor,
         elevation: 0,
         surfaceTintColor: Colors.transparent,

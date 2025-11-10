@@ -7019,6 +7019,57 @@ class ProductRow {
   //   // Calculate total
   //   total = amountAfterDiscount + (serviceCost ?? 0.0) + vatAmount;
   // }
+  // void calculateTotals() {
+  //   // Ensure no null values
+  //   final price = (avgPrice ?? selectedPrice ?? 0.0);
+  //   final qty = quantity;
+
+  //   // Calculate subtotal
+  //   subtotal = price * qty;
+
+  //   // Apply discount based on type
+  //   double discountAmount = 0.0;
+  //   if (discountType == 'percentage') {
+  //     discountAmount = subtotal * ((discount ?? 0.0) / 100);
+  //   } else {
+  //     discountAmount = discount ?? 0.0; // Fixed amount
+  //   }
+
+  //   double amountAfterDiscount = subtotal - discountAmount;
+
+  //   // Calculate VAT for this row only (no bill-level VAT)
+  //   switch (vatType) {
+  //     case 'standard':
+  //       vatAmount = amountAfterDiscount * 0.05;
+  //       break;
+  //     case 'zero':
+  //     case 'exempt':
+  //     case 'none':
+  //     default:
+  //       vatAmount = 0.0;
+  //       break;
+  //   }
+
+  //   // Ensure direct expense VAT is properly calculated
+  //   double directExpenseVat = 0.0;
+  //   if (serviceCost > 0 && directExpenseVatType == 'standard') {
+  //     directExpenseVat = serviceCost * 0.05;
+  //   } else {
+  //     directExpenseVat =
+  //         0.0; // Explicitly set to 0 when no expense or non-standard VAT
+  //   }
+
+  //   // Update the direct expense VAT amount
+  //   directExpenseVatAmount = directExpenseVat;
+
+  //   // Calculate total for this row (includes row-level VAT + direct expense VAT)
+  //   total =
+  //       amountAfterDiscount +
+  //       //(serviceCost ?? 0.0) +
+  //       vatAmount;
+  //   //+ directExpenseVat;
+  // }
+
   void calculateTotals() {
     // Ensure no null values
     final price = (avgPrice ?? selectedPrice ?? 0.0);
@@ -7051,23 +7102,15 @@ class ProductRow {
     }
 
     // Ensure direct expense VAT is properly calculated
-    double directExpenseVat = 0.0;
     if (serviceCost > 0 && directExpenseVatType == 'standard') {
-      directExpenseVat = serviceCost * 0.05;
+      directExpenseVatAmount = serviceCost * 0.05;
     } else {
-      directExpenseVat =
+      directExpenseVatAmount =
           0.0; // Explicitly set to 0 when no expense or non-standard VAT
     }
 
-    // Update the direct expense VAT amount
-    directExpenseVatAmount = directExpenseVat;
-
-    // Calculate total for this row (includes row-level VAT + direct expense VAT)
-    total =
-        amountAfterDiscount +
-        (serviceCost ?? 0.0) +
-        vatAmount +
-        directExpenseVat;
+    // Calculate total for this row (includes row-level VAT, excludes direct expenses from product total)
+    total = amountAfterDiscount + vatAmount;
   }
 }
 
@@ -7291,19 +7334,63 @@ class _PurchaseInvoiceState extends State<PurchaseInvoice>
     }
   }
 
+  // double _getSubtotalForDiscount() {
+  //   return productsGrandTotal + billExpensesTotal;
+  // }
+
   double _getSubtotalForDiscount() {
-    return productsGrandTotal + billExpensesTotal;
+    // Calculate products subtotal without VAT
+    double productsSubtotal = productRows.fold(0.0, (sum, row) {
+      // Calculate row subtotal without VAT
+      final price = (row.avgPrice ?? row.selectedPrice ?? 0.0);
+      final qty = row.quantity;
+      double rowSubtotal = price * qty;
+
+      // Apply discount to get amount after discount (without VAT)
+      double discountAmount = 0.0;
+      if (row.discountType == 'percentage') {
+        discountAmount = rowSubtotal * ((row.discount ?? 0.0) / 100);
+      } else {
+        discountAmount = row.discount ?? 0.0;
+      }
+
+      double amountAfterDiscount = rowSubtotal - discountAmount;
+
+      // Add service cost (without its VAT)
+      amountAfterDiscount += row.serviceCost;
+
+      return sum + amountAfterDiscount;
+    });
+
+    // Calculate bill expenses subtotal without VAT
+    double expensesSubtotal = billExpenses.fold(0.0, (sum, expense) {
+      return sum + expense.amount; // Just the base amount, not including VAT
+    });
+
+    return productsSubtotal + expensesSubtotal;
   }
 
+  // double _calculateTotal(PurchaseInvoiceProvider p) {
+  //   final double subtotal = _getSubtotalForDiscount() + billExpensesTotal;
+  //   final double discountAmount = p.discountAmount;
+  //   final double amountAfterDiscount = subtotal - discountAmount;
+  //   // final double taxAmount = p.getIsTaxApply
+  //   //     ? amountAfterDiscount * (p.taxPercent / 100)
+  //   //     : 0;
+  //   final double totalVatAmount = _calculateTotalVatAmount();
+  //   return amountAfterDiscount + totalVatAmount; //taxAmount;
+  // }
+
   double _calculateTotal(PurchaseInvoiceProvider p) {
-    final double subtotal = _getSubtotalForDiscount() + billExpensesTotal;
+    // Calculate subtotal (products + bill expenses)
+    final double subtotal = _getSubtotalForDiscount();
+
+    // Apply discount
     final double discountAmount = p.discountAmount;
     final double amountAfterDiscount = subtotal - discountAmount;
-    // final double taxAmount = p.getIsTaxApply
-    //     ? amountAfterDiscount * (p.taxPercent / 100)
-    //     : 0;
-    final double totalVatAmount = _calculateTotalVatAmount();
-    return amountAfterDiscount + totalVatAmount; //taxAmount;
+
+    // Return the amount after discount (VAT is already included in row totals)
+    return amountAfterDiscount;
   }
 
   List<PurchaseItem> mergeProductsAndServices(
@@ -8455,6 +8542,25 @@ class _PurchaseInvoiceState extends State<PurchaseInvoice>
     );
   }
 
+  // double _calculateTotalVatAmount() {
+  //   // Calculate VAT from product rows
+  //   double productVatTotal = productRows.fold(0.0, (sum, row) {
+  //     return sum + (row.vatAmount ?? 0.0);
+  //   });
+
+  //   // Calculate VAT from bill expenses
+  //   double expenseVatTotal = billExpenses.fold(0.0, (sum, expense) {
+  //     return sum + (expense.vatAmount ?? 0.0);
+  //   });
+
+  //   // Calculate VAT from direct expenses in product rows
+  //   double directExpenseVatTotal = productRows.fold(0.0, (sum, row) {
+  //     return sum + (row.directExpenseVatAmount ?? 0.0);
+  //   });
+
+  //   return productVatTotal + expenseVatTotal + directExpenseVatTotal;
+  // }
+
   double _calculateTotalVatAmount() {
     // Calculate VAT from product rows
     double productVatTotal = productRows.fold(0.0, (sum, row) {
@@ -8474,35 +8580,172 @@ class _PurchaseInvoiceState extends State<PurchaseInvoice>
     return productVatTotal + expenseVatTotal + directExpenseVatTotal;
   }
 
+  double _getProductsSubtotal() {
+    return productRows.fold(0.0, (sum, row) {
+      final price = (row.avgPrice ?? row.selectedPrice ?? 0.0);
+      final qty = row.quantity;
+      return sum + (price * qty);
+    });
+  }
+
+  double _getProductsDiscount() {
+    return productRows.fold(0.0, (sum, row) {
+      final price = (row.avgPrice ?? row.selectedPrice ?? 0.0);
+      final qty = row.quantity;
+      final rowSubtotal = price * qty;
+
+      double discountAmount = 0.0;
+      if (row.discountType == 'percentage') {
+        discountAmount = rowSubtotal * ((row.discount ?? 0.0) / 100);
+      } else {
+        discountAmount = row.discount ?? 0.0;
+      }
+
+      return sum + discountAmount;
+    });
+  }
+
+  double _getDirectExpensesSubtotal() {
+    return productRows.fold(0.0, (sum, row) {
+      // Sum only the base direct expenses (without VAT)
+      return sum + row.serviceCost;
+    });
+  }
+
+  double _getOtherExpensesSubtotal() {
+    return billExpenses.fold(0.0, (sum, expense) {
+      return sum + expense.amount;
+    });
+  }
+
+  double _calculateProductsVat() {
+    return productRows.fold(0.0, (sum, row) {
+      return sum + (row.vatAmount ?? 0.0);
+    });
+  }
+
+  double _calculateDirectExpensesVat() {
+    return productRows.fold(0.0, (sum, row) {
+      return sum + (row.directExpenseVatAmount ?? 0.0);
+    });
+  }
+
+  double _calculateOtherExpensesVat() {
+    return billExpenses.fold(0.0, (sum, expense) {
+      return sum + (expense.vatAmount ?? 0.0);
+    });
+  }
+
+  // double _calculateProductsTotal(
+  //   double subtotal,
+  //   double vat,
+  //   PurchaseInvoiceProvider p,
+  // ) {
+  //   final discountAmount = p.discountAmount;
+  //   return (subtotal - discountAmount) + vat;
+  // }
+
+  double _calculateProductsTotal() {
+    return productRows.fold(0.0, (sum, row) {
+      // Only include product costs, not direct expenses
+      return sum + row.total;
+    });
+  }
+
+  // double _calculateDirectExpensesTotal(
+  //   double subtotal,
+  //   double vat,
+  //   PurchaseInvoiceProvider p,
+  // ) {
+  //   // Apply discount logic for direct expenses if needed
+  //   return subtotal + vat;
+  // }
+
+  double _calculateOtherExpensesTotal(
+    double subtotal,
+    double vat,
+    PurchaseInvoiceProvider p,
+  ) {
+    // Apply discount logic for other expenses if needed
+    return subtotal + vat;
+  }
+
+  double _calculateDirectExpensesTotal() {
+    return productRows.fold(0.0, (sum, row) {
+      // Sum all direct expenses from product rows + their VAT
+      return sum + row.serviceCost + row.directExpenseVatAmount;
+    });
+  }
+
+  double _calculateDirectExpensesVatTotal() {
+    return productRows.fold(0.0, (sum, row) {
+      // Sum all direct expenses VAT from product rows
+      return sum + row.directExpenseVatAmount;
+    });
+  }
+
   Widget _buildBookingSummarySection(
     BuildContext context,
     PurchaseInvoiceProvider p,
   ) {
-    final double subtotal = _getSubtotalForDiscount();
+    // final double subtotal = _getSubtotalForDiscount();
     p.itemsTotal = productsGrandTotal;
 
+    // final double subtotal = _getSubtotalForDiscount();
+
+    // // final double discountAmount = p.discountAmount;
+    // // final double amountAfterDiscount = subtotal - discountAmount;
+    // final double discountAmount = p.discountAmount;
+    // final double amountAfterDiscount = subtotal - discountAmount;
+
+    // final double totalVatAmount = _calculateTotalVatAmount();
+
+    // // final double taxAmount = p.getIsTaxApply
+    // //     ? amountAfterDiscount * (p.taxPercent / 100)
+    // //     : 0;
+    // // final double total = amountAfterDiscount + taxAmount;
+    // // p.grandTotal = total;
+    // final double total = amountAfterDiscount; // + totalVatAmount;
+    // p.grandTotal = total;
+    // p.taxAmount = totalVatAmount;
+    final double productsSubtotal = _getProductsSubtotal();
+    final double productsDiscount = _getProductsDiscount();
+    final double productsAmountAfterDiscount =
+        productsSubtotal - productsDiscount;
+    final double directExpensesSubtotal = _getDirectExpensesSubtotal();
+    final double directExpensesTotal = _calculateDirectExpensesTotal();
+    final double otherExpensesSubtotal = _getOtherExpensesSubtotal();
+
+    // Calculate VAT for each section
+    final double productsVat = _calculateProductsVat();
+    final double directExpensesVat = _calculateDirectExpensesVat();
+    final double otherExpensesVat = _calculateOtherExpensesVat();
+
+    // Calculate totals for each section (after discount and VAT)
+    final double productsTotal = _calculateProductsTotal(
+      // productsSubtotal,
+      // productsVat,
+      // p,
+    );
+    final double otherExpensesTotal = _calculateOtherExpensesTotal(
+      otherExpensesSubtotal,
+      otherExpensesVat,
+      p,
+    );
+
+    // Grand total
+    final double grandTotal =
+        productsTotal + directExpensesTotal + otherExpensesTotal;
+    p.grandTotal = grandTotal;
+    final double total = grandTotal;
     if (mounted) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           p.setServicesTotal(servicesGrandTotal);
-          p.setSubtotal(subtotal);
+          p.setSubtotal(grandTotal);
         }
       });
     }
-
-    final double discountAmount = p.discountAmount;
-    final double amountAfterDiscount = subtotal - discountAmount;
-
-    final double totalVatAmount = _calculateTotalVatAmount();
-
-    // final double taxAmount = p.getIsTaxApply
-    //     ? amountAfterDiscount * (p.taxPercent / 100)
-    //     : 0;
-    // final double total = amountAfterDiscount + taxAmount;
-    // p.grandTotal = total;
-    final double total = amountAfterDiscount + totalVatAmount;
-    p.grandTotal = total;
-
     return Container(
       margin: const EdgeInsets.all(8),
       decoration: BoxDecoration(
@@ -8543,68 +8786,174 @@ class _PurchaseInvoiceState extends State<PurchaseInvoice>
             padding: const EdgeInsets.all(12),
             child: Column(
               children: [
+                // _buildUltraCompactCard(
+                //   icon: Icons.inventory_2_outlined,
+                //   title: 'Items',
+                //   children: [
+                //     _buildRow('Products Total', productsGrandTotal),
+                //     if (billExpensesTotal > 0)
+                //       _buildRow('Bill Expenses', billExpensesTotal),
+                //     if (p.discountAmount > 0)
+                //       _buildRow(
+                //         'Discount',
+                //         -p.discountAmount,
+                //         color: Colors.red,
+                //       ),
+                //     _buildDivider(),
+                //     const SizedBox(height: 4),
+                //     _buildRow('Subtotal', subtotal, bold: true),
+                //     if (discountAmount > 0)
+                //       _buildRow('Discount', -discountAmount, color: Colors.red),
+                //     _buildRow("Amount After Discount", amountAfterDiscount),
+                //     _buildRow("Total VAT", totalVatAmount, color: Colors.green),
+                //     _buildDivider(),
+                //     _buildRow('GRAND TOTAL', total, bold: true),
+                //     SizedBox(height: 4),
+                //     // Row(
+                //     //mainAxisAlignment: MainAxisAlignment.end,
+                //     //  children: [
+                //     // Expanded(
+                //     //   child: Row(
+                //     //     children: [
+                //     //       Text(
+                //     //         'VAT (% 5)',
+                //     //         style: TextStyle(
+                //     //           fontSize: 14,
+                //     //           fontWeight: FontWeight.w400,
+                //     //           color: Colors.red,
+                //     //         ),
+                //     //       ),
+                //     //       const SizedBox(width: 5),
+                //     //       Transform.scale(
+                //     //         scale: 0.9,
+                //     //         child: Checkbox(
+                //     //           activeColor: AppTheme.greenColor,
+                //     //           value: p.getIsTaxApply,
+                //     //           onChanged: (v) =>
+                //     //               p.setTax(v ?? false, p.taxPercent),
+                //     //           materialTapTargetSize:
+                //     //               MaterialTapTargetSize.shrinkWrap,
+                //     //         ),
+                //     //       ),
+                //     //     ],
+                //     //   ),
+                //     // ),
+                //     //  _buildRow("VAT", totalVatAmount, color: Colors.red),
+                //     // ],
+                //     // ),
+                //     _buildDivider(),
+                //     const SizedBox(height: 4),
+                //     //  _buildRow('Total', total, bold: true),
+                //     if (depositAlreadyPaid) ...[
+                //       SizedBox(height: 4),
+                //       _buildRow('Paid', -depositAmount, color: Colors.red),
+                //       SizedBox(height: 2),
+                //       _buildRow('Balance Due', remainingAmount, bold: true),
+                //     ],
+                //   ],
+                // ),
+                // _buildUltraCompactCard(
+                //   icon: Icons.inventory_2_outlined,
+                //   title: 'Products',
+                //   children: [
+                //     _buildRow('Products Subtotal', productsSubtotal),
+                //     // if (p.discountAmount > 0)
+                //     //   _buildRow(
+                //     //     'Products Discount',
+                //     //     -p.discountAmount,
+                //     //     color: Colors.red,
+                //     //   ),
+                //     if (productsDiscount > 0)
+                //       _buildRow(
+                //         'Products Discount',
+                //         -productsDiscount,
+                //         color: Colors.red,
+                //       ),
+                //     _buildRow(
+                //       'Amount After Discount',
+                //       productsAmountAfterDiscount,
+                //     ),
+                //     _buildRow("Products VAT", productsVat, color: Colors.green),
+                //     _buildDivider(),
+                //     _buildRow('Products Total', productsTotal, bold: true),
+                //   ],
+                // ),
                 _buildUltraCompactCard(
                   icon: Icons.inventory_2_outlined,
-                  title: 'Items',
+                  title: 'Products',
                   children: [
-                    _buildRow('Products Total', productsGrandTotal),
-                    if (billExpensesTotal > 0)
-                      _buildRow('Bill Expenses', billExpensesTotal),
-                    if (p.discountAmount > 0)
+                    _buildRow('Products Subtotal', productsSubtotal),
+                    if (productsDiscount > 0)
                       _buildRow(
-                        'Discount',
-                        -p.discountAmount,
+                        'Products Discount',
+                        -productsDiscount,
                         color: Colors.red,
                       ),
-                    _buildDivider(),
-                    const SizedBox(height: 4),
                     _buildRow(
-                      'Subtotal',
-                      subtotal - discountAmount,
+                      'Amount After Discount',
+                      productsAmountAfterDiscount,
+                    ),
+                    _buildRow("Products VAT", productsVat, color: Colors.green),
+                    _buildDivider(),
+                    _buildRow('Products Total', productsTotal, bold: true),
+                  ],
+                ),
+                SizedBox(height: 8),
+
+                // DIRECT EXPENSES SECTION
+                _buildUltraCompactCard(
+                  icon: Icons.receipt_long,
+                  title: 'Direct Expenses',
+                  children: [
+                    _buildRow('Direct Expenses', directExpensesSubtotal),
+                    _buildRow(
+                      "Direct Expenses VAT",
+                      directExpensesVat,
+                      color: Colors.green,
+                    ),
+                    _buildDivider(),
+                    _buildRow(
+                      'Direct Expenses Total',
+                      directExpensesTotal,
                       bold: true,
                     ),
-                    SizedBox(height: 4),
-                    // Row(
-                    //mainAxisAlignment: MainAxisAlignment.end,
-                    //  children: [
-                    // Expanded(
-                    //   child: Row(
-                    //     children: [
-                    //       Text(
-                    //         'VAT (% 5)',
-                    //         style: TextStyle(
-                    //           fontSize: 14,
-                    //           fontWeight: FontWeight.w400,
-                    //           color: Colors.red,
-                    //         ),
-                    //       ),
-                    //       const SizedBox(width: 5),
-                    //       Transform.scale(
-                    //         scale: 0.9,
-                    //         child: Checkbox(
-                    //           activeColor: AppTheme.greenColor,
-                    //           value: p.getIsTaxApply,
-                    //           onChanged: (v) =>
-                    //               p.setTax(v ?? false, p.taxPercent),
-                    //           materialTapTargetSize:
-                    //               MaterialTapTargetSize.shrinkWrap,
-                    //         ),
-                    //       ),
-                    //     ],
-                    //   ),
-                    // ),
-                    _buildRow("VAT", totalVatAmount, color: Colors.red),
-                    // ],
-                    // ),
+                  ],
+                ),
+                SizedBox(height: 8),
+
+                // OTHER EXPENSES SECTION
+                _buildUltraCompactCard(
+                  icon: Icons.attach_money,
+                  title: 'Other Expenses',
+                  children: [
+                    _buildRow('Other Expenses Subtotal', otherExpensesSubtotal),
+                    // Add other expenses discount logic if needed
+                    // _buildRow('Other Expenses Discount', -otherExpensesDiscount, color: Colors.red),
+                    _buildRow(
+                      "Other Expenses VAT",
+                      otherExpensesVat,
+                      color: Colors.green,
+                    ),
                     _buildDivider(),
-                    const SizedBox(height: 4),
-                    _buildRow('Total', total, bold: true),
-                    if (depositAlreadyPaid) ...[
-                      SizedBox(height: 4),
-                      _buildRow('Paid', -depositAmount, color: Colors.red),
-                      SizedBox(height: 2),
-                      _buildRow('Balance Due', remainingAmount, bold: true),
-                    ],
+                    _buildRow(
+                      'Other Expenses Total',
+                      otherExpensesTotal,
+                      bold: true,
+                    ),
+                  ],
+                ),
+                SizedBox(height: 8),
+
+                // GRAND TOTAL SECTION
+                _buildUltraCompactCard(
+                  icon: Icons.summarize,
+                  title: 'Grand Total',
+                  children: [
+                    _buildRow('Products Total', productsTotal),
+                    _buildRow('Direct Expenses Total', directExpensesTotal),
+                    _buildRow('Other Expenses Total', otherExpensesTotal),
+                    _buildDivider(),
+                    _buildRow('GRAND TOTAL', grandTotal, bold: true),
                   ],
                 ),
                 SizedBox(height: 8),
@@ -8666,111 +9015,111 @@ class _PurchaseInvoiceState extends State<PurchaseInvoice>
                           ),
                         ),
                         SizedBox(width: 6),
-                        Expanded(
-                          flex: 2,
-                          child: SizedBox(
-                            height: 32,
-                            child: TextFormField(
-                              controller: discountController,
-                              decoration: InputDecoration(
-                                hintText:
-                                    selectedDiscountType.id == 'percentage'
-                                    ? '%'
-                                    : 'Amount',
-                                hintStyle: TextStyle(fontSize: 11),
-                                prefixIcon: Icon(
-                                  selectedDiscountType.id == 'percentage'
-                                      ? Icons.percent
-                                      : Icons.attach_money,
-                                  size: 14,
-                                ),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                contentPadding: EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
-                                isDense: true,
-                              ),
-                              style: TextStyle(fontSize: 14),
-                              keyboardType: TextInputType.numberWithOptions(
-                                decimal: true,
-                              ),
-                              validator: (value) {
-                                if (value == null || value.isEmpty) return null;
-                                final discountValue = double.tryParse(value);
-                                if (discountValue == null) {
-                                  return 'Invalid number';
-                                }
+                        // Expanded(
+                        //   flex: 2,
+                        //   child: SizedBox(
+                        //     height: 32,
+                        //     child: TextFormField(
+                        //       controller: discountController,
+                        //       decoration: InputDecoration(
+                        //         hintText:
+                        //             selectedDiscountType.id == 'percentage'
+                        //             ? '%'
+                        //             : 'Amount',
+                        //         hintStyle: TextStyle(fontSize: 11),
+                        //         prefixIcon: Icon(
+                        //           selectedDiscountType.id == 'percentage'
+                        //               ? Icons.percent
+                        //               : Icons.attach_money,
+                        //           size: 14,
+                        //         ),
+                        //         border: OutlineInputBorder(
+                        //           borderRadius: BorderRadius.circular(6),
+                        //         ),
+                        //         contentPadding: EdgeInsets.symmetric(
+                        //           horizontal: 8,
+                        //           vertical: 4,
+                        //         ),
+                        //         isDense: true,
+                        //       ),
+                        //       style: TextStyle(fontSize: 14),
+                        //       keyboardType: TextInputType.numberWithOptions(
+                        //         decimal: true,
+                        //       ),
+                        //       validator: (value) {
+                        //         if (value == null || value.isEmpty) return null;
+                        //         final discountValue = double.tryParse(value);
+                        //         if (discountValue == null) {
+                        //           return 'Invalid number';
+                        //         }
 
-                                if (selectedDiscountType.id == 'percentage') {
-                                  if (discountValue > 100) {
-                                    return 'Cannot exceed 100%';
-                                  }
-                                  if (discountValue < 0) {
-                                    return 'Cannot be negative';
-                                  }
-                                } else if (selectedDiscountType.id ==
-                                    'amount') {
-                                  if (discountValue > subtotal) {
-                                    return 'Cannot exceed total amount';
-                                  }
-                                  if (discountValue < 0) {
-                                    return 'Cannot be negative';
-                                  }
-                                }
-                                return null;
-                              },
-                              onChanged: (value) {
-                                if (value.isNotEmpty) {
-                                  final discountValue = double.tryParse(value);
-                                  if (discountValue != null) {
-                                    if (selectedDiscountType.id ==
-                                            'percentage' &&
-                                        discountValue > 100) {
-                                      discountController.text = '100';
-                                      discountController.selection =
-                                          TextSelection.collapsed(offset: 3);
-                                    } else if (selectedDiscountType.id ==
-                                            'amount' &&
-                                        discountValue > subtotal) {
-                                      discountController.text = subtotal
-                                          .toStringAsFixed(2);
-                                      discountController.selection =
-                                          TextSelection.collapsed(
-                                            offset: subtotal
-                                                .toStringAsFixed(2)
-                                                .length,
-                                          );
-                                    }
-                                  }
-                                }
-                              },
-                              onEditingComplete: () =>
-                                  _applyDiscount(p, subtotal),
-                            ),
-                          ),
-                        ),
+                        //         if (selectedDiscountType.id == 'percentage') {
+                        //           if (discountValue > 100) {
+                        //             return 'Cannot exceed 100%';
+                        //           }
+                        //           if (discountValue < 0) {
+                        //             return 'Cannot be negative';
+                        //           }
+                        //         } else if (selectedDiscountType.id ==
+                        //             'amount') {
+                        //           if (discountValue > subtotal) {
+                        //             return 'Cannot exceed total amount';
+                        //           }
+                        //           if (discountValue < 0) {
+                        //             return 'Cannot be negative';
+                        //           }
+                        //         }
+                        //         return null;
+                        //       },
+                        //       onChanged: (value) {
+                        //         if (value.isNotEmpty) {
+                        //           final discountValue = double.tryParse(value);
+                        //           if (discountValue != null) {
+                        //             if (selectedDiscountType.id ==
+                        //                     'percentage' &&
+                        //                 discountValue > 100) {
+                        //               discountController.text = '100';
+                        //               discountController.selection =
+                        //                   TextSelection.collapsed(offset: 3);
+                        //             } else if (selectedDiscountType.id ==
+                        //                     'amount' &&
+                        //                 discountValue > subtotal) {
+                        //               discountController.text = subtotal
+                        //                   .toStringAsFixed(2);
+                        //               discountController.selection =
+                        //                   TextSelection.collapsed(
+                        //                     offset: subtotal
+                        //                         .toStringAsFixed(2)
+                        //                         .length,
+                        //                   );
+                        //             }
+                        //           }
+                        //         }
+                        //       },
+                        //       onEditingComplete: () =>
+                        //           _applyDiscount(p, subtotal),
+                        //     ),
+                        //   ),
+                        // ),
                         SizedBox(width: 6),
-                        SizedBox(
-                          height: 32,
-                          child: ElevatedButton(
-                            onPressed: () => _applyDiscount(p, subtotal),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.greenColor,
-                              padding: EdgeInsets.symmetric(horizontal: 8),
-                              minimumSize: Size(50, 32),
-                            ),
-                            child: Text(
-                              'Apply',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ),
+                        // SizedBox(
+                        //   height: 32,
+                        //   child: ElevatedButton(
+                        //     onPressed: () => _applyDiscount(p, subtotal),
+                        //     style: ElevatedButton.styleFrom(
+                        //       backgroundColor: AppTheme.greenColor,
+                        //       padding: EdgeInsets.symmetric(horizontal: 8),
+                        //       minimumSize: Size(50, 32),
+                        //     ),
+                        //     child: Text(
+                        //       'Apply',
+                        //       style: TextStyle(
+                        //         fontSize: 12,
+                        //         color: Colors.white,
+                        //       ),
+                        //     ),
+                        //   ),
+                        // ),
                       ],
                     ),
                   ],
@@ -9437,6 +9786,7 @@ class _PurchaseInvoiceState extends State<PurchaseInvoice>
                           isEdit: widget.purchase != null,
                           total: total,
                           discount: d,
+                          onBack: widget.onBack!.call,
                           taxAmount:
                               _calculateTotalVatAmount(), //totalVatAmount,
                           paymentData: paymentData,
@@ -11706,6 +12056,59 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
     );
   }
 
+  Widget _buildDirectExpenseDisplay() {
+    final hasDirectExpense = widget.productRow.serviceCost > 0;
+
+    return Container(
+      height: 44,
+      padding: EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: hasDirectExpense ? Colors.amber[50] : Colors.grey[50],
+        border: Border.all(
+          color: hasDirectExpense ? Colors.amber[200]! : Colors.grey[300]!,
+        ),
+      ),
+      alignment: Alignment.centerLeft,
+      child: Text(
+        hasDirectExpense
+            ? 'OMR ${widget.productRow.serviceCost.toStringAsFixed(2)}'
+            : 'OMR 0.00',
+        style: TextStyle(
+          fontSize: 13,
+          fontWeight: hasDirectExpense ? FontWeight.w600 : FontWeight.normal,
+          color: hasDirectExpense ? Colors.amber[900] : Colors.grey[800],
+        ),
+      ),
+    );
+  }
+
+  // _buildRow(
+  //                     'Direct Expenses Total',
+  //                     directExpensesTotal,
+  //                     bold: true,
+  //                   ),
+
+  Widget _buildTotalAmountDisplayForDirectExpense() {
+    return Container(
+      height: 44,
+      padding: EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey[300]!),
+        borderRadius: BorderRadius.circular(4),
+        color: Colors.grey[50],
+      ),
+      alignment: Alignment.centerLeft,
+      child: Text(
+        'OMR ${widget.productRow.directExpenseVatAmount.toStringAsFixed(2)}',
+        style: TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+          color: Colors.grey[800],
+        ),
+      ),
+    );
+  }
+
   Widget _buildVatAmountDisplayForDirectExpense() {
     return Container(
       height: 44,
@@ -12334,6 +12737,12 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
                     ],
                   ),
                 ),
+                _buildFieldBlock(
+                  header: 'DIRECT EXPENSE',
+                  flex: 2,
+                  child: _buildDirectExpenseDisplay(),
+                ),
+                SizedBox(width: 8),
                 SizedBox(width: 8),
                 // Total
                 _buildFieldBlock(
@@ -12573,6 +12982,26 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
                           children: [
                             Text(
                               'VAT Amount',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.grey[700],
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            _buildVatAmountDisplayForDirectExpense(), // Use the new method
+                          ],
+                        ),
+                      ),
+                      SizedBox(width: 16),
+                      // total to be displayed here
+                      SizedBox(
+                        width: 120,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Total',
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w500,

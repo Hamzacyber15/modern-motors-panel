@@ -18,6 +18,7 @@ import 'package:modern_motors_panel/model/supplier/supplier_model.dart';
 import 'package:modern_motors_panel/modern_motors/invoices/invoice_logs_timeline.dart';
 import 'package:modern_motors_panel/modern_motors/products/DataTableProductCell.dart';
 import 'package:modern_motors_panel/modern_motors/products/product_details_dialogue.dart';
+import 'package:modern_motors_panel/modern_motors/purchase/purchase_coa_transactions.dart';
 import 'package:modern_motors_panel/modern_motors/purchase/purchase_payment_page.dart';
 import 'package:modern_motors_panel/modern_motors/services/data_fetch_service.dart';
 import 'package:modern_motors_panel/modern_motors/services_maintenance/create_booking_main_page.dart';
@@ -2275,13 +2276,18 @@ class _PurchaseListViewState extends State<PurchaseListView> {
     switch (action) {
       case SaleAction.view:
         // Navigate to sale details
-        // Navigator.of(context).push(
-        //   MaterialPageRoute(
-        //     builder: (_) {
-        //       return SalesInvoiceDropdownView(type: "sale", sale: sale);
-        //     },
-        //   ),
-        // );
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) {
+              return
+              // SalesInvoiceDropdownView(type: "sale", sale: sale);
+              PurchaseCOAStatement(
+                purchaseId: sale.id,
+                branchId: "NRHLuRZIA2AMZXjW4TDI",
+              );
+            },
+          ),
+        );
 
         debugPrint('View sale: ${sale.id}');
         break;

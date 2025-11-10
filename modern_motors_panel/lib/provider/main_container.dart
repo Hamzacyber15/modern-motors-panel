@@ -468,6 +468,13 @@ enum MainContainer {
       iconPath: "assets/images/dollar.png",
     ),
   ),
+  financialReport(
+    ContainerData(
+      key: "expenseCategory",
+      label: "Expense Category",
+      iconPath: "assets/images/dollar.png",
+    ),
+  ),
   nationality(
     ContainerData(
       key: "nationality",
@@ -475,6 +482,7 @@ enum MainContainer {
       iconPath: "assets/images/dollar.png",
     ),
   );
+  // FinancialReportsPage
 
   final ContainerData data;
   const MainContainer(this.data);

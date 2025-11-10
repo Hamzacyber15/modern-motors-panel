@@ -746,13 +746,15 @@ class PurchaseInvoiceProvider extends ChangeNotifier {
     final double serviceCost =
         (product['serviceCost'] as num?)?.toDouble() ?? 0;
     double total = amountAfterDiscount + serviceCost + vatAmount;
-
+    final double vAmount =
+        serviceCost * 0.05; //(product['vatAmount'] as num?)?.toDouble() ?? 0;
+    double uPrice = amountAfterDiscount / quantity;
     return {
       'type': type,
       'productId': product['productId'],
       'productName': product['productName'],
       'quantity': quantity,
-      'unitPrice': unitPrice,
+      'unitPrice': uPrice,
       'totalPrice': total,
       'discount': discount,
       'discountType': discountType,
@@ -763,15 +765,15 @@ class PurchaseInvoiceProvider extends ChangeNotifier {
       // 'serviceType': product['serviceType'],
       //'supplierId': product['supplierId'],
       'addToPurchaseCost': product['addToPurchaseCost'] ?? false,
-      'subtotal': subtotal,
+      'subtotal': amountAfterDiscount, //subtotal,
       'amountAfterDiscount': amountAfterDiscount,
-      'total': total,
+      'total': amountAfterDiscount + vatAmount,
       'directExpense': {
         'amount': serviceCost,
         'type': product['serviceType'],
         'supplierId': product['supplierId'],
         'vatType': vatType,
-        'vatAmount': vatAmount,
+        'vatAmount': vAmount,
         'includeInCost': product['addToPurchaseCost'] ?? false,
       },
     };
@@ -923,7 +925,7 @@ class PurchaseInvoiceProvider extends ChangeNotifier {
     // required double taxAmount,
     // required double discount,
     // required String statusType,
-    // VoidCallback? onBack,
+    VoidCallback? onBack,
     // bool isEdit = false,
     // NewPurchaseModel? purchase,
     required List<Map<String, dynamic>> productsData,
@@ -1065,12 +1067,15 @@ class PurchaseInvoiceProvider extends ChangeNotifier {
         List<Map<String, dynamic>> items = [];
         double itemsSubtotal = 0;
         double itemsVatTotal = 0;
-
+        double directExpensesSubtotal = 0;
+        double directExpensesVatTotal = 0;
         for (var product in productsData) {
           final item = _processProductItem(product);
           items.add(item);
           itemsSubtotal += item['subtotal'] as double;
           itemsVatTotal += item['vatAmount'] as double;
+          // directExpensesSubtotal += item[''];
+          // directExpensesVatTotal += item[''];
         }
         List<Map<String, dynamic>> otherExpenses = [];
         double expensesSubtotal = 0;
@@ -1119,6 +1124,8 @@ class PurchaseInvoiceProvider extends ChangeNotifier {
             'taxAmount': taxAmount, //itemsVatTotal,
             'expensesSubtotal': expensesSubtotal,
             'expensesVatTotal': expensesVatTotal,
+            // 'directExpensesSubtotal': 0,
+            // 'directExpensesVatTotal': 0,
             'grandSubtotal': grandSubtotal,
             'grandVatTotal': grandVatTotal,
             'discount': discount,
@@ -1220,13 +1227,13 @@ class PurchaseInvoiceProvider extends ChangeNotifier {
       );
 
       clearData();
-      // onBack?.call();
+      onBack?.call();
     } catch (e) {
       if (context.mounted) {
         debugPrint("${"sale error"} ${e.toString()}");
         Constants.showMessage(context, 'Failed to save booking: $e');
         updateLoadingStatus(false);
-        // onBack?.call();
+        onBack?.call();
       }
     } finally {
       updateLoadingStatus(false);

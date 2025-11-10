@@ -1,0 +1,552 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
+
+class COATransactionsList extends StatefulWidget {
+  const COATransactionsList({super.key});
+
+  @override
+  State<COATransactionsList> createState() => _COATransactionsListState();
+}
+
+class _COATransactionsListState extends State<COATransactionsList> {
+  List<COATransaction> transactions = [];
+  List<COATransaction> filteredTransactions = [];
+  List<ChartOfAccount> allAccounts = [];
+  List<BranchModel> branchesList = [];
+  bool loading = false;
+  bool loadingBranches = false;
+  String? selectedBranchId;
+  String? selectedAccountId;
+  String searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBranches();
+  }
+
+  Future<void> _loadBranches() async {
+    if (loadingBranches) return;
+    
+    setState(() => loadingBranches = true);
+    
+    try {
+      QuerySnapshot branchesSnapshot = await FirebaseFirestore.instance
+          .collection('branches')
+          .get();
+
+      branchesList = branchesSnapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        return BranchModel(
+          id: doc.id,
+          name: data['name'] ?? data['branchName'] ?? 'Unknown Branch',
+        );
+      }).toList();
+
+      // Auto-select headOffice branch
+      final headOfficeBranch = branchesList.firstWhere(
+        (branch) => branch.id.toLowerCase().contains('headoffice') || 
+                    branch.name?.toLowerCase().contains('head office') == true,
+        orElse: () => branchesList.isNotEmpty ? branchesList.first : BranchModel(id: '', name: ''),
+      );
+
+      if (headOfficeBranch.id.isNotEmpty) {
+        selectedBranchId = headOfficeBranch.id;
+        debugPrint('🏢 Auto-selected branch: ${headOfficeBranch.name}');
+        _loadData();
+      }
+      
+    } catch (e) {
+      debugPrint('Error loading branches: $e');
+    } finally {
+      setState(() => loadingBranches = false);
+    }
+  }
+
+  Future<void> _loadData() async {
+    if (loading) return;
+    
+    setState(() => loading = true);
+    transactions.clear();
+    filteredTransactions.clear();
+    allAccounts.clear();
+
+    try {
+      // Load transactions first
+      QuerySnapshot transactionsSnapshot = await FirebaseFirestore.instance
+          .collection('coaTransactions')
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      debugPrint('📊 Loading ${transactionsSnapshot.docs.length} transactions');
+
+      // First pass: Create transactions without account details
+      List<COATransaction> tempTransactions = [];
+      for (var doc in transactionsSnapshot.docs) {
+        final transaction = COATransaction.fromFirestore(doc, null, null);
+        tempTransactions.add(transaction);
+      }
+
+      // Now load account details
+      await _loadAllChartOfAccounts(tempTransactions);
+
+      // Second pass: Update transactions with account details
+      for (int i = 0; i < tempTransactions.length; i++) {
+        final transaction = tempTransactions[i];
+        if (transaction.accountID.isNotEmpty) {
+          final matchingAccounts = allAccounts.where((acc) => acc.id == transaction.accountID).toList();
+          if (matchingAccounts.isNotEmpty) {
+            tempTransactions[i] = COATransaction(
+              id: transaction.id,
+              accountID: transaction.accountID,
+              amount: transaction.amount,
+              branchId: transaction.branchId,
+              cost: transaction.cost,
+              createdAt: transaction.createdAt,
+              date: transaction.date,
+              memo: transaction.memo,
+              refID: transaction.refID,
+              refType: transaction.refType,
+              vat: transaction.vat,
+              accountCode: matchingAccounts.first.accountCode,
+              accountName: matchingAccounts.first.accountName,
+            );
+          }
+        }
+      }
+
+      transactions = tempTransactions;
+      debugPrint('✅ Processed ${transactions.length} transactions');
+      filteredTransactions = List.from(transactions);
+      _applyFilters();
+
+    } catch (e) {
+      debugPrint('Error loading COA transactions: $e');
+    } finally {
+      setState(() => loading = false);
+    }
+  }
+
+  Future<void> _loadAllChartOfAccounts(List<COATransaction> tempTransactions) async {
+    try {
+      // Group account IDs by branch
+      Map<String, List<String>> accountsByBranch = {};
+      
+      for (var transaction in tempTransactions) {
+        if (transaction.accountID.isNotEmpty && transaction.branchId.isNotEmpty) {
+          if (!accountsByBranch.containsKey(transaction.branchId)) {
+            accountsByBranch[transaction.branchId] = [];
+          }
+          accountsByBranch[transaction.branchId]!.add(transaction.accountID);
+        }
+      }
+
+      debugPrint('🔍 Loading accounts from ${accountsByBranch.length} branches');
+      allAccounts.clear();
+      
+      // Load accounts for each branch
+      for (var branchId in accountsByBranch.keys) {
+        List<String> accountIds = accountsByBranch[branchId]!.toSet().toList();
+        
+        debugPrint('📂 Loading ${accountIds.length} accounts from branch $branchId');
+
+        // Load accounts in batches
+        const int batchSize = 10;
+        for (int i = 0; i < accountIds.length; i += batchSize) {
+          List<String> batchIds = accountIds.sublist(
+            i, 
+            i + batchSize > accountIds.length ? accountIds.length : i + batchSize
+          );
+
+          try {
+            QuerySnapshot batchSnapshot = await FirebaseFirestore.instance
+                .collection('chartOfAccounts')
+                .doc(branchId)
+                .collection('chartOfAccounts')
+                .where(FieldPath.documentId, whereIn: batchIds)
+                .get();
+
+            for (var doc in batchSnapshot.docs) {
+              ChartOfAccount account = ChartOfAccount.fromFirestore(doc);
+              allAccounts.add(account);
+            }
+          } catch (e) {
+            debugPrint('🚨 Error loading batch from branch $branchId: $e');
+            // Fallback to individual loading
+            for (String accountId in batchIds) {
+              try {
+                DocumentSnapshot accountDoc = await FirebaseFirestore.instance
+                    .collection('chartOfAccounts')
+                    .doc(branchId)
+                    .collection('chartOfAccounts')
+                    .doc(accountId)
+                    .get();
+
+                if (accountDoc.exists) {
+                  ChartOfAccount account = ChartOfAccount.fromFirestore(accountDoc);
+                  allAccounts.add(account);
+                }
+              } catch (e2) {
+                debugPrint('🚨 Error loading individual account $accountId: $e2');
+              }
+            }
+          }
+        }
+      }
+
+      debugPrint('📈 Successfully loaded ${allAccounts.length} chart of accounts');
+
+    } catch (e) {
+      debugPrint('Error loading chart of accounts: $e');
+    }
+  }
+
+  void _applyFilters() {
+    List<COATransaction> tempList = List.from(transactions);
+
+    if (selectedBranchId != null) {
+      tempList = tempList.where((transaction) => transaction.branchId == selectedBranchId).toList();
+    }
+
+    if (selectedAccountId != null && selectedAccountId!.isNotEmpty) {
+      tempList = tempList.where((transaction) => transaction.accountID == selectedAccountId).toList();
+    }
+
+    if (searchQuery.isNotEmpty) {
+      final query = searchQuery.toLowerCase();
+      tempList = tempList.where((transaction) =>
+        transaction.memo.toLowerCase().contains(query) ||
+        transaction.accountName?.toLowerCase().contains(query) == true ||
+        transaction.accountCode?.toLowerCase().contains(query) == true ||
+        transaction.refID.toLowerCase().contains(query)
+      ).toList();
+    }
+
+    setState(() {
+      filteredTransactions = tempList;
+    });
+  }
+
+  void _onBranchChanged(String? newBranchId) {
+    setState(() {
+      selectedBranchId = newBranchId;
+      selectedAccountId = null;
+    });
+    _loadData();
+  }
+
+  void _onAccountChanged(String? newAccountId) {
+    setState(() {
+      selectedAccountId = newAccountId;
+    });
+    _applyFilters();
+  }
+
+  void _onSearchChanged(String query) {
+    setState(() {
+      searchQuery = query;
+    });
+    _applyFilters();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      
+      body: Column(
+        children: [
+          // Filters Section
+          Card(
+            margin: const EdgeInsets.all(12.0),
+            elevation: 2,
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  // Branch Dropdown
+                  Row(
+                    children: [
+                      //Text('Branch:'.tr(), style: const TextStyle(fontWeight: FontWeight.w500)),
+                     // const SizedBox(width: 10),
+                      Expanded(
+                        child: loadingBranches
+                            ? const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 8.0),
+                                child: LinearProgressIndicator(),
+                              )
+                            : DropdownButton<String>(
+                                value: selectedBranchId,
+                                isExpanded: true,
+                                items: [
+                                  DropdownMenuItem<String>(
+                                    value: null,
+                                    child: Text('All Branches'.tr()),
+                                  ),
+                                  ...branchesList.map((branch) {
+                                    return DropdownMenuItem<String>(
+                                      value: branch.id,
+                                      child: Text(branch.name ?? 'Unknown Branch'),
+                                    );
+                                  }).toList(),
+                                ],
+                                onChanged: _onBranchChanged,
+                              ),
+                            
+                        
+                      ),
+                             Expanded(
+                        child: DropdownButton<String>(
+                          value: selectedAccountId,
+                          isExpanded: true,
+                          items: [
+                            DropdownMenuItem<String>(
+                              value: null,
+                              child: Text('All Accounts'.tr()),
+                            ),
+                            ...allAccounts.map((account) {
+                              return DropdownMenuItem<String>(
+                                value: account.id,
+                                child: Text('${account.accountCode} - ${account.accountName}'),
+                              );
+                            }).toList(),
+                          ],
+                          onChanged: _onAccountChanged,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  
+                  // Account Dropdown
+                  Row(
+                    children: [
+                      Text('Account:'.tr(), style: const TextStyle(fontWeight: FontWeight.w500)),
+                      const SizedBox(width: 10),
+                     
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  
+                  // Search Field
+                  TextField(
+                    onChanged: _onSearchChanged,
+                    decoration: InputDecoration(
+                      labelText: 'Search by memo, account, or ref ID'.tr(),
+                      prefixIcon: const Icon(Icons.search, size: 20),
+                      border: const OutlineInputBorder(),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Transactions List
+          Expanded(
+            child: loading
+                ? const Center(child: CircularProgressIndicator())
+                : filteredTransactions.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.receipt_long, size: 64, color: Colors.grey[400]),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No transactions found'.tr(),
+                              style: TextStyle(color: Colors.grey[600]),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.separated(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        itemCount: filteredTransactions.length,
+                        separatorBuilder: (context, index) => const SizedBox(height: 8),
+                        itemBuilder: (context, index) {
+                          final transaction = filteredTransactions[index];
+                          return _buildTransactionCard(transaction);
+                        },
+                      ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTransactionCard(COATransaction transaction) {
+    return Card(
+      elevation: 1,
+      margin: EdgeInsets.zero,
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey[200]!),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header Row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Ref: ${transaction.refID}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Text(
+                    _formatDate(transaction.date),
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              
+              // // Account Information - FIXED: Now properly displayed
+             // transaction.accountCode != null && transaction.accountName != null ?
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.blue[50],
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    '${transaction.accountCode} - ${transaction.accountName}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 12,
+                      color: Colors.blue
+                    ),
+                  ),
+                ),// : null,
+              const SizedBox(height: 8),
+              
+              // Memo
+              if (transaction.memo.isNotEmpty)
+                Text(
+                  transaction.memo,
+                  style: TextStyle(
+                    color: Colors.grey[700],
+                    fontSize: 14,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              
+              const SizedBox(height: 12),
+              
+              // Financial Details
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildAmountRow('Amount', transaction.amount),
+                      const SizedBox(height: 4),
+                      _buildAmountRow('Cost', transaction.cost),
+                    ],
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      _buildAmountRow('VAT', transaction.vat),
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: _getRefTypeColor(transaction.refType),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          transaction.refType.toUpperCase(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              
+              // Branch
+              const SizedBox(height: 8),
+              Text(
+                'Branch: ${_getBranchName(transaction.branchId)}',
+                style: TextStyle(
+                  color: Colors.grey[500],
+                  fontSize: 11,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAmountRow(String label, double amount) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          '$label: ',
+          style: TextStyle(
+            color: Colors.grey[600],
+            fontSize: 12,
+          ),
+        ),
+        Text(
+          'OMR ${amount.toStringAsFixed(2)}',
+          style: const TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 12,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Color _getRefTypeColor(String refType) {
+    switch (refType.toLowerCase()) {
+      case 'purchase':
+        return Colors.green;
+      case 'sale':
+        return Colors.blue;
+      case 'expense':
+        return Colors.orange;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  String _formatDate(Timestamp timestamp) {
+    final date = timestamp.toDate();
+    return '${date.day}/${date.month}/${date.year} - ${date.hour}/${date.minute}';
+  }
+
+  String _getBranchName(String branchId) {
+    try {
+      final branch = branchesList.firstWhere((b) => b.id == branchId);
+      return branch.name ?? 'Unknown Branch';
+    } catch (e) {
+      return 'Unknown Branch';
+    }
+  }
+}

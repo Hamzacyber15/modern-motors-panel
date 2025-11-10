@@ -2657,6 +2657,7 @@ class _MmAdminMainPageState extends State<MmAdminMainPage> {
       //'Customers'.tr(): [MainContainer.customers],
       //'Designation'.tr(): [MainContainer.manageDesignation],
       'Accounting'.tr(): [
+        MainContainer.financialReport,
         MainContainer.journalEntries,
         MainContainer.chartOfAccounts,
       ],

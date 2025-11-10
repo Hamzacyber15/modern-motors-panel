@@ -4239,113 +4239,113 @@ enum AccountSubType {
   final AccountType parentType;
 }
 
-class ChartOfAccount {
-  final String id;
-  final String accountCode;
-  final String accountName;
-  final AccountType accountType;
-  final AccountSubType accountSubType;
-  final String? parentAccountId;
-  final bool isDefault;
-  final bool isActive;
-  final double currentBalance;
-  final String? description;
-  final DateTime createdAt;
-  final String? createdBy;
-  final List<String> childAccountIds;
-  final int level; // 0 = main, 1 = sub, 2 = sub-sub
+// class ChartOfAccount {
+//   final String id;
+//   final String accountCode;
+//   final String accountName;
+//   final AccountType accountType;
+//   final AccountSubType accountSubType;
+//   final String? parentAccountId;
+//   final bool isDefault;
+//   final bool isActive;
+//   final double currentBalance;
+//   final String? description;
+//   final DateTime createdAt;
+//   final String? createdBy;
+//   final List<String> childAccountIds;
+//   final int level; // 0 = main, 1 = sub, 2 = sub-sub
 
-  ChartOfAccount({
-    required this.id,
-    required this.accountCode,
-    required this.accountName,
-    required this.accountType,
-    required this.accountSubType,
-    this.parentAccountId,
-    required this.isDefault,
-    this.isActive = true,
-    this.currentBalance = 0.0,
-    this.description,
-    required this.createdAt,
-    this.createdBy,
-    this.childAccountIds = const [],
-    required this.level,
-  });
+//   ChartOfAccount({
+//     required this.id,
+//     required this.accountCode,
+//     required this.accountName,
+//     required this.accountType,
+//     required this.accountSubType,
+//     this.parentAccountId,
+//     required this.isDefault,
+//     this.isActive = true,
+//     this.currentBalance = 0.0,
+//     this.description,
+//     required this.createdAt,
+//     this.createdBy,
+//     this.childAccountIds = const [],
+//     required this.level,
+//   });
 
-  Map<String, dynamic> toMap() {
-    return {
-      'account_code': accountCode,
-      'account_name': accountName,
-      'account_type': accountType.name,
-      'account_sub_type': accountSubType.name,
-      'parent_account_id': parentAccountId,
-      'is_default': isDefault,
-      'is_active': isActive,
-      'current_balance': currentBalance,
-      'description': description,
-      'created_at': createdAt,
-      'created_by': createdBy,
-      'child_account_ids': childAccountIds,
-      'level': level,
-    };
-  }
+//   Map<String, dynamic> toMap() {
+//     return {
+//       'account_code': accountCode,
+//       'account_name': accountName,
+//       'account_type': accountType.name,
+//       'account_sub_type': accountSubType.name,
+//       'parent_account_id': parentAccountId,
+//       'is_default': isDefault,
+//       'is_active': isActive,
+//       'current_balance': currentBalance,
+//       'description': description,
+//       'created_at': createdAt,
+//       'created_by': createdBy,
+//       'child_account_ids': childAccountIds,
+//       'level': level,
+//     };
+//   }
 
-  factory ChartOfAccount.fromMap(String id, Map<String, dynamic> map) {
-    return ChartOfAccount(
-      id: id,
-      accountCode: map['account_code'] ?? '',
-      accountName: map['account_name'] ?? '',
-      accountType: AccountType.values.firstWhere(
-        (e) => e.name == map['account_type'],
-        orElse: () => AccountType.asset,
-      ),
-      accountSubType: AccountSubType.values.firstWhere(
-        (e) => e.name == map['account_sub_type'],
-        orElse: () => AccountSubType.currentAsset,
-      ),
-      parentAccountId: map['parent_account_id'],
-      isDefault: map['is_default'] ?? false,
-      isActive: map['is_active'] ?? true,
-      currentBalance: (map['current_balance'] ?? 0).toDouble(),
-      description: map['description'],
-      createdAt: (map['created_at'] as Timestamp).toDate(),
-      createdBy: map['created_by'],
-      childAccountIds: List<String>.from(map['child_account_ids'] ?? []),
-      level: map['level'] ?? 0,
-    );
-  }
+//   factory ChartOfAccount.fromMap(String id, Map<String, dynamic> map) {
+//     return ChartOfAccount(
+//       id: id,
+//       accountCode: map['account_code'] ?? '',
+//       accountName: map['account_name'] ?? '',
+//       accountType: AccountType.values.firstWhere(
+//         (e) => e.name == map['account_type'],
+//         orElse: () => AccountType.asset,
+//       ),
+//       accountSubType: AccountSubType.values.firstWhere(
+//         (e) => e.name == map['account_sub_type'],
+//         orElse: () => AccountSubType.currentAsset,
+//       ),
+//       parentAccountId: map['parent_account_id'],
+//       isDefault: map['is_default'] ?? false,
+//       isActive: map['is_active'] ?? true,
+//       currentBalance: (map['current_balance'] ?? 0).toDouble(),
+//       description: map['description'],
+//       createdAt: (map['created_at'] as Timestamp).toDate(),
+//       createdBy: map['created_by'],
+//       childAccountIds: List<String>.from(map['child_account_ids'] ?? []),
+//       level: map['level'] ?? 0,
+//     );
+//   }
 
-  ChartOfAccount copyWith({
-    String? accountCode,
-    String? accountName,
-    AccountType? accountType,
-    AccountSubType? accountSubType,
-    String? parentAccountId,
-    bool? isDefault,
-    bool? isActive,
-    double? currentBalance,
-    String? description,
-    List<String>? childAccountIds,
-    int? level,
-  }) {
-    return ChartOfAccount(
-      id: id,
-      accountCode: accountCode ?? this.accountCode,
-      accountName: accountName ?? this.accountName,
-      accountType: accountType ?? this.accountType,
-      accountSubType: accountSubType ?? this.accountSubType,
-      parentAccountId: parentAccountId ?? this.parentAccountId,
-      isDefault: isDefault ?? this.isDefault,
-      isActive: isActive ?? this.isActive,
-      currentBalance: currentBalance ?? this.currentBalance,
-      description: description ?? this.description,
-      createdAt: createdAt,
-      createdBy: createdBy,
-      childAccountIds: childAccountIds ?? this.childAccountIds,
-      level: level ?? this.level,
-    );
-  }
-}
+//   ChartOfAccount copyWith({
+//     String? accountCode,
+//     String? accountName,
+//     AccountType? accountType,
+//     AccountSubType? accountSubType,
+//     String? parentAccountId,
+//     bool? isDefault,
+//     bool? isActive,
+//     double? currentBalance,
+//     String? description,
+//     List<String>? childAccountIds,
+//     int? level,
+//   }) {
+//     return ChartOfAccount(
+//       id: id,
+//       accountCode: accountCode ?? this.accountCode,
+//       accountName: accountName ?? this.accountName,
+//       accountType: accountType ?? this.accountType,
+//       accountSubType: accountSubType ?? this.accountSubType,
+//       parentAccountId: parentAccountId ?? this.parentAccountId,
+//       isDefault: isDefault ?? this.isDefault,
+//       isActive: isActive ?? this.isActive,
+//       currentBalance: currentBalance ?? this.currentBalance,
+//       description: description ?? this.description,
+//       createdAt: createdAt,
+//       createdBy: createdBy,
+//       childAccountIds: childAccountIds ?? this.childAccountIds,
+//       level: level ?? this.level,
+//     );
+//   }
+// }
 
 // =====================================================
 // DEFAULT CHART OF ACCOUNTS DATA

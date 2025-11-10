@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:modern_motors_panel/brands/brands_page.dart';
 import 'package:modern_motors_panel/modern_motors/accounts/add_journal_entries.dart';
+import 'package:modern_motors_panel/modern_motors/accounts/financial_reports_page.dart';
 import 'package:modern_motors_panel/modern_motors/branch/branches_page.dart';
 import 'package:modern_motors_panel/modern_motors/customers/customers_main_page.dart';
 import 'package:modern_motors_panel/modern_motors/dashboard/coming_soon.dart';
@@ -200,5 +201,7 @@ Widget getSelectedPageWidget({
       return SalePaymentsScreen();
     case MainContainer.expenseCategory:
       return ExpenseCategoryPage();
+    case MainContainer.financialReport:
+      return FinancialReportsPage();
   }
 }
