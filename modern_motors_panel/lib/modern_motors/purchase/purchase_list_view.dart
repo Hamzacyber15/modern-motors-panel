@@ -20,6 +20,7 @@ import 'package:modern_motors_panel/modern_motors/widgets/customer_name_tile.dar
 import 'package:modern_motors_panel/modern_motors/widgets/employees/mm_employee_info_tile.dart';
 import 'package:modern_motors_panel/modern_motors/widgets/sales_invoice_dropdown_view.dart';
 import 'package:modern_motors_panel/modern_motors/widgets/simple_purchase_confirmation_dialogue.dart';
+import 'package:modern_motors_panel/modern_motors/widgets/supplier_name_tile.dart';
 import 'package:modern_motors_panel/provider/modern_motors/mm_resource_provider.dart';
 import 'package:modern_motors_panel/widgets/loading_widget.dart';
 import 'package:provider/provider.dart';
@@ -342,7 +343,7 @@ class PurchaseCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    CustomerNameTile(customerId: sale.supplierId),
+                    SupplierNameTile(customerId: sale.supplierId),
                     const SizedBox(height: 2),
                     // Text(
                     //   sale.paymentMethod,
@@ -1279,13 +1280,13 @@ class _PurchaseFilterDialogState extends State<PurchaseFilterDialog> {
 
                     // Customer Filter with Searchable Dropdown
                     _buildFilterSection(
-                      title: 'Customer',
+                      title: 'Supplier',
                       child: Column(
                         children: [
                           TextField(
                             controller: _supplierSearchController,
                             decoration: InputDecoration(
-                              hintText: 'Type customer name...',
+                              hintText: 'Type supplier name...',
                               prefixIcon: Icon(
                                 Icons.person_search,
                                 color: Colors.grey.shade600,

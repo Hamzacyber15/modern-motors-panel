@@ -250,6 +250,12 @@ class MmResourceProvider with ChangeNotifier {
     }
   }
 
+  SupplierModel getSupplierByID(String id) {
+    SupplierModel supplier;
+    supplier = suppliersList.firstWhere((element) => element.id == id);
+    return supplier;
+  }
+
   Future<bool> getCountries() async {
     try {
       await FirebaseFirestore.instance.collection('country').get().then((
