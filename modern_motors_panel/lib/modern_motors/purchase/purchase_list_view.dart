@@ -1,5 +1,4 @@
 // ignore_for_file: deprecated_member_use
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -7,8 +6,6 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:modern_motors_panel/app_theme.dart';
 import 'package:modern_motors_panel/constants.dart';
 import 'package:modern_motors_panel/model/admin_model/brands_model.dart';
-import 'package:modern_motors_panel/model/customer_models/customer_models.dart';
-import 'package:modern_motors_panel/model/payment_data.dart';
 import 'package:modern_motors_panel/model/product_models/product_category_model.dart';
 import 'package:modern_motors_panel/model/product_models/product_model.dart';
 import 'package:modern_motors_panel/model/product_models/product_sub_category_model.dart';
@@ -16,85 +13,30 @@ import 'package:modern_motors_panel/model/purchase_models/new_purchase_model.dar
 import 'package:modern_motors_panel/model/sales_model/sale_model.dart';
 import 'package:modern_motors_panel/model/supplier/supplier_model.dart';
 import 'package:modern_motors_panel/modern_motors/invoices/invoice_logs_timeline.dart';
-import 'package:modern_motors_panel/modern_motors/products/DataTableProductCell.dart';
-import 'package:modern_motors_panel/modern_motors/products/product_details_dialogue.dart';
 import 'package:modern_motors_panel/modern_motors/purchase/purchase_coa_transactions.dart';
 import 'package:modern_motors_panel/modern_motors/purchase/purchase_payment_page.dart';
 import 'package:modern_motors_panel/modern_motors/services/data_fetch_service.dart';
-import 'package:modern_motors_panel/modern_motors/services_maintenance/create_booking_main_page.dart';
 import 'package:modern_motors_panel/modern_motors/widgets/customer_name_tile.dart';
 import 'package:modern_motors_panel/modern_motors/widgets/employees/mm_employee_info_tile.dart';
-import 'package:modern_motors_panel/modern_motors/widgets/image_gallery_dialogue.dart';
-import 'package:modern_motors_panel/modern_motors/widgets/payment_details_dialog.dart';
 import 'package:modern_motors_panel/modern_motors/widgets/sales_invoice_dropdown_view.dart';
+import 'package:modern_motors_panel/modern_motors/widgets/simple_purchase_confirmation_dialogue.dart';
 import 'package:modern_motors_panel/provider/modern_motors/mm_resource_provider.dart';
+import 'package:modern_motors_panel/widgets/loading_widget.dart';
 import 'package:provider/provider.dart';
 
-// Mock models - replace with your actual models
-// class SaleModel {
-//   final String? id;
-//   final String? saleNumber;
-//   final String? customerName;
-//   final String? categoryId;
-//   final String? subCategoryId;
-//   final String? brandId;
-//   final double? totalAmount;
-//   final double? paidAmount;
-//   final double? remainingAmount;
-//   final String? status;
-//   final DateTime? saleDate;
-//   final String? createdBy;
-//   final String? description;
-//   final String? paymentMethod;
-//   final int? itemCount;
-
-//   SaleModel({
-//     this.id,
-//     this.saleNumber,
-//     this.customerName,
-//     this.categoryId,
-//     this.subCategoryId,
-//     this.brandId,
-//     this.totalAmount,
-//     this.paidAmount,
-//     this.remainingAmount,
-//     this.status,
-//     this.saleDate,
-//     this.createdBy,
-//     this.description,
-//     this.paymentMethod,
-//     this.itemCount,
-//   });
-//   factory SaleModel.fromFirestore(DocumentSnapshot doc) {
-//     final data = doc.data() as Map<String, dynamic>;
-
-//     return SaleModel(
-//       id: doc.id,
-//       batchAllocations: (data['batchAllocations'] as List<dynamic>?)
-//               ?.map((e) => BatchAllocation.fromMap(e as Map<String, dynamic>))
-//               .toList() ??
-//           [],
-//       batchesUsed: (data['batchesUsed'] as List<dynamic>?)
-//               ?.map((e) => BatchUsed.fromMap(e as Map<String, dynamic>))
-//               .toList() ??
-//           [],
-//       createdAt: data['createdAt'] as Timestamp? ?? Timestamp.now(),
-//       customerName: data['customerName'] as String? ?? '',
-//       items: (data['items'] as List<dynamic>?)
-//               ?.map((e) => SaleItem.fromMap(e as Map<String, dynamic>))
-//               .toList() ??
-//           [],
-//       productsUpdated: (data['productsUpdated'] as List<dynamic>?)
-//               ?.map((e) => ProductModel.fromMap1(e as Map<String, dynamic>))
-//               .toList() ??
-//           [],
-//       invoiceId: data['invoiceId'] as String? ?? '',
-//     );
-//   }
-//}
-
 // Enum for dropdown actions
-enum SaleAction { view, edit, duplicate, payment, clone, refund, delete, logs }
+enum SaleAction {
+  view,
+  viewCoa,
+  confirm,
+  edit,
+  duplicate,
+  payment,
+  clone,
+  refund,
+  delete,
+  logs,
+}
 
 // Filter class for managing all filter states
 class PurchaseFilter {
@@ -341,78 +283,37 @@ class PurchaseCard extends StatelessWidget {
                         ),
                       ),
                     )
-                  : Column(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                Theme.of(context).primaryColor,
-                                Theme.of(context).primaryColor.withOpacity(0.8),
-                              ],
-                            ),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: sale.status == "draft"
-                              ? Text(
-                                  '${"Draft"}-${sale.invoice}',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                )
-                              : Text(
-                                  '${"MM"}-${sale.invoice}',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
+                  : Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Theme.of(context).primaryColor,
+                            Theme.of(context).primaryColor.withOpacity(0.8),
+                          ],
                         ),
-                        const SizedBox(height: 5),
-                        ElevatedButton.icon(
-                          onPressed: _isLoading
-                              ? null
-                              : () => updatePurchaseStatus(sale),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.orange.shade700,
-                            foregroundColor: Colors.white,
-                            elevation: 2,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 12,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: sale.status == "draft"
+                          ? Text(
+                              '${"Draft"}-${sale.invoice}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            )
+                          : Text(
+                              '${"MM"}-${sale.invoice}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          icon: _isLoading
-                              ? SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      Colors.white,
-                                    ),
-                                  ),
-                                )
-                              : const Icon(Icons.save_alt_rounded, size: 18),
-                          label: Text(
-                            _isLoading ? 'Updating...' : 'Save as Final',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
                     ),
 
               const SizedBox(width: 20),
@@ -1017,6 +918,34 @@ class PurchaseCard extends StatelessWidget {
                             ),
                             const SizedBox(width: 8),
                             Text('View Invoice'),
+                          ],
+                        ),
+                      ),
+                      PopupMenuItem<SaleAction>(
+                        value: SaleAction.viewCoa,
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.account_box_sharp,
+                              size: 18,
+                              color: Colors.green,
+                            ),
+                            const SizedBox(width: 8),
+                            Text('View COA'),
+                          ],
+                        ),
+                      ),
+                      PopupMenuItem<SaleAction>(
+                        value: SaleAction.confirm,
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.account_box_sharp,
+                              size: 18,
+                              color: Colors.green,
+                            ),
+                            const SizedBox(width: 8),
+                            Text('Confirm Purchase'),
                           ],
                         ),
                       ),
@@ -1967,6 +1896,7 @@ class _PurchaseListViewState extends State<PurchaseListView> {
   List<String> _createdByUsers = [];
   List<SupplierModel> suppliers = [];
   List<NewPurchaseModel> salesList = [];
+  bool loading = false;
 
   @override
   void initState() {
@@ -1978,6 +1908,9 @@ class _PurchaseListViewState extends State<PurchaseListView> {
   }
 
   Future<void> getList() async {
+    setState(() {
+      loading = true;
+    });
     if (widget.type == "estimation") {
       //  salesList = await DataFetchService.fetchEstimates();
     } else if (widget.type == "purchase") {
@@ -1988,6 +1921,7 @@ class _PurchaseListViewState extends State<PurchaseListView> {
 
     setState(() {
       _filteredSales = salesList;
+      loading = false;
     });
   }
 
@@ -2272,6 +2206,32 @@ class _PurchaseListViewState extends State<PurchaseListView> {
     // CreateBookingMainPage()
   }
 
+  Future<void> updatePurchaseStatus(NewPurchaseModel purchase) async {
+    try {
+      purchase.status = "save";
+      setState(() {
+        loading = true;
+      });
+      HttpsCallable callable = FirebaseFunctions.instance.httpsCallable(
+        'savePurchase',
+      );
+      final results = await callable({
+        'purchaseId': purchase.id, //'000testSale',
+        'status': "save",
+        //"purchaseData": purchase,
+        ///'expenseData': purchase.expenseData,
+      });
+      debugPrint("${"confirm purchase"}${results.data.toString()}");
+    } catch (e) {
+      print('Error updating purchase status: $e');
+      throw e; // Re-throw to handle in UI
+    } finally {
+      setState(() {
+        loading = true;
+      });
+    }
+  }
+
   void _handleActionSelected(NewPurchaseModel sale, SaleAction action) async {
     switch (action) {
       case SaleAction.view:
@@ -2279,18 +2239,15 @@ class _PurchaseListViewState extends State<PurchaseListView> {
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (_) {
-              return
-              // SalesInvoiceDropdownView(type: "sale", sale: sale);
-              PurchaseCOAStatement(
-                purchaseId: sale.id,
-                branchId: "NRHLuRZIA2AMZXjW4TDI",
-              );
+              return Container();
+              //SalesInvoiceDropdownView(type: "sale", sale: sale);
             },
           ),
         );
 
         debugPrint('View sale: ${sale.id}');
         break;
+
       case SaleAction.clone:
         // Navigator.of(context).push(
         //   MaterialPageRoute(
@@ -2304,6 +2261,41 @@ class _PurchaseListViewState extends State<PurchaseListView> {
         //   ),
         // );
         debugPrint('Print receipt: ${sale.createdAt}');
+        break;
+      case SaleAction.viewCoa:
+        // Navigate to sale details
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) {
+              return PurchaseCOAStatement(
+                purchase: sale,
+                branchId: "NRHLuRZIA2AMZXjW4TDI",
+              );
+            },
+          ),
+        );
+
+        debugPrint('View sale: ${sale.id}');
+        break;
+      case SaleAction.confirm:
+        // Navigate to sale details
+        // updatePurchaseStatus(sale);
+        //  getList();
+        final bool? shouldConfirm = await SimplePurchaseConfirmationDialog.show(
+          context: context,
+          message: 'Are you sure you want to confirm this purchase?',
+        );
+
+        // If user confirmed (pressed Confirm button), update purchase status
+        if (shouldConfirm == true) {
+          await updatePurchaseStatus(sale);
+          getList();
+          debugPrint('Purchase confirmed: ${sale.id}');
+        } else {
+          debugPrint('Purchase confirmation cancelled: ${sale.id}');
+        }
+
+        debugPrint('View sale: ${sale.id}');
         break;
       case SaleAction.duplicate:
         // Duplicate sale
@@ -2618,53 +2610,62 @@ class _PurchaseListViewState extends State<PurchaseListView> {
           ),
 
         // Header Row
-        Container(
-          height: 40,
-          margin: const EdgeInsets.symmetric(horizontal: 16),
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            color: Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Row(
-            children: [
-              if (widget.selectedIds.isNotEmpty) const SizedBox(width: 32),
-              const SizedBox(width: 100), // Sale number space
-              const SizedBox(width: 55), // Icon space
-              Expanded(
-                flex: 1,
-                child: Text('Customer & Description', style: _headerStyle()),
-              ),
-              Expanded(flex: 2, child: Text('Items', style: _headerStyle())),
-              //Expanded(flex: 2, child: Text('Services', style: _headerStyle())),
-              Expanded(
-                flex: 1,
-                child: Text(
-                  'Total (OMR)',
-                  style: _headerStyle(),
-                  textAlign: TextAlign.center,
+        loading
+            ? LoadingWidget()
+            : Container(
+                height: 40,
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Row(
+                  children: [
+                    if (widget.selectedIds.isNotEmpty)
+                      const SizedBox(width: 32),
+                    const SizedBox(width: 100), // Sale number space
+                    const SizedBox(width: 55), // Icon space
+                    Expanded(
+                      flex: 1,
+                      child: Text(
+                        'Customer & Description',
+                        style: _headerStyle(),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text('Items', style: _headerStyle()),
+                    ),
+                    //Expanded(flex: 2, child: Text('Services', style: _headerStyle())),
+                    Expanded(
+                      flex: 1,
+                      child: Text(
+                        'Total (OMR)',
+                        style: _headerStyle(),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    Expanded(
+                      flex: 1,
+                      child: Text(
+                        'Payment (OMR)',
+                        style: _headerStyle(),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    Expanded(
+                      flex: 1,
+                      child: Text(
+                        'Date',
+                        style: _headerStyle(),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    const SizedBox(width: 30), // Actions space
+                  ],
                 ),
               ),
-              Expanded(
-                flex: 1,
-                child: Text(
-                  'Payment (OMR)',
-                  style: _headerStyle(),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              Expanded(
-                flex: 1,
-                child: Text(
-                  'Date',
-                  style: _headerStyle(),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              const SizedBox(width: 30), // Actions space
-            ],
-          ),
-        ),
 
         const SizedBox(height: 8),
 

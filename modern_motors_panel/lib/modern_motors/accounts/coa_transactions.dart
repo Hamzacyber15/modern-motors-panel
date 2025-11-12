@@ -1,6 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:modern_motors_panel/model/branches/branch_model.dart';
+import 'package:modern_motors_panel/model/chart_of_accounts/chart_of_accounts_model.dart';
+import 'package:modern_motors_panel/model/chart_of_accounts/coa_transactions_model.dart';
 
 class COATransactionsList extends StatefulWidget {
   const COATransactionsList({super.key});
@@ -28,9 +31,9 @@ class _COATransactionsListState extends State<COATransactionsList> {
 
   Future<void> _loadBranches() async {
     if (loadingBranches) return;
-    
+
     setState(() => loadingBranches = true);
-    
+
     try {
       QuerySnapshot branchesSnapshot = await FirebaseFirestore.instance
           .collection('branches')
@@ -40,23 +43,25 @@ class _COATransactionsListState extends State<COATransactionsList> {
         final data = doc.data() as Map<String, dynamic>;
         return BranchModel(
           id: doc.id,
-          name: data['name'] ?? data['branchName'] ?? 'Unknown Branch',
+          branchName: data['name'] ?? data['branchName'] ?? 'Unknown Branch',
         );
       }).toList();
 
       // Auto-select headOffice branch
       final headOfficeBranch = branchesList.firstWhere(
-        (branch) => branch.id.toLowerCase().contains('headoffice') || 
-                    branch.name?.toLowerCase().contains('head office') == true,
-        orElse: () => branchesList.isNotEmpty ? branchesList.first : BranchModel(id: '', name: ''),
+        (branch) =>
+            branch.id!.toLowerCase().contains('headoffice') ||
+            branch.branchName?.toLowerCase().contains('head office') == true,
+        orElse: () => branchesList.isNotEmpty
+            ? branchesList.first
+            : BranchModel(id: '', branchName: ''),
       );
 
-      if (headOfficeBranch.id.isNotEmpty) {
+      if (headOfficeBranch.id!.isNotEmpty) {
         selectedBranchId = headOfficeBranch.id;
-        debugPrint('🏢 Auto-selected branch: ${headOfficeBranch.name}');
+        debugPrint('🏢 Auto-selected branch: ${headOfficeBranch.branchName}');
         _loadData();
       }
-      
     } catch (e) {
       debugPrint('Error loading branches: $e');
     } finally {
@@ -66,7 +71,7 @@ class _COATransactionsListState extends State<COATransactionsList> {
 
   Future<void> _loadData() async {
     if (loading) return;
-    
+
     setState(() => loading = true);
     transactions.clear();
     filteredTransactions.clear();
@@ -95,7 +100,9 @@ class _COATransactionsListState extends State<COATransactionsList> {
       for (int i = 0; i < tempTransactions.length; i++) {
         final transaction = tempTransactions[i];
         if (transaction.accountID.isNotEmpty) {
-          final matchingAccounts = allAccounts.where((acc) => acc.id == transaction.accountID).toList();
+          final matchingAccounts = allAccounts
+              .where((acc) => acc.id == transaction.accountID)
+              .toList();
           if (matchingAccounts.isNotEmpty) {
             tempTransactions[i] = COATransaction(
               id: transaction.id,
@@ -120,7 +127,6 @@ class _COATransactionsListState extends State<COATransactionsList> {
       debugPrint('✅ Processed ${transactions.length} transactions');
       filteredTransactions = List.from(transactions);
       _applyFilters();
-
     } catch (e) {
       debugPrint('Error loading COA transactions: $e');
     } finally {
@@ -128,13 +134,16 @@ class _COATransactionsListState extends State<COATransactionsList> {
     }
   }
 
-  Future<void> _loadAllChartOfAccounts(List<COATransaction> tempTransactions) async {
+  Future<void> _loadAllChartOfAccounts(
+    List<COATransaction> tempTransactions,
+  ) async {
     try {
       // Group account IDs by branch
       Map<String, List<String>> accountsByBranch = {};
-      
+
       for (var transaction in tempTransactions) {
-        if (transaction.accountID.isNotEmpty && transaction.branchId.isNotEmpty) {
+        if (transaction.accountID.isNotEmpty &&
+            transaction.branchId.isNotEmpty) {
           if (!accountsByBranch.containsKey(transaction.branchId)) {
             accountsByBranch[transaction.branchId] = [];
           }
@@ -142,21 +151,27 @@ class _COATransactionsListState extends State<COATransactionsList> {
         }
       }
 
-      debugPrint('🔍 Loading accounts from ${accountsByBranch.length} branches');
+      debugPrint(
+        '🔍 Loading accounts from ${accountsByBranch.length} branches',
+      );
       allAccounts.clear();
-      
+
       // Load accounts for each branch
       for (var branchId in accountsByBranch.keys) {
         List<String> accountIds = accountsByBranch[branchId]!.toSet().toList();
-        
-        debugPrint('📂 Loading ${accountIds.length} accounts from branch $branchId');
+
+        debugPrint(
+          '📂 Loading ${accountIds.length} accounts from branch $branchId',
+        );
 
         // Load accounts in batches
         const int batchSize = 10;
         for (int i = 0; i < accountIds.length; i += batchSize) {
           List<String> batchIds = accountIds.sublist(
-            i, 
-            i + batchSize > accountIds.length ? accountIds.length : i + batchSize
+            i,
+            i + batchSize > accountIds.length
+                ? accountIds.length
+                : i + batchSize,
           );
 
           try {
@@ -184,19 +199,24 @@ class _COATransactionsListState extends State<COATransactionsList> {
                     .get();
 
                 if (accountDoc.exists) {
-                  ChartOfAccount account = ChartOfAccount.fromFirestore(accountDoc);
+                  ChartOfAccount account = ChartOfAccount.fromFirestore(
+                    accountDoc,
+                  );
                   allAccounts.add(account);
                 }
               } catch (e2) {
-                debugPrint('🚨 Error loading individual account $accountId: $e2');
+                debugPrint(
+                  '🚨 Error loading individual account $accountId: $e2',
+                );
               }
             }
           }
         }
       }
 
-      debugPrint('📈 Successfully loaded ${allAccounts.length} chart of accounts');
-
+      debugPrint(
+        '📈 Successfully loaded ${allAccounts.length} chart of accounts',
+      );
     } catch (e) {
       debugPrint('Error loading chart of accounts: $e');
     }
@@ -206,21 +226,30 @@ class _COATransactionsListState extends State<COATransactionsList> {
     List<COATransaction> tempList = List.from(transactions);
 
     if (selectedBranchId != null) {
-      tempList = tempList.where((transaction) => transaction.branchId == selectedBranchId).toList();
+      tempList = tempList
+          .where((transaction) => transaction.branchId == selectedBranchId)
+          .toList();
     }
 
     if (selectedAccountId != null && selectedAccountId!.isNotEmpty) {
-      tempList = tempList.where((transaction) => transaction.accountID == selectedAccountId).toList();
+      tempList = tempList
+          .where((transaction) => transaction.accountID == selectedAccountId)
+          .toList();
     }
 
     if (searchQuery.isNotEmpty) {
       final query = searchQuery.toLowerCase();
-      tempList = tempList.where((transaction) =>
-        transaction.memo.toLowerCase().contains(query) ||
-        transaction.accountName?.toLowerCase().contains(query) == true ||
-        transaction.accountCode?.toLowerCase().contains(query) == true ||
-        transaction.refID.toLowerCase().contains(query)
-      ).toList();
+      tempList = tempList
+          .where(
+            (transaction) =>
+                transaction.memo.toLowerCase().contains(query) ||
+                transaction.accountName?.toLowerCase().contains(query) ==
+                    true ||
+                transaction.accountCode?.toLowerCase().contains(query) ==
+                    true ||
+                transaction.refID.toLowerCase().contains(query),
+          )
+          .toList();
     }
 
     setState(() {
@@ -253,7 +282,6 @@ class _COATransactionsListState extends State<COATransactionsList> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      
       body: Column(
         children: [
           // Filters Section
@@ -268,7 +296,7 @@ class _COATransactionsListState extends State<COATransactionsList> {
                   Row(
                     children: [
                       //Text('Branch:'.tr(), style: const TextStyle(fontWeight: FontWeight.w500)),
-                     // const SizedBox(width: 10),
+                      // const SizedBox(width: 10),
                       Expanded(
                         child: loadingBranches
                             ? const Padding(
@@ -286,16 +314,16 @@ class _COATransactionsListState extends State<COATransactionsList> {
                                   ...branchesList.map((branch) {
                                     return DropdownMenuItem<String>(
                                       value: branch.id,
-                                      child: Text(branch.name ?? 'Unknown Branch'),
+                                      child: Text(
+                                        branch.branchName ?? 'Unknown Branch',
+                                      ),
                                     );
                                   }).toList(),
                                 ],
                                 onChanged: _onBranchChanged,
                               ),
-                            
-                        
                       ),
-                             Expanded(
+                      Expanded(
                         child: DropdownButton<String>(
                           value: selectedAccountId,
                           isExpanded: true,
@@ -307,7 +335,9 @@ class _COATransactionsListState extends State<COATransactionsList> {
                             ...allAccounts.map((account) {
                               return DropdownMenuItem<String>(
                                 value: account.id,
-                                child: Text('${account.accountCode} - ${account.accountName}'),
+                                child: Text(
+                                  '${account.accountCode} - ${account.accountName}',
+                                ),
                               );
                             }).toList(),
                           ],
@@ -317,17 +347,19 @@ class _COATransactionsListState extends State<COATransactionsList> {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  
+
                   // Account Dropdown
                   Row(
                     children: [
-                      Text('Account:'.tr(), style: const TextStyle(fontWeight: FontWeight.w500)),
+                      Text(
+                        'Account:'.tr(),
+                        style: const TextStyle(fontWeight: FontWeight.w500),
+                      ),
                       const SizedBox(width: 10),
-                     
                     ],
                   ),
                   const SizedBox(height: 12),
-                  
+
                   // Search Field
                   TextField(
                     onChanged: _onSearchChanged,
@@ -335,7 +367,10 @@ class _COATransactionsListState extends State<COATransactionsList> {
                       labelText: 'Search by memo, account, or ref ID'.tr(),
                       prefixIcon: const Icon(Icons.search, size: 20),
                       border: const OutlineInputBorder(),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                     ),
                   ),
                 ],
@@ -348,28 +383,36 @@ class _COATransactionsListState extends State<COATransactionsList> {
             child: loading
                 ? const Center(child: CircularProgressIndicator())
                 : filteredTransactions.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.receipt_long, size: 64, color: Colors.grey[400]),
-                            const SizedBox(height: 16),
-                            Text(
-                              'No transactions found'.tr(),
-                              style: TextStyle(color: Colors.grey[600]),
-                            ),
-                          ],
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.receipt_long,
+                          size: 64,
+                          color: Colors.grey[400],
                         ),
-                      )
-                    : ListView.separated(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        itemCount: filteredTransactions.length,
-                        separatorBuilder: (context, index) => const SizedBox(height: 8),
-                        itemBuilder: (context, index) {
-                          final transaction = filteredTransactions[index];
-                          return _buildTransactionCard(transaction);
-                        },
-                      ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No transactions found'.tr(),
+                          style: TextStyle(color: Colors.grey[600]),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    itemCount: filteredTransactions.length,
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: 8),
+                    itemBuilder: (context, index) {
+                      final transaction = filteredTransactions[index];
+                      return _buildTransactionCard(transaction);
+                    },
+                  ),
           ),
         ],
       ),
@@ -406,48 +449,42 @@ class _COATransactionsListState extends State<COATransactionsList> {
                   ),
                   Text(
                     _formatDate(transaction.date),
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 12,
-                    ),
+                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
                   ),
                 ],
               ),
               const SizedBox(height: 8),
-              
+
               // // Account Information - FIXED: Now properly displayed
-             // transaction.accountCode != null && transaction.accountName != null ?
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.blue[50],
-                    borderRadius: BorderRadius.circular(4),
+              // transaction.accountCode != null && transaction.accountName != null ?
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  '${transaction.accountCode} - ${transaction.accountName}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w500,
+                    fontSize: 12,
+                    color: Colors.blue,
                   ),
-                  child: Text(
-                    '${transaction.accountCode} - ${transaction.accountName}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 12,
-                      color: Colors.blue
-                    ),
-                  ),
-                ),// : null,
+                ),
+              ), // : null,
               const SizedBox(height: 8),
-              
+
               // Memo
               if (transaction.memo.isNotEmpty)
                 Text(
                   transaction.memo,
-                  style: TextStyle(
-                    color: Colors.grey[700],
-                    fontSize: 14,
-                  ),
+                  style: TextStyle(color: Colors.grey[700], fontSize: 14),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-              
+
               const SizedBox(height: 12),
-              
+
               // Financial Details
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -466,7 +503,10 @@ class _COATransactionsListState extends State<COATransactionsList> {
                       _buildAmountRow('VAT', transaction.vat),
                       const SizedBox(height: 4),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: _getRefTypeColor(transaction.refType),
                           borderRadius: BorderRadius.circular(12),
@@ -484,15 +524,12 @@ class _COATransactionsListState extends State<COATransactionsList> {
                   ),
                 ],
               ),
-              
+
               // Branch
               const SizedBox(height: 8),
               Text(
                 'Branch: ${_getBranchName(transaction.branchId)}',
-                style: TextStyle(
-                  color: Colors.grey[500],
-                  fontSize: 11,
-                ),
+                style: TextStyle(color: Colors.grey[500], fontSize: 11),
               ),
             ],
           ),
@@ -507,17 +544,11 @@ class _COATransactionsListState extends State<COATransactionsList> {
       children: [
         Text(
           '$label: ',
-          style: TextStyle(
-            color: Colors.grey[600],
-            fontSize: 12,
-          ),
+          style: TextStyle(color: Colors.grey[600], fontSize: 12),
         ),
         Text(
           'OMR ${amount.toStringAsFixed(2)}',
-          style: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 12,
-          ),
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
         ),
       ],
     );
@@ -544,7 +575,7 @@ class _COATransactionsListState extends State<COATransactionsList> {
   String _getBranchName(String branchId) {
     try {
       final branch = branchesList.firstWhere((b) => b.id == branchId);
-      return branch.name ?? 'Unknown Branch';
+      return branch.branchName ?? 'Unknown Branch';
     } catch (e) {
       return 'Unknown Branch';
     }

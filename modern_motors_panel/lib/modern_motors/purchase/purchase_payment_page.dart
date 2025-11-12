@@ -136,7 +136,7 @@ class _PurchasePaymentPageState extends State<PurchasePaymentPage> {
               '${_selectedDate.year}-${_selectedDate.month}-${_selectedDate.day}',
         },
       });
-      debugPrint(results.data.toString());
+      debugPrint("${"Payment"}-${results.data.toString()}");
 
       if (mounted) {
         if (results.data['success'] == true) {

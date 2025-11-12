@@ -14,6 +14,8 @@ import 'package:modern_motors_panel/model/sales_model/sale_model.dart';
 import 'package:modern_motors_panel/modern_motors/invoices/invoice_logs_timeline.dart';
 import 'package:modern_motors_panel/modern_motors/products/DataTableProductCell.dart';
 import 'package:modern_motors_panel/modern_motors/products/product_details_dialogue.dart';
+import 'package:modern_motors_panel/modern_motors/purchase/purchase_coa_transactions.dart';
+import 'package:modern_motors_panel/modern_motors/sales/sale_coa_transactions.dart';
 import 'package:modern_motors_panel/modern_motors/sales/sales_logs_timeline.dart';
 import 'package:modern_motors_panel/modern_motors/services/data_fetch_service.dart';
 import 'package:modern_motors_panel/modern_motors/services_maintenance/create_booking_main_page.dart';
@@ -2217,11 +2219,19 @@ class _SalesListViewState extends State<SalesListView> {
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (_) {
-              return CreateBookingMainPage(
-                sale: sale,
-                tapped: () {},
-                type: "clone",
+              // return CreateBookingMainPage(
+              //   sale: sale,
+              //   tapped: () {},
+              //   type: "clone",
+              // );
+              return SaleCoaTransactions(
+                saleId: sale.id,
+                branchId: "NRHLuRZIA2AMZXjW4TDI",
               );
+              // PurchaseCOAStatement(
+              //   purchaseId: sale.id,
+              //   branchId: "NRHLuRZIA2AMZXjW4TDI",
+              // );
             },
           ),
         );
