@@ -136,6 +136,974 @@ class PurchaseFilter {
   }
 }
 
+// class PurchaseCard extends StatelessWidget {
+//   final NewPurchaseModel sale;
+//   final String type;
+//   final ProductCategoryModel category;
+//   final ProductSubCategoryModel subCategory;
+//   final BrandModel brand;
+//   final bool isSelected;
+//   final VoidCallback? onTap;
+//   final Function(SaleAction)? onActionSelected;
+//   final Function(bool?)? onSelectChanged;
+
+//   const PurchaseCard({
+//     super.key,
+//     required this.sale,
+//     required this.category,
+//     required this.type,
+//     required this.subCategory,
+//     required this.brand,
+//     this.isSelected = false,
+//     this.onTap,
+//     this.onActionSelected,
+//     this.onSelectChanged,
+//   });
+
+//   @override
+//   Widget build(BuildContext context) {
+//     User? user = FirebaseAuth.instance.currentUser;
+//     bool _isLoading = false;
+
+//     Future<void> updatePurchaseStatus(NewPurchaseModel purchase) async {
+//       try {
+//         // await FirebaseFirestore.instance
+//         //     .collection('purchases')
+//         //     .doc(purchaseId)
+//         //     .update({
+//         //       'status': 'save',
+//         //       // 'updatedAt': FieldValue.serverTimestamp(), // Optional: add update timestamp
+//         //     });
+//         purchase.status = "save";
+//         // print('Purchase status updated to "save" for ID: $purchaseId');
+//         HttpsCallable callable = FirebaseFunctions.instance.httpsCallable(
+//           'savePurchase',
+//         );
+//         final results = await callable({
+//           'purchaseId': purchase.id, //'000testSale',
+//           'status': "save",
+//           //"purchaseData": purchase,
+//           ///'expenseData': purchase.expenseData,
+//         });
+//         debugPrint("${"confirm purchase"}${results.data.toString()}");
+//       } catch (e) {
+//         print('Error updating purchase status: $e');
+//         throw e; // Re-throw to handle in UI
+//       }
+//     }
+
+//     return Container(
+//       height: 105,
+//       margin: const EdgeInsets.only(bottom: 2),
+//       decoration: BoxDecoration(
+//         color: Colors.white,
+//         borderRadius: BorderRadius.circular(8),
+//         border: Border.all(
+//           color: isSelected
+//               ? Theme.of(context).primaryColor
+//               : Colors.grey.shade300,
+//           width: isSelected ? 2 : 1,
+//         ),
+//         boxShadow: [
+//           BoxShadow(
+//             color: Colors.grey.withOpacity(0.05),
+//             spreadRadius: 0,
+//             blurRadius: 4,
+//             offset: const Offset(0, 1),
+//           ),
+//         ],
+//       ),
+//       child: InkWell(
+//         onTap: onTap,
+//         borderRadius: BorderRadius.circular(8),
+//         child: Padding(
+//           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+//           child: Row(
+//             children: [
+//               // Checkbox
+//               if (onSelectChanged != null) ...[
+//                 SizedBox(
+//                   width: 20,
+//                   height: 20,
+//                   child: Checkbox(
+//                     value: isSelected,
+//                     onChanged: onSelectChanged,
+//                     activeColor: Theme.of(context).primaryColor,
+//                     materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+//                   ),
+//                 ),
+//                 const SizedBox(width: 12),
+//               ],
+
+//               // Sale Number Badge
+//               sale.status == "estimate"
+//                   ? Container(
+//                       padding: const EdgeInsets.symmetric(
+//                         horizontal: 6,
+//                         vertical: 3,
+//                       ),
+//                       decoration: BoxDecoration(
+//                         gradient: LinearGradient(
+//                           colors: [
+//                             Theme.of(context).primaryColor.withOpacity(0.7),
+//                             Theme.of(context).primaryColor.withOpacity(0.6),
+//                           ],
+//                         ),
+//                         borderRadius: BorderRadius.circular(4),
+//                       ),
+//                       child: Text(
+//                         '${"Est"}-${sale.invoice}',
+//                         style: const TextStyle(
+//                           color: Colors.white,
+//                           fontSize: 12,
+//                           fontWeight: FontWeight.w600,
+//                         ),
+//                       ),
+//                     )
+//                   : sale.status == "estimateDraft"
+//                   ? Container(
+//                       padding: const EdgeInsets.symmetric(
+//                         horizontal: 6,
+//                         vertical: 3,
+//                       ),
+//                       decoration: BoxDecoration(
+//                         gradient: LinearGradient(
+//                           colors: [
+//                             Theme.of(context).secondaryHeaderColor,
+//                             Theme.of(context).primaryColor.withOpacity(0.6),
+//                           ],
+//                         ),
+//                         borderRadius: BorderRadius.circular(4),
+//                       ),
+//                       child: Text(
+//                         '${"EDraft"}-${sale.invoice}',
+//                         style: const TextStyle(
+//                           color: Colors.white,
+//                           fontSize: 12,
+//                           fontWeight: FontWeight.w600,
+//                         ),
+//                       ),
+//                     )
+//                   : Container(
+//                       padding: const EdgeInsets.symmetric(
+//                         horizontal: 6,
+//                         vertical: 3,
+//                       ),
+//                       decoration: BoxDecoration(
+//                         gradient: LinearGradient(
+//                           colors: [
+//                             Theme.of(context).primaryColor,
+//                             Theme.of(context).primaryColor.withOpacity(0.8),
+//                           ],
+//                         ),
+//                         borderRadius: BorderRadius.circular(4),
+//                       ),
+//                       child: sale.status == "draft"
+//                           ? Text(
+//                               '${"Draft"}-${sale.invoice}',
+//                               style: const TextStyle(
+//                                 color: Colors.white,
+//                                 fontSize: 12,
+//                                 fontWeight: FontWeight.w600,
+//                               ),
+//                             )
+//                           : Text(
+//                               '${"MM"}-${sale.invoice}',
+//                               style: const TextStyle(
+//                                 color: Colors.white,
+//                                 fontSize: 12,
+//                                 fontWeight: FontWeight.w600,
+//                               ),
+//                             ),
+//                     ),
+
+//               const SizedBox(width: 20),
+
+//               // Sale Icon
+//               Container(
+//                 width: 40,
+//                 height: 40,
+//                 decoration: BoxDecoration(
+//                   borderRadius: BorderRadius.circular(6),
+//                   color: Colors.grey.shade100,
+//                 ),
+//                 child: Icon(
+//                   Icons.point_of_sale,
+//                   color: Theme.of(context).primaryColor,
+//                   size: 20,
+//                 ),
+//               ),
+
+//               const SizedBox(width: 12),
+
+//               // Customer Name & Description
+//               Expanded(
+//                 flex: 1,
+//                 child: Column(
+//                   crossAxisAlignment: CrossAxisAlignment.start,
+//                   mainAxisAlignment: MainAxisAlignment.center,
+//                   children: [
+//                     SupplierNameTile(customerId: sale.supplierId),
+//                     const SizedBox(height: 2),
+//                     // Text(
+//                     //   sale.paymentMethod,
+//                     //   style: TextStyle(
+//                     //     fontSize: 11,
+//                     //     color: Colors.grey.shade600,
+//                     //     fontStyle: FontStyle.italic,
+//                     //   ),
+//                     //   maxLines: 1,
+//                     //   overflow: TextOverflow.ellipsis,
+//                     // ),
+//                     // const SizedBox(height: 2),
+//                     MmEmployeeInfoTile(employeeId: sale.createBy),
+//                   ],
+//                 ),
+//               ),
+//               Expanded(
+//                 flex: 2,
+//                 child: InkWell(
+//                   // onTap: sale.items.length > 1
+//                   //     ? () => ProductDetailsDialog.show(context, sale)
+//                   //     : null,
+//                   borderRadius: BorderRadius.circular(8),
+//                   hoverColor: Colors.grey.withOpacity(0.05),
+//                   child: Container(
+//                     height: 100,
+//                     padding: const EdgeInsets.all(8),
+//                     decoration: BoxDecoration(
+//                       borderRadius: BorderRadius.circular(8),
+//                       border: Border.all(
+//                         color: Colors.grey.withOpacity(0.12),
+//                         width: 1,
+//                       ),
+//                     ),
+//                     child: Row(
+//                       children: [
+//                         // Product Icon
+//                         // Container(
+//                         //   width: 32,
+//                         //   height: 32,
+//                         //   decoration: BoxDecoration(
+//                         //     gradient: const LinearGradient(
+//                         //       colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+//                         //       begin: Alignment.topLeft,
+//                         //       end: Alignment.bottomRight,
+//                         //     ),
+//                         //     borderRadius: BorderRadius.circular(8),
+//                         //   ),
+//                         //   child: const Icon(
+//                         //     Icons.inventory_2_rounded,
+//                         //     color: Colors.white,
+//                         //     size: 16,
+//                         //   ),
+//                         // ),
+//                         const SizedBox(width: 8),
+
+//                         // Main Content
+//                         Expanded(
+//                           child: Column(
+//                             crossAxisAlignment: CrossAxisAlignment.start,
+//                             mainAxisAlignment: MainAxisAlignment.center,
+//                             children: [
+//                               // Product Details
+//                               if (sale.items.isNotEmpty)
+//                                 //   Expanded(
+//                                 //     child: DataTableProductCell(
+//                                 //       productId: sale.items[0].productId,
+//                                 //       // saleDetails: sale,
+//                                 //       saleItem: sale.items[0],
+//                                 //     ),
+//                                 //   ),
+//                                 // _buildPaymentDepositSummary(sale),
+//                                 // Bottom Row
+//                                 Row(
+//                                   children: [
+//                                     // More Items Badge
+//                                     if (sale.items.length > 1) ...[
+//                                       Container(
+//                                         padding: const EdgeInsets.symmetric(
+//                                           horizontal: 6,
+//                                           vertical: 2,
+//                                         ),
+//                                         decoration: BoxDecoration(
+//                                           color: const Color(
+//                                             0xFF4F46E5,
+//                                           ).withOpacity(0.1),
+//                                           borderRadius: BorderRadius.circular(
+//                                             6,
+//                                           ),
+//                                           border: Border.all(
+//                                             color: const Color(
+//                                               0xFF4F46E5,
+//                                             ).withOpacity(0.3),
+//                                             width: 0.5,
+//                                           ),
+//                                         ),
+//                                         child: Row(
+//                                           mainAxisSize: MainAxisSize.min,
+//                                           children: [
+//                                             const Icon(
+//                                               Icons.add_rounded,
+//                                               size: 10,
+//                                               color: Color(0xFF4F46E5),
+//                                             ),
+//                                             const SizedBox(width: 2),
+//                                             Text(
+//                                               '${sale.items.length - 1}',
+//                                               style: const TextStyle(
+//                                                 fontSize: 10,
+//                                                 fontWeight: FontWeight.w700,
+//                                                 color: Color(0xFF4F46E5),
+//                                               ),
+//                                             ),
+//                                           ],
+//                                         ),
+//                                       ),
+//                                       const SizedBox(width: 8),
+//                                     ],
+
+//                                     const Spacer(),
+
+//                                     // Sale Summary - Compact
+//                                     Container(
+//                                       padding: const EdgeInsets.symmetric(
+//                                         horizontal: 8,
+//                                         vertical: 4,
+//                                       ),
+//                                       decoration: BoxDecoration(
+//                                         gradient: const LinearGradient(
+//                                           colors: [
+//                                             Color(0xFF1F2937),
+//                                             Color(0xFF374151),
+//                                           ],
+//                                         ),
+//                                         borderRadius: BorderRadius.circular(8),
+//                                       ),
+//                                       child: Row(
+//                                         mainAxisSize: MainAxisSize.min,
+//                                         children: [
+//                                           Text(
+//                                             'Item: ${sale.items.length}',
+//                                             style: const TextStyle(
+//                                               fontSize: 12,
+//                                               fontWeight: FontWeight.w700,
+//                                               color: Colors.white,
+//                                             ),
+//                                           ),
+//                                           const SizedBox(width: 4),
+//                                           Container(
+//                                             width: 1,
+//                                             height: 10,
+//                                             color: Colors.white.withOpacity(
+//                                               0.3,
+//                                             ),
+//                                           ),
+//                                           const SizedBox(width: 4),
+//                                           Text(
+//                                             Constants.formatPrice(
+//                                               sale.items.fold(
+//                                                 0,
+//                                                 (sum, invoice) =>
+//                                                     sum! + invoice.totalPrice,
+//                                               ),
+//                                             ),
+//                                             style: const TextStyle(
+//                                               fontSize: 11,
+//                                               fontWeight: FontWeight.w600,
+//                                               color: Colors.white,
+//                                             ),
+//                                           ),
+//                                         ],
+//                                       ),
+//                                     ),
+//                                   ],
+//                                 ),
+//                             ],
+//                           ),
+//                         ),
+//                       ],
+//                     ),
+//                   ),
+//                 ),
+//               ),
+//               // Amount Info
+//               // Expanded(
+//               //   flex: 1,
+//               //   child: Column(
+//               //     crossAxisAlignment: CrossAxisAlignment.center,
+//               //     mainAxisAlignment: MainAxisAlignment.center,
+//               //     children: [
+//               //       Text(
+//               //         'OMR ${sale.totalRevenue.toStringAsFixed(2) ?? '0.00'}',
+//               //         style: const TextStyle(
+//               //           fontSize: 13,
+//               //           fontWeight: FontWeight.w600,
+//               //           color: Color(0xFF059669),
+//               //         ),
+//               //       ),
+//               //       // const SizedBox(height: 2),
+//               //       // if (sale.totalRevenue != null && sale.totalRevenue > 0)
+//               //       //   Text(
+//               //       //     'Due: \$${sale.totalRevenue.toStringAsFixed(2)}',
+//               //       //     style: TextStyle(
+//               //       //       fontSize: 11,
+//               //       //       color: Colors.orange.shade700,
+//               //       //       fontWeight: FontWeight.w500,
+//               //       //     ),
+//               //       //   ),
+//               //       const SizedBox(height: 2),
+//               //       Text(
+//               //         sale.paymentMethod ?? 'Cash',
+//               //         style: TextStyle(
+//               //           fontSize: 10,
+//               //           color: Colors.grey.shade500,
+//               //         ),
+//               //       ),
+//               //     ],
+//               //   ),
+//               // ),
+//               Expanded(
+//                 flex: 1,
+//                 child: Column(
+//                   crossAxisAlignment: CrossAxisAlignment.center,
+//                   mainAxisAlignment: MainAxisAlignment.center,
+//                   children: [
+//                     // Total Revenue
+//                     // Row(
+//                     //   crossAxisAlignment: CrossAxisAlignment.center,
+//                     //   mainAxisAlignment: MainAxisAlignment.center,
+//                     //   children: [
+//                     //     Text(
+//                     //       sale.paymentData.remainingAmount.toStringAsFixed(2),
+//                     //       style: const TextStyle(
+//                     //         fontSize: 14,
+//                     //         fontWeight: FontWeight.w600,
+//                     //         color: Color(0xFF059669),
+//                     //       ),
+//                     //     ),
+//                     //     const SizedBox(
+//                     //       width: 2,
+//                     //     ),
+//                     //   ],
+//                     // ),
+
+//                     // Payment Status with Deposit Indicator (NEW)
+//                     if (sale.deposit.requireDeposit)
+//                       Container(
+//                         margin: const EdgeInsets.only(top: 2),
+//                         padding: const EdgeInsets.symmetric(
+//                           horizontal: 4,
+//                           vertical: 1,
+//                         ),
+//                         decoration: BoxDecoration(
+//                           color: Colors.blue.withOpacity(0.1),
+//                           borderRadius: BorderRadius.circular(3),
+//                         ),
+//                         child: Row(
+//                           mainAxisSize: MainAxisSize.min,
+//                           children: [
+//                             Icon(
+//                               Icons.account_balance_wallet,
+//                               size: 10,
+//                               color: Colors.blue,
+//                             ),
+//                             const SizedBox(width: 2),
+//                             Text(
+//                               'Deposit',
+//                               style: TextStyle(
+//                                 color: Colors.blue,
+//                                 fontSize: 12,
+//                                 fontWeight: FontWeight.w600,
+//                               ),
+//                             ),
+//                           ],
+//                         ),
+//                       ),
+
+//                     const SizedBox(height: 2),
+
+//                     // Payment Method with Paid Status (NEW)
+
+//                     // Remaining Amount if not fully paid (NEW)
+//                     // if (sale.paymentData.isAlreadyPaid &&
+//                     //     sale.paymentData.remainingAmount > 0)
+//                     Text(
+//                       'Disc: ${sale.discount.toStringAsFixed(2)}',
+//                       style: TextStyle(
+//                         fontSize: 12,
+//                         color: AppTheme.redColor,
+//                         fontWeight: FontWeight.w500,
+//                       ),
+//                     ),
+//                     sale.subInvoices.isNotEmpty
+//                         ? Text(
+//                             'Total: ${sale.mainInvoiceTotal
+//                             //sale.total!.toStringAsFixed(2)
+//                             }',
+//                             style: TextStyle(
+//                               fontSize: 12,
+//                               color: Colors.orange.shade700,
+//                               fontWeight: FontWeight.w500,
+//                             ),
+//                           )
+//                         : Text(
+//                             'Total: ${sale.totals.total
+//                             //sale.total!.toStringAsFixed(2)
+//                             }',
+//                             style: TextStyle(
+//                               fontSize: 12,
+//                               color: Colors.orange.shade700,
+//                               fontWeight: FontWeight.w500,
+//                             ),
+//                           ),
+//                     Text(
+//                       'Paid: ${sale.paymentData.totalPaid.toStringAsFixed(2)}',
+//                       style: TextStyle(
+//                         fontSize: 12,
+//                         color: AppTheme.greenColor,
+//                         fontWeight: FontWeight.w500,
+//                       ),
+//                     ),
+//                     Text(
+//                       'Due: ${sale.paymentData.remainingAmount.toStringAsFixed(2)}',
+//                       style: TextStyle(
+//                         fontSize: 12,
+//                         color: AppTheme.redColor,
+//                         fontWeight: FontWeight.w500,
+//                       ),
+//                     ),
+//                     const SizedBox(height: 2),
+//                     Container(
+//                       padding: const EdgeInsets.symmetric(
+//                         horizontal: 6,
+//                         vertical: 2,
+//                       ),
+//                       decoration: BoxDecoration(
+//                         color: _getStatusColor().withOpacity(0.1),
+//                         borderRadius: BorderRadius.circular(3),
+//                       ),
+//                       child: Text(
+//                         sale.status, //.isAlreadyPaid ? "paid" : "pending",
+//                         style: TextStyle(
+//                           color: _getStatusColor(),
+//                           fontSize: 12,
+//                           fontWeight: FontWeight.w600,
+//                         ),
+//                       ),
+//                     ),
+//                   ],
+//                 ),
+//               ),
+
+//               // Payment Status
+//               // Expanded(
+//               //   flex: 1,
+//               //   child: Column(
+//               //     crossAxisAlignment: CrossAxisAlignment.center,
+//               //     mainAxisAlignment: MainAxisAlignment.center,
+//               //     children: [
+//               //       Text(
+//               //         'OMR ${sale.totalRevenue.toStringAsFixed(2)}',
+//               //         style: const TextStyle(
+//               //           fontSize: 13,
+//               //           fontWeight: FontWeight.w600,
+//               //           color: Color(0xFF059669),
+//               //         ),
+//               //       ),
+//               //       const SizedBox(height: 2),
+//               //       Container(
+//               //         padding: const EdgeInsets.symmetric(
+//               //             horizontal: 4, vertical: 1),
+//               //         decoration: BoxDecoration(
+//               //           color: _getStatusColor().withOpacity(0.1),
+//               //           borderRadius: BorderRadius.circular(3),
+//               //         ),
+//               //         child: Text(
+//               //           (sale.status).toUpperCase(),
+//               //           style: TextStyle(
+//               //             color: _getStatusColor(),
+//               //             fontSize: 10,
+//               //             fontWeight: FontWeight.w600,
+//               //           ),
+//               //         ),
+//               //       ),
+//               //     ],
+//               //   ),
+//               // ),
+//               Expanded(
+//                 flex: 1,
+//                 child: Column(
+//                   crossAxisAlignment: CrossAxisAlignment.center,
+//                   mainAxisAlignment: MainAxisAlignment.center,
+//                   children: [
+//                     //const SizedBox(height: 4),
+//                     // Total Paid Amount (NEW)
+//                     if (sale.paymentData.isAlreadyPaid)
+//                       IconButton(
+//                         icon: Icon(
+//                           Icons.payment,
+//                           size: 16,
+//                           color: Colors.green.shade600,
+//                         ),
+//                         onPressed: () {},
+//                         // onPressed: () => PaymentDetailsDialog.show(
+//                         //   context,
+//                         //   sale.paymentData,
+//                         // ),
+//                         padding: EdgeInsets.zero,
+//                         constraints: BoxConstraints(
+//                           minWidth: 24,
+//                           minHeight: 24,
+//                         ),
+//                         tooltip: 'View payment details',
+//                       ),
+
+//                     // Batch Allocation Indicator (NEW)
+//                     // if (sale.batchAllocations.isNotEmpty)
+//                     //   Container(
+//                     //     margin: const EdgeInsets.only(bottom: 2),
+//                     //     padding: const EdgeInsets.symmetric(
+//                     //       horizontal: 4,
+//                     //       vertical: 1,
+//                     //     ),
+//                     //     decoration: BoxDecoration(
+//                     //       color: Colors.purple.withOpacity(0.1),
+//                     //       borderRadius: BorderRadius.circular(3),
+//                     //     ),
+//                     //     child: Row(
+//                     //       mainAxisSize: MainAxisSize.min,
+//                     //       children: [
+//                     //         Icon(
+//                     //           Icons.inventory,
+//                     //           size: 12,
+//                     //           color: Colors.purple,
+//                     //         ),
+//                     //         const SizedBox(width: 2),
+//                     //         Text(
+//                     //           'Batch: ${sale.batchAllocations.length}',
+//                     //           style: TextStyle(
+//                     //             color: Colors.purple,
+//                     //             fontSize: 12,
+//                     //             fontWeight: FontWeight.w600,
+//                     //           ),
+//                     //         ),
+//                     //         const SizedBox(height: 2),
+//                     //         if (sale.url != null && sale.url!.isNotEmpty)
+//                     //           IconButton(
+//                     //             onPressed: () => showDialog(
+//                     //               context: context,
+//                     //               builder: (context) => ImageGalleryDialog(
+//                     //                 imageUrls: sale.url!,
+//                     //                 thumbnailSize: 40.0,
+//                     //                 spacing: 6.0,
+//                     //               ),
+//                     //             ),
+//                     //             icon: Icon(Icons.preview_sharp),
+//                     //           ),
+//                     //       ],
+//                     //     ),
+//                     //   ),
+//                     const SizedBox(height: 2),
+//                     Text(
+//                       'Paid: ${sale.paymentData.totalPaid.toStringAsFixed(2)}',
+//                       style: TextStyle(
+//                         fontSize: 12,
+//                         fontWeight: FontWeight.w600,
+//                         color: sale.paymentData.isAlreadyPaid
+//                             ? Colors.green.shade700
+//                             : Colors.blue.shade700,
+//                       ),
+//                     ),
+
+//                     const SizedBox(height: 4),
+//                     // Text(
+//                     //   getPaymentMethodNames(sale.paymentData),
+//                     //   style: TextStyle(
+//                     //     fontSize: 12,
+//                     //     color: Colors.grey.shade600,
+//                     //   ),
+//                     //   maxLines: 1,
+//                     //   overflow: TextOverflow.ellipsis,
+//                     // ),
+//                     // Status Badge
+
+//                     // Tax Amount (NEW)
+//                     // if (sale.taxAmount > 0)
+//                     //   Text(
+//                     //     'Tax: OMR ${sale.taxAmount.toStringAsFixed(2)}',
+//                     //     style: TextStyle(
+//                     //       fontSize: 12,
+//                     //       color: Colors.grey.shade600,
+//                     //     ),
+//                     //   ),
+//                   ],
+//                 ),
+//               ),
+
+//               // Sale Date & Created By
+//               Expanded(
+//                 flex: 1,
+//                 child: Column(
+//                   crossAxisAlignment: CrossAxisAlignment.center,
+//                   mainAxisAlignment: MainAxisAlignment.center,
+//                   children: [
+//                     Text(
+//                       DateFormat('MMM dd, yy').format(sale.createdAt),
+//                       style: TextStyle(
+//                         fontSize: 12,
+//                         color: Colors.grey.shade600,
+//                         fontWeight: FontWeight.w500,
+//                       ),
+//                     ),
+//                     const SizedBox(height: 1),
+//                     Text(
+//                       DateFormat('yyyy-MM-dd hh:mm a').format(sale.createdAt),
+//                       style: TextStyle(
+//                         fontSize: 10,
+//                         color: Colors.grey.shade500,
+//                       ),
+//                     ),
+//                     // const SizedBox(height: 1),
+//                     // Text(
+//                     //   'By: ${sale.createdBy}',
+//                     //   style: TextStyle(
+//                     //     fontSize: 10,
+//                     //     color: Colors.grey.shade500,
+//                     //     fontWeight: FontWeight.w400,
+//                     //   ),
+//                     //   maxLines: 1,
+//                     //   overflow: TextOverflow.ellipsis,
+//                     // ),
+//                   ],
+//                 ),
+//               ),
+
+//               const SizedBox(width: 8),
+
+//               // Action Dropdown Menu
+//               Consumer<MmResourceProvider>(
+//                 builder: (context, resource, child) {
+//                   final permissions =
+//                       resource.employeeModel?.profileAccessKey ?? [];
+//                   String edit = type == 'estimation'
+//                       ? 'Edit Estimates'
+//                       : 'Edit Invoices';
+//                   String refund = 'Process Refund';
+//                   String payment = 'Add Payment';
+//                   String delete = type == 'estimation'
+//                       ? 'Delete Estimates'
+//                       : 'Delete Invoices';
+//                   return PopupMenuButton<SaleAction>(
+//                     onSelected: (SaleAction action) {
+//                       if (onActionSelected != null) {
+//                         onActionSelected!(action);
+//                       }
+//                     },
+//                     icon: Icon(
+//                       Icons.more_vert,
+//                       size: 18,
+//                       color: Colors.grey.shade600,
+//                     ),
+//                     padding: EdgeInsets.zero,
+//                     constraints: const BoxConstraints(minWidth: 0),
+//                     itemBuilder: (BuildContext context) => [
+//                       PopupMenuItem<SaleAction>(
+//                         value: SaleAction.view,
+//                         child: Row(
+//                           children: [
+//                             Icon(
+//                               Icons.visibility,
+//                               size: 18,
+//                               color: Colors.blue,
+//                             ),
+//                             const SizedBox(width: 8),
+//                             Text('View Invoice'),
+//                           ],
+//                         ),
+//                       ),
+//                       PopupMenuItem<SaleAction>(
+//                         value: SaleAction.viewCoa,
+//                         child: Row(
+//                           children: [
+//                             Icon(
+//                               Icons.account_box_sharp,
+//                               size: 18,
+//                               color: Colors.green,
+//                             ),
+//                             const SizedBox(width: 8),
+//                             Text('View COA'),
+//                           ],
+//                         ),
+//                       ),
+//                       PopupMenuItem<SaleAction>(
+//                         value: SaleAction.confirm,
+//                         child: Row(
+//                           children: [
+//                             Icon(
+//                               Icons.account_box_sharp,
+//                               size: 18,
+//                               color: Colors.green,
+//                             ),
+//                             const SizedBox(width: 8),
+//                             Text('Confirm Purchase'),
+//                           ],
+//                         ),
+//                       ),
+//                       if (permissions.contains(payment) ||
+//                           user!.uid == Constants.adminId)
+//                         PopupMenuItem<SaleAction>(
+//                           value: SaleAction.payment,
+//                           child: Row(
+//                             children: [
+//                               Icon(
+//                                 Icons.payment,
+//                                 size: 18,
+//                                 color: Colors.purple,
+//                               ),
+//                               const SizedBox(width: 8),
+//                               Text('Add Payment'),
+//                             ],
+//                           ),
+//                         ),
+//                       PopupMenuItem<SaleAction>(
+//                         value: SaleAction.clone,
+//                         child: Row(
+//                           children: [
+//                             Icon(
+//                               Icons.add_card_sharp,
+//                               size: 18,
+//                               color: Colors.green,
+//                             ),
+//                             const SizedBox(width: 8),
+//                             Text('Clone'),
+//                           ],
+//                         ),
+//                       ),
+//                       if (permissions.contains(edit) ||
+//                           user!.uid == Constants.adminId)
+//                         PopupMenuItem<SaleAction>(
+//                           value: SaleAction.edit,
+//                           child: Row(
+//                             children: [
+//                               Icon(Icons.edit, size: 18, color: Colors.orange),
+//                               const SizedBox(width: 8),
+//                               Text('Edit Sale'),
+//                             ],
+//                           ),
+//                         ),
+//                       if (permissions.contains(refund) ||
+//                           user!.uid == Constants.adminId) ...[
+//                         PopupMenuItem<SaleAction>(
+//                           value: SaleAction.refund,
+//                           child: Row(
+//                             children: [
+//                               Icon(Icons.undo, size: 18, color: Colors.amber),
+//                               const SizedBox(width: 8),
+//                               Text('Process Refund'),
+//                             ],
+//                           ),
+//                         ),
+//                       ],
+//                       if (permissions.contains(delete) ||
+//                           user!.uid == Constants.adminId) ...[
+//                         const PopupMenuDivider(),
+//                         PopupMenuItem<SaleAction>(
+//                           value: SaleAction.delete,
+//                           child: Row(
+//                             children: [
+//                               Icon(Icons.delete, size: 16, color: Colors.red),
+//                               const SizedBox(width: 8),
+//                               Text(
+//                                 'Delete',
+//                                 style: TextStyle(color: Colors.red),
+//                               ),
+//                             ],
+//                           ),
+//                         ),
+//                       ],
+//                       if (permissions.contains(delete) ||
+//                           user!.uid == Constants.adminId) ...[
+//                         const PopupMenuDivider(),
+//                         PopupMenuItem<SaleAction>(
+//                           value: SaleAction.logs,
+//                           child: Row(
+//                             children: [
+//                               Icon(
+//                                 Icons.timeline,
+//                                 size: 16,
+//                                 color: Colors.deepOrange,
+//                               ),
+//                               const SizedBox(width: 8),
+//                               Text(
+//                                 'View Logs',
+//                                 style: TextStyle(color: Colors.deepOrange),
+//                               ),
+//                             ],
+//                           ),
+//                         ),
+//                       ],
+//                     ],
+//                   );
+//                 },
+//               ),
+//             ],
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+
+//   // String getPaymentMethodNames(PurchaseDeposit paymentData) {
+//   //   if (!paymentData.depositAlreadyPaid!) {
+//   //     return ''; // Return empty string if not paid
+//   //   }
+
+//   //   if (paymentData.paymentMethods.isEmpty) {
+//   //     return 'No payment methods'; // Fallback if no methods
+//   //   }
+
+//   //   // Extract method names and join with commas
+//   //   return paymentData.paymentMethods
+//   //       .map((method) => method.methodName)
+//   //       .where((name) => name.isNotEmpty) // Filter out empty names
+//   //       .join(', ');
+//   // }
+
+//   IconData _getPaymentMethodIcon(String method) {
+//     switch (method.toLowerCase()) {
+//       case 'cash':
+//         return Icons.money;
+//       case 'card':
+//         return Icons.credit_card;
+//       case 'transfer':
+//         return Icons.account_balance;
+//       case 'cheque':
+//         return Icons.description;
+//       case 'multiple':
+//         return Icons.payment;
+//       default:
+//         return Icons.payment;
+//     }
+//   }
+
+//   Color _getStatusColor() {
+//     switch (sale.status.toLowerCase()) {
+//       case 'paid':
+//         return Colors.green;
+//       case 'completed':
+//         return Colors.green;
+//       case 'pending':
+//         return Colors.red;
+//       case 'cancelled':
+//         return Colors.orange;
+//       case 'refunded':
+//         return Colors.purple;
+//       default:
+//         return Colors.grey;
+//     }
+//   }
+// }
 class PurchaseCard extends StatelessWidget {
   final NewPurchaseModel sale;
   final String type;
@@ -167,28 +1135,18 @@ class PurchaseCard extends StatelessWidget {
 
     Future<void> updatePurchaseStatus(NewPurchaseModel purchase) async {
       try {
-        // await FirebaseFirestore.instance
-        //     .collection('purchases')
-        //     .doc(purchaseId)
-        //     .update({
-        //       'status': 'save',
-        //       // 'updatedAt': FieldValue.serverTimestamp(), // Optional: add update timestamp
-        //     });
         purchase.status = "save";
-        // print('Purchase status updated to "save" for ID: $purchaseId');
         HttpsCallable callable = FirebaseFunctions.instance.httpsCallable(
           'savePurchase',
         );
         final results = await callable({
-          'purchaseId': purchase.id, //'000testSale',
+          'purchaseId': purchase.id,
           'status': "save",
-          //"purchaseData": purchase,
-          ///'expenseData': purchase.expenseData,
         });
         debugPrint("${"confirm purchase"}${results.data.toString()}");
       } catch (e) {
         print('Error updating purchase status: $e');
-        throw e; // Re-throw to handle in UI
+        throw e;
       }
     }
 
@@ -345,17 +1303,6 @@ class PurchaseCard extends StatelessWidget {
                   children: [
                     SupplierNameTile(customerId: sale.supplierId),
                     const SizedBox(height: 2),
-                    // Text(
-                    //   sale.paymentMethod,
-                    //   style: TextStyle(
-                    //     fontSize: 11,
-                    //     color: Colors.grey.shade600,
-                    //     fontStyle: FontStyle.italic,
-                    //   ),
-                    //   maxLines: 1,
-                    //   overflow: TextOverflow.ellipsis,
-                    // ),
-                    // const SizedBox(height: 2),
                     MmEmployeeInfoTile(employeeId: sale.createBy),
                   ],
                 ),
@@ -363,9 +1310,6 @@ class PurchaseCard extends StatelessWidget {
               Expanded(
                 flex: 2,
                 child: InkWell(
-                  // onTap: sale.items.length > 1
-                  //     ? () => ProductDetailsDialog.show(context, sale)
-                  //     : null,
                   borderRadius: BorderRadius.circular(8),
                   hoverColor: Colors.grey.withOpacity(0.05),
                   child: Container(
@@ -380,145 +1324,124 @@ class PurchaseCard extends StatelessWidget {
                     ),
                     child: Row(
                       children: [
-                        // Product Icon
-                        // Container(
-                        //   width: 32,
-                        //   height: 32,
-                        //   decoration: BoxDecoration(
-                        //     gradient: const LinearGradient(
-                        //       colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
-                        //       begin: Alignment.topLeft,
-                        //       end: Alignment.bottomRight,
-                        //     ),
-                        //     borderRadius: BorderRadius.circular(8),
-                        //   ),
-                        //   child: const Icon(
-                        //     Icons.inventory_2_rounded,
-                        //     color: Colors.white,
-                        //     size: 16,
-                        //   ),
-                        // ),
                         const SizedBox(width: 8),
-
                         // Main Content
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              // Product Details
-                              if (sale.items.isNotEmpty)
-                                //   Expanded(
-                                //     child: DataTableProductCell(
-                                //       productId: sale.items[0].productId,
-                                //       // saleDetails: sale,
-                                //       saleItem: sale.items[0],
-                                //     ),
-                                //   ),
-                                // _buildPaymentDepositSummary(sale),
-                                // Bottom Row
-                                Row(
-                                  children: [
-                                    // More Items Badge
-                                    if (sale.items.length > 1) ...[
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 6,
-                                          vertical: 2,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: const Color(
-                                            0xFF4F46E5,
-                                          ).withOpacity(0.1),
-                                          borderRadius: BorderRadius.circular(
-                                            6,
-                                          ),
-                                          border: Border.all(
-                                            color: const Color(
-                                              0xFF4F46E5,
-                                            ).withOpacity(0.3),
-                                            width: 0.5,
-                                          ),
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            const Icon(
-                                              Icons.add_rounded,
-                                              size: 10,
-                                              color: Color(0xFF4F46E5),
-                                            ),
-                                            const SizedBox(width: 2),
-                                            Text(
-                                              '${sale.items.length - 1}',
-                                              style: const TextStyle(
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.w700,
-                                                color: Color(0xFF4F46E5),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                    ],
+                              // Product Details Section
+                              _buildProductDetailsSection(),
+                              const SizedBox(height: 4),
 
-                                    const Spacer(),
+                              // Expense Data Section (NEW)
+                              if (sale.expenseData.isNotEmpty)
+                                _buildExpenseDataSection(),
 
-                                    // Sale Summary - Compact
+                              // SubInvoices Section (NEW)
+                              if (sale.subInvoices.isNotEmpty)
+                                _buildSubInvoicesSection(),
+
+                              // Bottom Row
+                              Row(
+                                children: [
+                                  // More Items Badge
+                                  if (sale.items.length > 1) ...[
                                     Container(
                                       padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 4,
+                                        horizontal: 6,
+                                        vertical: 2,
                                       ),
                                       decoration: BoxDecoration(
-                                        gradient: const LinearGradient(
-                                          colors: [
-                                            Color(0xFF1F2937),
-                                            Color(0xFF374151),
-                                          ],
+                                        color: const Color(
+                                          0xFF4F46E5,
+                                        ).withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(
+                                          color: const Color(
+                                            0xFF4F46E5,
+                                          ).withOpacity(0.3),
+                                          width: 0.5,
                                         ),
-                                        borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
+                                          const Icon(
+                                            Icons.add_rounded,
+                                            size: 10,
+                                            color: Color(0xFF4F46E5),
+                                          ),
+                                          const SizedBox(width: 2),
                                           Text(
-                                            'Item: ${sale.items.length}',
+                                            '${sale.items.length - 1}',
                                             style: const TextStyle(
-                                              fontSize: 12,
+                                              fontSize: 10,
                                               fontWeight: FontWeight.w700,
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 4),
-                                          Container(
-                                            width: 1,
-                                            height: 10,
-                                            color: Colors.white.withOpacity(
-                                              0.3,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            Constants.formatPrice(
-                                              sale.items.fold(
-                                                0,
-                                                (sum, invoice) =>
-                                                    sum! + invoice.totalPrice,
-                                              ),
-                                            ),
-                                            style: const TextStyle(
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w600,
-                                              color: Colors.white,
+                                              color: Color(0xFF4F46E5),
                                             ),
                                           ),
                                         ],
                                       ),
                                     ),
+                                    const SizedBox(width: 8),
                                   ],
-                                ),
+
+                                  const Spacer(),
+
+                                  // Sale Summary - Compact
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      gradient: const LinearGradient(
+                                        colors: [
+                                          Color(0xFF1F2937),
+                                          Color(0xFF374151),
+                                        ],
+                                      ),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          'Item: ${sale.items.length}',
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w700,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Container(
+                                          width: 1,
+                                          height: 10,
+                                          color: Colors.white.withOpacity(0.3),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          Constants.formatPrice(
+                                            sale.items.fold(
+                                              0,
+                                              (sum, invoice) =>
+                                                  sum! + invoice.totalPrice,
+                                            ),
+                                          ),
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ],
                           ),
                         ),
@@ -527,71 +1450,18 @@ class PurchaseCard extends StatelessWidget {
                   ),
                 ),
               ),
-              // Amount Info
-              // Expanded(
-              //   flex: 1,
-              //   child: Column(
-              //     crossAxisAlignment: CrossAxisAlignment.center,
-              //     mainAxisAlignment: MainAxisAlignment.center,
-              //     children: [
-              //       Text(
-              //         'OMR ${sale.totalRevenue.toStringAsFixed(2) ?? '0.00'}',
-              //         style: const TextStyle(
-              //           fontSize: 13,
-              //           fontWeight: FontWeight.w600,
-              //           color: Color(0xFF059669),
-              //         ),
-              //       ),
-              //       // const SizedBox(height: 2),
-              //       // if (sale.totalRevenue != null && sale.totalRevenue > 0)
-              //       //   Text(
-              //       //     'Due: \$${sale.totalRevenue.toStringAsFixed(2)}',
-              //       //     style: TextStyle(
-              //       //       fontSize: 11,
-              //       //       color: Colors.orange.shade700,
-              //       //       fontWeight: FontWeight.w500,
-              //       //     ),
-              //       //   ),
-              //       const SizedBox(height: 2),
-              //       Text(
-              //         sale.paymentMethod ?? 'Cash',
-              //         style: TextStyle(
-              //           fontSize: 10,
-              //           color: Colors.grey.shade500,
-              //         ),
-              //       ),
-              //     ],
-              //   ),
-              // ),
+
+              // Amount Info Section
               Expanded(
                 flex: 1,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Total Revenue
-                    // Row(
-                    //   crossAxisAlignment: CrossAxisAlignment.center,
-                    //   mainAxisAlignment: MainAxisAlignment.center,
-                    //   children: [
-                    //     Text(
-                    //       sale.paymentData.remainingAmount.toStringAsFixed(2),
-                    //       style: const TextStyle(
-                    //         fontSize: 14,
-                    //         fontWeight: FontWeight.w600,
-                    //         color: Color(0xFF059669),
-                    //       ),
-                    //     ),
-                    //     const SizedBox(
-                    //       width: 2,
-                    //     ),
-                    //   ],
-                    // ),
-
-                    // Payment Status with Deposit Indicator (NEW)
+                    // Deposit Indicator
                     if (sale.deposit.requireDeposit)
                       Container(
-                        margin: const EdgeInsets.only(top: 2),
+                        margin: const EdgeInsets.only(bottom: 2),
                         padding: const EdgeInsets.symmetric(
                           horizontal: 4,
                           vertical: 1,
@@ -623,11 +1493,7 @@ class PurchaseCard extends StatelessWidget {
 
                     const SizedBox(height: 2),
 
-                    // Payment Method with Paid Status (NEW)
-
-                    // Remaining Amount if not fully paid (NEW)
-                    // if (sale.paymentData.isAlreadyPaid &&
-                    //     sale.paymentData.remainingAmount > 0)
+                    // Financial Summary
                     Text(
                       'Disc: ${sale.discount.toStringAsFixed(2)}',
                       style: TextStyle(
@@ -636,27 +1502,37 @@ class PurchaseCard extends StatelessWidget {
                         fontWeight: FontWeight.w500,
                       ),
                     ),
+
+                    // Show subinvoices total if exists, otherwise show main total
                     sale.subInvoices.isNotEmpty
                         ? Text(
-                            'Total: ${sale.mainInvoiceTotal
-                            //sale.total!.toStringAsFixed(2)
-                            }',
+                            'Sub Inv: ${sale.subInvoicesTotal.toStringAsFixed(2)}',
                             style: TextStyle(
                               fontSize: 12,
                               color: Colors.orange.shade700,
                               fontWeight: FontWeight.w500,
                             ),
                           )
+                        : const SizedBox.shrink(),
+
+                    sale.subInvoices.isNotEmpty
+                        ? Text(
+                            'Main: ${sale.mainInvoiceTotal.toStringAsFixed(2)}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.blue.shade700,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          )
                         : Text(
-                            'Total: ${sale.totals.total
-                            //sale.total!.toStringAsFixed(2)
-                            }',
+                            'Total: ${sale.totals.total.toStringAsFixed(2)}',
                             style: TextStyle(
                               fontSize: 12,
                               color: Colors.orange.shade700,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
+
                     Text(
                       'Paid: ${sale.paymentData.totalPaid.toStringAsFixed(2)}',
                       style: TextStyle(
@@ -684,7 +1560,7 @@ class PurchaseCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(3),
                       ),
                       child: Text(
-                        sale.status, //.isAlreadyPaid ? "paid" : "pending",
+                        sale.status,
                         style: TextStyle(
                           color: _getStatusColor(),
                           fontSize: 12,
@@ -696,49 +1572,14 @@ class PurchaseCard extends StatelessWidget {
                 ),
               ),
 
-              // Payment Status
-              // Expanded(
-              //   flex: 1,
-              //   child: Column(
-              //     crossAxisAlignment: CrossAxisAlignment.center,
-              //     mainAxisAlignment: MainAxisAlignment.center,
-              //     children: [
-              //       Text(
-              //         'OMR ${sale.totalRevenue.toStringAsFixed(2)}',
-              //         style: const TextStyle(
-              //           fontSize: 13,
-              //           fontWeight: FontWeight.w600,
-              //           color: Color(0xFF059669),
-              //         ),
-              //       ),
-              //       const SizedBox(height: 2),
-              //       Container(
-              //         padding: const EdgeInsets.symmetric(
-              //             horizontal: 4, vertical: 1),
-              //         decoration: BoxDecoration(
-              //           color: _getStatusColor().withOpacity(0.1),
-              //           borderRadius: BorderRadius.circular(3),
-              //         ),
-              //         child: Text(
-              //           (sale.status).toUpperCase(),
-              //           style: TextStyle(
-              //             color: _getStatusColor(),
-              //             fontSize: 10,
-              //             fontWeight: FontWeight.w600,
-              //           ),
-              //         ),
-              //       ),
-              //     ],
-              //   ),
-              // ),
+              // Payment & Additional Info Section
               Expanded(
                 flex: 1,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    //const SizedBox(height: 4),
-                    // Total Paid Amount (NEW)
+                    // Payment Icon
                     if (sale.paymentData.isAlreadyPaid)
                       IconButton(
                         icon: Icon(
@@ -747,10 +1588,6 @@ class PurchaseCard extends StatelessWidget {
                           color: Colors.green.shade600,
                         ),
                         onPressed: () {},
-                        // onPressed: () => PaymentDetailsDialog.show(
-                        //   context,
-                        //   sale.paymentData,
-                        // ),
                         padding: EdgeInsets.zero,
                         constraints: BoxConstraints(
                           minWidth: 24,
@@ -759,51 +1596,68 @@ class PurchaseCard extends StatelessWidget {
                         tooltip: 'View payment details',
                       ),
 
-                    // Batch Allocation Indicator (NEW)
-                    // if (sale.batchAllocations.isNotEmpty)
-                    //   Container(
-                    //     margin: const EdgeInsets.only(bottom: 2),
-                    //     padding: const EdgeInsets.symmetric(
-                    //       horizontal: 4,
-                    //       vertical: 1,
-                    //     ),
-                    //     decoration: BoxDecoration(
-                    //       color: Colors.purple.withOpacity(0.1),
-                    //       borderRadius: BorderRadius.circular(3),
-                    //     ),
-                    //     child: Row(
-                    //       mainAxisSize: MainAxisSize.min,
-                    //       children: [
-                    //         Icon(
-                    //           Icons.inventory,
-                    //           size: 12,
-                    //           color: Colors.purple,
-                    //         ),
-                    //         const SizedBox(width: 2),
-                    //         Text(
-                    //           'Batch: ${sale.batchAllocations.length}',
-                    //           style: TextStyle(
-                    //             color: Colors.purple,
-                    //             fontSize: 12,
-                    //             fontWeight: FontWeight.w600,
-                    //           ),
-                    //         ),
-                    //         const SizedBox(height: 2),
-                    //         if (sale.url != null && sale.url!.isNotEmpty)
-                    //           IconButton(
-                    //             onPressed: () => showDialog(
-                    //               context: context,
-                    //               builder: (context) => ImageGalleryDialog(
-                    //                 imageUrls: sale.url!,
-                    //                 thumbnailSize: 40.0,
-                    //                 spacing: 6.0,
-                    //               ),
-                    //             ),
-                    //             icon: Icon(Icons.preview_sharp),
-                    //           ),
-                    //       ],
-                    //     ),
-                    //   ),
+                    // Expense Indicator (NEW)
+                    if (sale.expenseData.isNotEmpty)
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 1,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.purple.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.receipt_long,
+                              size: 12,
+                              color: Colors.purple,
+                            ),
+                            const SizedBox(width: 2),
+                            Text(
+                              'Exp: ${sale.expenseData.length}',
+                              style: TextStyle(
+                                color: Colors.purple,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                    // SubInvoices Indicator (NEW)
+                    if (sale.subInvoices.isNotEmpty)
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 1,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.teal.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.receipt, size: 12, color: Colors.teal),
+                            const SizedBox(width: 2),
+                            Text(
+                              'Sub: ${sale.subInvoices.length}',
+                              style: TextStyle(
+                                color: Colors.teal,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
                     const SizedBox(height: 2),
                     Text(
                       'Paid: ${sale.paymentData.totalPaid.toStringAsFixed(2)}',
@@ -815,33 +1669,11 @@ class PurchaseCard extends StatelessWidget {
                             : Colors.blue.shade700,
                       ),
                     ),
-
-                    const SizedBox(height: 4),
-                    // Text(
-                    //   getPaymentMethodNames(sale.paymentData),
-                    //   style: TextStyle(
-                    //     fontSize: 12,
-                    //     color: Colors.grey.shade600,
-                    //   ),
-                    //   maxLines: 1,
-                    //   overflow: TextOverflow.ellipsis,
-                    // ),
-                    // Status Badge
-
-                    // Tax Amount (NEW)
-                    // if (sale.taxAmount > 0)
-                    //   Text(
-                    //     'Tax: OMR ${sale.taxAmount.toStringAsFixed(2)}',
-                    //     style: TextStyle(
-                    //       fontSize: 12,
-                    //       color: Colors.grey.shade600,
-                    //     ),
-                    //   ),
                   ],
                 ),
               ),
 
-              // Sale Date & Created By
+              // Date & Time Section
               Expanded(
                 flex: 1,
                 child: Column(
@@ -864,24 +1696,13 @@ class PurchaseCard extends StatelessWidget {
                         color: Colors.grey.shade500,
                       ),
                     ),
-                    // const SizedBox(height: 1),
-                    // Text(
-                    //   'By: ${sale.createdBy}',
-                    //   style: TextStyle(
-                    //     fontSize: 10,
-                    //     color: Colors.grey.shade500,
-                    //     fontWeight: FontWeight.w400,
-                    //   ),
-                    //   maxLines: 1,
-                    //   overflow: TextOverflow.ellipsis,
-                    // ),
                   ],
                 ),
               ),
 
               const SizedBox(width: 8),
 
-              // Action Dropdown Menu
+              // Action Dropdown Menu (unchanged)
               Consumer<MmResourceProvider>(
                 builder: (context, resource, child) {
                   final permissions =
@@ -1054,21 +1875,95 @@ class PurchaseCard extends StatelessWidget {
     );
   }
 
-  // String getPaymentMethodNames(PurchaseDeposit paymentData) {
-  //   if (!paymentData.depositAlreadyPaid!) {
-  //     return ''; // Return empty string if not paid
-  //   }
+  // NEW: Build Product Details Section
+  Widget _buildProductDetailsSection() {
+    if (sale.items.isEmpty) return const SizedBox.shrink();
 
-  //   if (paymentData.paymentMethods.isEmpty) {
-  //     return 'No payment methods'; // Fallback if no methods
-  //   }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          sale.items[0].productName,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        if (sale.items[0].quantity > 0)
+          Text(
+            'Qty: ${sale.items[0].quantity} × ${Constants.formatPrice(sale.items[0].unitPrice)}',
+            style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+          ),
+      ],
+    );
+  }
 
-  //   // Extract method names and join with commas
-  //   return paymentData.paymentMethods
-  //       .map((method) => method.methodName)
-  //       .where((name) => name.isNotEmpty) // Filter out empty names
-  //       .join(', ');
-  // }
+  // NEW: Build Expense Data Section
+  Widget _buildExpenseDataSection() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: Colors.purple.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: Colors.purple.withOpacity(0.2), width: 0.5),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.receipt_long, size: 10, color: Colors.purple),
+          const SizedBox(width: 4),
+          Text(
+            'Expenses: ${sale.expenseData.length} items',
+            style: TextStyle(
+              fontSize: 10,
+              color: Colors.purple.shade700,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            'Total: ${Constants.formatPrice(sale.expenseData.fold(0.0, (sum, expense) => sum ?? 0 + expense.amount))}',
+            style: TextStyle(fontSize: 10, color: Colors.purple.shade600),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // NEW: Build SubInvoices Section
+  Widget _buildSubInvoicesSection() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: Colors.teal.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: Colors.teal.withOpacity(0.2), width: 0.5),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.receipt, size: 10, color: Colors.teal),
+          const SizedBox(width: 4),
+          Text(
+            'Sub-Invoices: ${sale.subInvoices.length}',
+            style: TextStyle(
+              fontSize: 10,
+              color: Colors.teal.shade700,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            'Total: ${Constants.formatPrice(sale.subInvoicesTotal)}',
+            style: TextStyle(fontSize: 10, color: Colors.teal.shade600),
+          ),
+        ],
+      ),
+    );
+  }
 
   IconData _getPaymentMethodIcon(String method) {
     switch (method.toLowerCase()) {
