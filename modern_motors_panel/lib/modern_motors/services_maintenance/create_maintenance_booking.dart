@@ -11,7 +11,9 @@ import 'package:modern_motors_panel/extensions.dart';
 import 'package:modern_motors_panel/model/attachment_model.dart';
 import 'package:modern_motors_panel/model/customer_models/customer_models.dart';
 import 'package:modern_motors_panel/model/discount_models/discount_model.dart';
+import 'package:modern_motors_panel/model/hr_models/employees/commissions_model/commission_transaction_model.dart';
 import 'package:modern_motors_panel/model/hr_models/employees/commissions_model/employees_commision_model.dart';
+import 'package:modern_motors_panel/model/hr_models/employees/emlpoyee_model.dart';
 import 'package:modern_motors_panel/model/inventory_models/inventory_model.dart';
 import 'package:modern_motors_panel/model/product_models/product_model.dart';
 import 'package:modern_motors_panel/model/sales_model/credit_days_model.dart';
@@ -28,6 +30,7 @@ import 'package:modern_motors_panel/modern_motors/widgets/page_header_widget.dar
 import 'package:modern_motors_panel/modern_motors/widgets/sales_invoice_dropdown_view.dart';
 import 'package:modern_motors_panel/modern_motors/widgets/selected_items_page.dart';
 import 'package:modern_motors_panel/provider/maintenance_booking_provider.dart';
+import 'package:modern_motors_panel/provider/modern_motors/mm_resource_provider.dart';
 import 'package:modern_motors_panel/widgets/dialogue_box_picker.dart';
 import 'package:modern_motors_panel/widgets/overlay_loader.dart';
 import 'package:provider/provider.dart';
@@ -81,8 +84,8 @@ class DepositType {
 }
 
 class ProductRow {
-  SaleItem? saleItem; // Changed from ProductModel to SaleItem
-  String? type; // 'product' or 'service'
+  SaleItem? saleItem;
+  String? type;
   double? sellingPrice;
   double? selectedPrice;
   double margin = 0;
@@ -93,11 +96,12 @@ class ProductRow {
   double vatAmount = 0;
   double total = 0;
   double profit = 0;
-  double cost = 0; // Added cost field
+  double cost = 0;
   late Key dropdownKey;
   late Key priceKey;
   late Key quantityKey;
   late Key discountKey;
+
   ProductRow({
     this.total = 0,
     this.subtotal = 0,
@@ -110,7 +114,6 @@ class ProductRow {
     this.applyVat = true,
     this.cost = 0,
   }) {
-    // Generate keys once in constructor
     dropdownKey = UniqueKey();
     priceKey = UniqueKey();
     quantityKey = UniqueKey();
@@ -142,6 +145,7 @@ class CreateMaintenanceBooking extends StatefulWidget {
   final List<InventoryModel>? selectedInventory;
   final List<ProductModel>? products;
   final String? type;
+
   const CreateMaintenanceBooking({
     super.key,
     this.onBack,
@@ -168,13 +172,11 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
   List<ServiceTypeModel> allServices = [];
   List<DiscountModel> allDiscounts = [];
   List<ProductModel> allProducts = [];
+  List<EmployeeModel> employees = [];
   CreditDaysModel? creditDays;
-  List<ProductRow> productRows = [
-    //ProductRow()
-  ];
+  List<ProductRow> productRows = [];
   double productsGrandTotal = 0;
   bool loading = false;
-  // Service rows
   double servicesGrandTotal = 0;
   List<SaleItem> salesItem = [];
   bool isAlreadyPaid = false;
@@ -206,22 +208,11 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
         p.setBookingTime(widget.sale!.createdAt);
       }
     });
+
     if (widget.sale == null) {
       productRows.add(ProductRow());
     }
-    // if (widget.items != null) {
-    //   for (var element in widget.items!) {
-    //     productRows.add(ProductRow(
-    //       saleItem: element,
-    //       type: element.type,
-    //       sellingPrice: element.sellingPrice,
-    //       quantity: element.quantity,
-    //       total: element.totalPrice,
-    //       subtotal: element.discount + element.totalPrice,
-    //       discount: element.discount,
-    //     ));
-    //   }
-    // }
+
     _loadInitialData();
   }
 
@@ -237,6 +228,7 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
     if (mounted) {
       setState(() => _isLoadingDiscounts = true);
     }
+
     if (widget.sale == null) {
       var value = await Constants.getUniqueNumberValue("MM");
       invNumber = value;
@@ -253,12 +245,18 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
         DataFetchService.fetchProducts(),
         DataFetchService.getCreditDays(),
       ]);
+
       allDiscounts = results[0] as List<DiscountModel>;
       allCustomers = results[1] as List<CustomerModel>;
       allTrucks = results[2] as List<MmtrucksModel>;
       allServices = results[3] as List<ServiceTypeModel>;
       allProducts = results[4] as List<ProductModel>;
       creditDays = results[5] as CreditDaysModel;
+
+      // Get employees from provider
+      final provider = context.read<MmResourceProvider>();
+      employees = provider.employees;
+
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         if (widget.sale != null) {
           CustomerModel? customer;
@@ -268,9 +266,7 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
           customerNameController.text = customer.customerName;
           final p = context.read<MaintenanceBookingProvider>();
           p.setCustomer(id: widget.sale!.customerName);
-          // if (widget.sale!.items.isNotEmpty) {
-          //   productRows.clear();
-          // }
+
           for (var element in widget.sale!.items) {
             productRows.add(
               ProductRow(
@@ -284,10 +280,11 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
               ),
             );
           }
+
           discountController.text = widget.sale!.discount.toString();
           p.getValues(widget.sale!.taxAmount, widget.sale!.total!);
           p.discountType = widget.sale!.discountType;
-          //p.taxAmount = widget.sale!.taxAmount;
+
           if (widget.sale!.discountType == 'percentage') {
             selectedDiscountType = DiscountType.types[0];
             p.discountType = selectedDiscountType.id;
@@ -297,47 +294,16 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
             p.discountType = selectedDiscountType.id;
             p.setDiscountPercent(widget.sale!.discount);
           }
+
           productsGrandTotal = productRows.fold(
             0,
             (sum, row) => sum + row.total,
           );
-          // p.grandTotal = widget.sale!.total!;
-          //_updateAllCalculations(p);
-          // if (widget.sale!.discount > 0) {
-          //   p.setDiscountAmount(widget.sale!.discount);
-          //   //  productsGrandTotal + widget.sale!.discount;
-          // }
           _applyDiscount(p, productsGrandTotal);
-          // if (widget.sale!.paymentData.paymentMethods.isNotEmpty) {
-          //   isAlreadyPaid = true;
-          //   paymentRows.clear();
-          //   if (widget.sale!.paymentData.paymentMethods.length > 1) {
-          //     isMultiple = true;
-          //   }
-          //   for (var element in widget.sale!.paymentData.paymentMethods) {
-          //     paymentRows.add(
-          //       PaymentRow(
-          //         method: PaymentMethod(
-          //           id: element.method,
-          //           name: element.method,
-          //         ),
-          //         amount: element.amount,
-          //       ),
-          //     );
-          //   }
-          // }
+
           if (widget.sale!.paymentData.paymentMethods.isNotEmpty) {
             isAlreadyPaid = true;
             paymentRows.clear();
-
-            debugPrint('Loading payment data from sale:');
-            debugPrint(
-              'Number of payment methods: ${widget.sale!.paymentData.paymentMethods.length}',
-            );
-            debugPrint(
-              'Is multiple: ${widget.sale!.paymentData.paymentMethods.length > 1}',
-            );
-
             isMultiple = widget.sale!.paymentData.paymentMethods.length > 1;
 
             for (
@@ -346,9 +312,6 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
               i++
             ) {
               final element = widget.sale!.paymentData.paymentMethods[i];
-              debugPrint(
-                'Payment method $i: ${element.method}, Reference: ${element.reference}, Amount: ${element.amount}',
-              );
               PaymentMethod? paymentMethod;
               try {
                 paymentMethod = PaymentMethod.methods.firstWhere(
@@ -356,22 +319,20 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                       method.id.toLowerCase() == element.method?.toLowerCase(),
                 );
               } catch (e) {
-                // If method not found in predefined list, create a custom one
                 paymentMethod = PaymentMethod(
                   id: element.method ?? 'unknown',
                   name: element.method ?? 'Unknown',
                 );
               }
+
               final newPaymentRow = PaymentRow(
                 method: paymentMethod,
                 reference: element.reference,
                 amount: element.amount,
               );
               paymentRows.add(newPaymentRow);
-              debugPrint(
-                'Added PaymentRow: ${newPaymentRow.method?.name}, ${newPaymentRow.reference}, ${newPaymentRow.amount}',
-              );
             }
+
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (mounted) {
                 final double subtotal = servicesGrandTotal + productsGrandTotal;
@@ -383,70 +344,16 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                 final double total = amountAfterDiscount + taxAmount;
 
                 _calculateRemainingAmount(total);
-                // Force UI update
                 if (mounted) {
                   setState(() {});
                 }
               }
             });
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (widget.sale != null) {
-                final double subtotal = servicesGrandTotal + productsGrandTotal;
-                final double discountAmount = p.discountAmount;
-                final double amountAfterDiscount = subtotal - discountAmount;
-                final double taxAmount = p.getIsTaxApply
-                    ? amountAfterDiscount * (p.taxPercent / 100)
-                    : 0;
-                final double total = amountAfterDiscount + taxAmount;
-
-                _ensurePaymentAmounts(total);
-              }
-            });
           }
-          // p.setSelectedInventoryFromItems(selectedInvs);
-          // if (widget.sale!.customerName.isNotEmpty) {
-          //   final cust = allCustomers.firstWhere(
-          //     (c) => c.id == widget.sale!.customerName,
-          //     orElse: () => CustomerModel(
-          //       customerName: '',
-          //       customerType: '',
-          //       contactNumber: '',
-          //       telePhoneNumber: '',
-          //       streetAddress1: '',
-          //       streetAddress2: '',
-          //       city: '',
-          //       state: '',
-          //       postalCode: '',
-          //       countryId: '',
-          //       accountNumber: '',
-          //       currencyId: '',
-          //       emailAddress: '',
-          //       bankName: '',
-          //       notes: '',
-          //       status: '',
-          //       addedBy: '',
-          //       codeNumber: '',
-          //     ),
-          //   );
-          //   customerNameController.text = cust.customerName;
-          // }
-
-          // if ((widget.sale!.discount ?? false) &&
-          //     (widget.sale!.discountId?.isNotEmpty ?? false)) {
-          //   final found = allDiscounts.firstWhere(
-          //     (d) => d.id == widget.sale!.discountId,
-          //     orElse: () => DiscountModel.getDiscount(),
-          //   );
-          //   p.setDiscount(
-          //     true,
-          //     found.id == null ? null : found,
-          //     percent: (widget.bookingModel!.discountPercent ?? 0).toDouble(),
-          //     isEdit: true,
-          //   );
-          // }
-          await fetchCommission();
+          //   await fetchCommission();
         }
       });
+
       salesItem = mergeProductsAndServices(allProducts, allServices);
     } catch (e) {
       if (mounted) {
@@ -465,7 +372,6 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
   ) {
     List<SaleItem> mergedList = [];
 
-    // Add products
     mergedList.addAll(
       products.map(
         (product) => SaleItem(
@@ -478,13 +384,12 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
           sellingPrice: product.sellingPrice ?? product.lastCost ?? 0,
           totalPrice: (product.sellingPrice ?? product.lastCost ?? 0) * 1,
           unitPrice: product.averageCost ?? product.lastCost ?? 0,
-          type: 'product', // Add type identifier
-          cost: product.averageCost ?? 0, // Add cost for profit calculation
+          type: 'product',
+          cost: product.averageCost ?? 0,
         ),
       ),
     );
 
-    // Add services
     mergedList.addAll(
       services.map((service) {
         double price = service.prices?.isNotEmpty == true
@@ -501,8 +406,8 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
           sellingPrice: price,
           totalPrice: price,
           unitPrice: price,
-          type: 'service', // Add type identifier
-          cost: price, // Services typically don't have cost
+          type: 'service',
+          cost: price,
         );
       }),
     );
@@ -518,94 +423,17 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
     }
   }
 
-  // void _calculateRemainingAmount(double grandTotal) {
-  //   if (!mounted) return;
-  //   double paidAmount = paymentRows.fold(0, (sum, row) => sum + row.amount);
-
-  //   // Add deposit if already paid
-  //   if (requireDeposit && depositAlreadyPaid) {
-  //     paidAmount += depositAmount;
-  //   }
-  //   if (isAlreadyPaid &&
-  //           !paymentRows.any((row) => row.method?.name == "multiple")) {
-  //     for (var row in paymentRows) {
-  //       row.amount = grandTotal;
-  //     }
-  //     paidAmount = grandTotal;
-  //   }
-  //   remainingAmount = grandTotal - paidAmount;
-  //   if (mounted) {
-  //     setState(() {});
-  //   }
-  // }
-
-  double _getRemainingAmount(double grandTotal) {
-    double paidAmount = paymentRows.fold(
-      0.0,
-      (sum, row) => sum + (row.amount ?? 0),
-    );
-    return grandTotal - paidAmount;
+  double _getCurrentTotalPaid() {
+    double total = 0.0;
+    for (var row in paymentRows) {
+      total += row.amount;
+    }
+    return total;
   }
-
-  // void _calculateRemainingAmount(double grandTotal) {
-  //   double paidAmount = paymentRows.fold(
-  //     0.0,
-  //     (sum, row) => sum + (row.amount ?? 0),
-  //   );
-  //   double remaining = grandTotal - paidAmount;
-
-  //   // If it's a single payment method (not multiple), auto-set the amount
-  //   if (paymentRows.length == 1 &&
-  //       !isMultiple //paymentRows.first.method?.id != 'multiple'
-  //       ) {
-  //     paymentRows.first.amount = grandTotal;
-  //   }
-
-  //   // You can use the remaining amount as needed
-  //   print('Remaining balance: $remaining');
-  // }
-
-  // void _calculateRemainingAmount(double grandTotal) {
-  //   double paidAmount = paymentRows.fold(
-  //     0.0,
-  //     (sum, row) => sum + (row.amount ?? 0.0),
-  //   );
-
-  //   // If it's a single payment method (not multiple), auto-set the amount to grand total
-  //   if (paymentRows.length == 1 &&
-  //       !isMultiple &&
-  //       paymentRows.first.amount == 0) {
-  //     paymentRows.first.amount = grandTotal;
-  //     paidAmount = grandTotal;
-  //   }
-
-  //   remainingAmount = grandTotal - paidAmount;
-
-  //   // Ensure remaining amount is not negative
-  //   if (remainingAmount < 0) {
-  //     remainingAmount = 0;
-  //   }
-
-  //   if (mounted) {
-  //     setState(() {});
-  //   }
-
-  //   debugPrint('Payment Summary:');
-  //   debugPrint('Grand Total: $grandTotal');
-  //   debugPrint('Paid Amount: $paidAmount');
-  //   debugPrint('Remaining Amount: $remainingAmount');
-  //   debugPrint('Number of payment rows: ${paymentRows.length}');
-  //   for (var i = 0; i < paymentRows.length; i++) {
-  //     debugPrint(
-  //       'Row $i: ${paymentRows[i].method?.name} - ${paymentRows[i].amount}',
-  //     );
-  //   }
-  // }
 
   void _calculateRemainingAmount(double grandTotal) {
     double paidAmount = _getCurrentTotalPaid();
 
-    // Auto-set amounts for single payment method
     if (isAlreadyPaid && paymentRows.length == 1 && !isMultiple) {
       if (paymentRows.first.amount == 0) {
         paymentRows.first.amount = grandTotal;
@@ -615,7 +443,6 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
 
     remainingAmount = grandTotal - paidAmount;
 
-    // Ensure remaining amount is not negative
     if (remainingAmount < 0) {
       remainingAmount = 0;
     }
@@ -628,13 +455,10 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
         (sum, row) => sum + (row.amount ?? 0.0),
       );
 
-      // If no amounts are set but payment is marked as already paid, set amounts
       if (totalPaid == 0 && grandTotal > 0) {
         if (paymentRows.length == 1 && !isMultiple) {
-          // Single payment - set to grand total
           paymentRows.first.amount = grandTotal;
         } else if (paymentRows.length > 1 || isMultiple) {
-          // Multiple payments - distribute equally (or you can implement your own logic)
           double equalAmount = grandTotal / paymentRows.length;
           for (var row in paymentRows) {
             row.amount = equalAmount;
@@ -667,7 +491,6 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
         depositAmount = grandTotal * (depositPercentage / 100);
       } else {
         depositAmount = double.tryParse(depositAmountController.text) ?? 0;
-        // Ensure deposit doesn't exceed total
         if (depositAmount > grandTotal) {
           depositAmount = grandTotal;
           depositAmountController.text = grandTotal.toStringAsFixed(2);
@@ -683,27 +506,12 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
     _calculateRemainingAmount(grandTotal);
   }
 
-  // void _applyEditDiscount(MaintenanceBookingProvider p, double subtotal) {
-  //   final discountValue = double.tryParse(discountController.text) ?? 0;
-  //   p.discountType = selectedDiscountType.id;
-  //   if (selectedDiscountType.id == 'percentage') {
-  //     p.setDiscountPercent(discountValue);
-  //   } else {
-  //     // Convert amount to percentage for the provider if needed
-  //     final discountPercent =
-  //         discountValue > 0 ? (discountValue / subtotal) * 100 : 0;
-  //     p.setDiscountPercent(discountPercent.toDouble());
-  //   }
-  //   _updateAllCalculations(p);
-  // }
-
   void _applyDiscount(MaintenanceBookingProvider p, double subtotal) {
     final discountValue = double.tryParse(discountController.text) ?? 0;
     p.discountType = selectedDiscountType.id;
     if (selectedDiscountType.id == 'percentage') {
       p.setDiscountPercent(discountValue);
     } else {
-      // Convert amount to percentage for the provider if needed
       final discountPercent = discountValue > 0
           ? (discountValue / subtotal) * 100
           : 0;
@@ -731,8 +539,6 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
     }
     discountController.clear();
     final discount = double.tryParse(discountController.text) ?? 0;
-
-    //   // apply discount
     p.setDiscountPercent(discount);
     _updateAllCalculations(p);
   }
@@ -750,18 +556,223 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
     }
     discountController.clear();
     final discount = double.tryParse(discountController.text) ?? 0;
-    //   // apply discount
     p.setDiscountPercent(discount);
     _updateAllCalculations(p);
   }
 
   void _calculateProductsGrandTotal() {
     productsGrandTotal = productRows.fold(0, (sum, row) => sum + row.total);
-
-    // Update the provider with the new products total
     final p = context.read<MaintenanceBookingProvider>();
-    // p.setProductsTotal(productsGrandTotal); // Uncomment if you have this method
   }
+
+  // Employee Commission Methods
+  void _showEmployeeCommissionDialog(MaintenanceBookingProvider p) {
+    // Start with currently selected employees
+    final selectedEmployees = Set<String>.from(p.selectedEmployeeIds);
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: Text('Select Employees'),
+            content: SizedBox(
+              width: 400,
+              height: 400,
+              child: Column(
+                children: [
+                  Text(
+                    'Select employees for commission',
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                  ),
+                  SizedBox(height: 16),
+
+                  // Employee list with checkboxes
+                  Expanded(
+                    child: employees.isEmpty
+                        ? Center(child: Text('No employees available'))
+                        : ListView.builder(
+                            itemCount: employees.length,
+                            itemBuilder: (context, index) {
+                              final employee = employees[index];
+                              final isSelected = selectedEmployees.contains(
+                                employee.id,
+                              );
+
+                              return CheckboxListTile(
+                                title: Text(employee.name),
+                                value: isSelected,
+                                onChanged: (value) {
+                                  setDialogState(() {
+                                    if (value == true) {
+                                      selectedEmployees.add(employee.id!);
+                                    } else {
+                                      selectedEmployees.remove(employee.id);
+                                    }
+                                  });
+                                },
+                              );
+                            },
+                          ),
+                  ),
+
+                  SizedBox(height: 16),
+                  Text(
+                    '${selectedEmployees.length} employees selected',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  p.setSelectedEmployees(selectedEmployees.toList());
+                  Navigator.of(context).pop();
+                },
+                child: Text('Save Selection'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildCommissionRow(
+    int index,
+    MaintenanceBookingProvider p,
+    double grandTotal,
+  ) {
+    final commission = p.employeeCommissions[index];
+
+    final employee = employees.firstWhere(
+      (e) => e.id == commission.employeeId,
+      // orElse: () => EmployeeModel(id: '', fullName: 'Unknown Employee'),
+    );
+
+    return Container(
+      margin: EdgeInsets.only(bottom: 6),
+      padding: EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 2,
+            child: Text(
+              employee.name,
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+            ),
+          ),
+          SizedBox(width: 8),
+
+          Expanded(
+            flex: 1,
+            child: CustomSearchableDropdown(
+              hintText: 'Type',
+              items: {'percentage': '%', 'amount': 'OMR'},
+              value: commission.type,
+              onChanged: (value) {
+                if (value.isNotEmpty) {
+                  p.updateEmployeeCommission(index, type: value);
+                  p.updateEmployeeCommission(index, value: 0);
+                  _recalculateCommission(p, grandTotal);
+                }
+              },
+            ),
+          ),
+          SizedBox(width: 8),
+
+          Expanded(
+            flex: 1,
+            child: TextFormField(
+              initialValue: commission.commission > 0
+                  ? commission.commission.toStringAsFixed(2)
+                  : '',
+              decoration: InputDecoration(
+                labelText: 'Value',
+                border: OutlineInputBorder(),
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 4,
+                ),
+                suffixText: commission.type == 'percentage' ? '%' : '',
+              ),
+              keyboardType: TextInputType.numberWithOptions(decimal: true),
+              onChanged: (value) {
+                if (value.isNotEmpty) {
+                  final commissionValue = double.tryParse(value) ?? 0;
+                  p.updateEmployeeCommission(index, value: commissionValue);
+                  _recalculateCommission(p, grandTotal);
+                }
+              },
+            ),
+          ),
+          SizedBox(width: 8),
+
+          Expanded(
+            flex: 1,
+            child: Text(
+              'OMR ${_calculateCommissionAmount(commission, grandTotal).toStringAsFixed(2)}',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Colors.purple,
+              ),
+            ),
+          ),
+
+          IconButton(
+            icon: Icon(Icons.remove_circle, size: 18, color: Colors.red),
+            onPressed: () => p.removeEmployeeCommission(index),
+            padding: EdgeInsets.zero,
+            constraints: BoxConstraints(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  double _calculateCommissionAmount(
+    CommissionTransactionModel commission,
+    double grandTotal,
+  ) {
+    if (commission.type == 'percentage') {
+      return grandTotal * (commission.commission / 100);
+    }
+    return commission.commission;
+  }
+
+  void _recalculateCommission(MaintenanceBookingProvider p, double grandTotal) {
+    //   p.recalculateAllCommissions(grandTotal);
+  }
+
+  // Future<void> fetchCommission() async {
+  //   try {
+  //     final p = context.read<MaintenanceBookingProvider>();
+
+  //     final commSnap = await FirebaseFirestore.instance
+  //         .collection('mmEmployeeCommissions')
+  //         .where('bookingId', isEqualTo: widget.sale!.id)
+  //         .limit(1)
+  //         .get();
+  //     if (commSnap.docs.isNotEmpty) {
+  //       final comm = EmployeeCommissionModel.fromDoc(commSnap.docs.first);
+  //       p.setEmployeeCommissionModel(comm);
+  //       p.setCommission(true);
+  //     }
+  //   } catch (e) {
+  //     debugPrint('Error fetching commission: $e');
+  //   }
+  // }
 
   Widget _productSelectionSection(
     BuildContext context,
@@ -785,7 +796,6 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
             ),
             const SizedBox(height: 16),
 
-            // Product rows header
             const Row(
               children: [
                 Expanded(
@@ -802,10 +812,6 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
-                // Expanded(
-                //     flex: 1,
-                //     child: Text('Margin %',
-                //         style: TextStyle(fontWeight: FontWeight.bold))),
                 Expanded(
                   flex: 1,
                   child: Text(
@@ -827,10 +833,6 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
-                // Expanded(
-                //     flex: 1,
-                //     child: Text('VAT',
-                //         style: TextStyle(fontWeight: FontWeight.bold))),
                 Expanded(
                   flex: 1,
                   child: Text(
@@ -842,7 +844,7 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
               ],
             ),
             const SizedBox(height: 8),
-            // Product rows
+
             ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -855,12 +857,12 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                   onUpdate: (updatedRow) =>
                       _updateProductRow(index, updatedRow, p),
                   onRemove: () => _removeProductRow(index, p),
-                  showRemoveButton: true, //productRows.length > 1,
+                  showRemoveButton: true,
                 );
               },
             ),
             const SizedBox(height: 16),
-            // Add product button
+
             Align(
               alignment: Alignment.centerRight,
               child: ElevatedButton.icon(
@@ -871,7 +873,7 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
             ),
             const SizedBox(height: 16),
             const Divider(),
-            // Grand total
+
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -893,25 +895,6 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
         ),
       ),
     );
-  }
-
-  Future<void> fetchCommission() async {
-    try {
-      final p = context.read<MaintenanceBookingProvider>();
-
-      final commSnap = await FirebaseFirestore.instance
-          .collection('mmEmployeeCommissions')
-          .where('bookingId', isEqualTo: widget.sale!.id)
-          .limit(1)
-          .get();
-      if (commSnap.docs.isNotEmpty) {
-        final comm = EmployeeCommissionModel.fromDoc(commSnap.docs.first);
-        p.setEmployeeCommissionModel(comm);
-        p.setCommission(true);
-      }
-    } catch (e) {
-      debugPrint('Error fetching commission: $e');
-    }
   }
 
   Future<void> _pickBookingDate(MaintenanceBookingProvider p) async {
@@ -963,8 +946,6 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                           20.h,
                           _topCard(context, p),
                           12.h,
-                          //_serviceSelectionSection(context, p),
-                          12.h,
                           p.orderLoading
                               ? MmloadingWidget()
                               : Column(
@@ -982,18 +963,6 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
         },
       ),
     );
-  }
-
-  void saleTemplate(SaleModel saleDetails) async {
-    if (mounted) {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) {
-            return SalesInvoiceDropdownView(sale: saleDetails);
-          },
-        ),
-      );
-    }
   }
 
   Widget _topCard(BuildContext context, MaintenanceBookingProvider p) {
@@ -1034,61 +1003,10 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                       textStyle: TextStyle(color: Colors.white, fontSize: 12),
                       child: ElevatedButton.icon(
                         onPressed: () {
-                          double d =
-                              double.tryParse(discountController.text) ?? 0;
-                          final productsData = Constants.buildProductsData(
-                            productRows,
-                          );
-                          final depositData = {
-                            'requireDeposit': requireDeposit,
-                            'depositType': selectedDepositType.id,
-                            'depositAmount': depositAmount,
-                            'depositPercentage': depositPercentage,
-                            //'depositAlreadyPaid': depositAlreadyPaid,
-                            'nextPaymentAmount': nextPaymentAmount,
-                          };
-                          final paymentData = isAlreadyPaid
-                              ? {
-                                  'isAlreadyPaid': true,
-                                  'paymentMethods': paymentRows
-                                      .map(
-                                        (row) => {
-                                          'method': row.method?.id,
-                                          'methodName': row.method?.name,
-                                          'reference': row.reference,
-                                          'amount': row.amount,
-                                        },
-                                      )
-                                      .toList(),
-                                  'totalPaid': paymentRows.fold(
-                                    0,
-                                    (sum, row) => sum + row.amount as int,
-                                  ),
-                                  'remainingAmount': remainingAmount,
-                                }
-                              : {
-                                  'isAlreadyPaid': false,
-                                  'paymentMethods': [],
-                                  'totalPaid': 0,
-                                  'remainingAmount': p.total,
-                                };
-                          // final SaleModel saleDetails =
-                          //     Constants.parseToSaleModel(
-                          //       productsData: productsData,
-                          //       depositData: depositData,
-                          //       paymentData: paymentData,
-                          //       totalRevenue: p.total,
-                          //       discount: d,
-                          //       taxAmount: p.taxAmount,
-                          //       customerName: p.customerId!,
-                          //       truckId: p.truckId ?? "",
-                          //       isEdit: false, //widget.sale != null,
-                          //     );
-                          // saleTemplate(saleDetails);
+                          // Preview logic here
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppTheme.primaryColor,
-                          //foregroundColor: Colors.grey[800],
                           elevation: 0,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
@@ -1118,57 +1036,7 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                       textStyle: TextStyle(color: Colors.white, fontSize: 12),
                       child: ElevatedButton.icon(
                         onPressed: () {
-                          double d =
-                              double.tryParse(discountController.text) ?? 0;
-                          final productsData = Constants.buildProductsData(
-                            productRows,
-                          );
-                          final depositData = {
-                            'requireDeposit': requireDeposit,
-                            'depositType': selectedDepositType.id,
-                            'depositAmount': depositAmount,
-                            'depositPercentage': depositPercentage,
-                            //'depositAlreadyPaid': depositAlreadyPaid,
-                            'nextPaymentAmount': nextPaymentAmount,
-                          };
-                          final paymentData = isAlreadyPaid
-                              ? {
-                                  'isAlreadyPaid': true,
-                                  'paymentMethods': paymentRows
-                                      .map(
-                                        (row) => {
-                                          'method': row.method?.id,
-                                          'methodName': row.method?.name,
-                                          'reference': row.reference,
-                                          'amount': row.amount,
-                                        },
-                                      )
-                                      .toList(),
-                                  'totalPaid': paymentRows.fold(
-                                    0,
-                                    (sum, row) => sum + row.amount as int,
-                                  ),
-                                  'remainingAmount': remainingAmount,
-                                }
-                              : {
-                                  'isAlreadyPaid': false,
-                                  'paymentMethods': [],
-                                  'totalPaid': 0,
-                                  'remainingAmount': p.total,
-                                };
-
-                          p.saveBooking(
-                            productsData: productsData,
-                            depositData: depositData,
-                            context: context,
-                            onBack: widget.onBack!.call, //close,
-                            isEdit: widget.sale != null,
-                            total: p.grandTotal,
-                            discount: d,
-                            taxAmount: p.taxAmount,
-                            paymentData: paymentData,
-                            statusType: "draft",
-                          );
+                          _saveInvoice(p, "draft");
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.grey[200],
@@ -1320,7 +1188,6 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
   }
 
   Widget _buildCreditDropdown(MaintenanceBookingProvider provider) {
-    // Check if creditDays is null or not loaded yet
     if (creditDays == null || creditDays!.creditDays.isEmpty) {
       return CustomSearchableDropdown(
         hintText: 'Loading credit days...',
@@ -1330,9 +1197,7 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
       );
     }
 
-    // Create a map for credit days selection
     final Map<String, String> creditDaysMap = {};
-
     for (var days in creditDays!.creditDays) {
       creditDaysMap[days.toString()] = '$days days';
     }
@@ -1348,9 +1213,6 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
             setState(() {
               selectedCreditDays = int.parse(value);
               provider.setPaymentDate(selectedCreditDays!);
-              //  provider.setTruckId(selectedCreditDays);
-              // You can also update the provider if needed
-              // context.read<MaintenanceBookingProvider>().setCreditDays(selectedCreditDays);
             });
           }
         }
@@ -1371,18 +1233,13 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
     );
   }
 
-  void close() {
-    widget.onBack;
-  }
-
   Widget _buildBookingSummarySection(
     BuildContext context,
     MaintenanceBookingProvider p,
   ) {
     final double subtotal = servicesGrandTotal + productsGrandTotal;
     p.itemsTotal = productsGrandTotal;
-    // p.setServicesTotal(servicesGrandTotal);
-    // p.setSubtotal(subtotal);
+
     if (mounted) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
@@ -1399,6 +1256,7 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
         : 0;
     final double total = amountAfterDiscount + taxAmount;
     p.grandTotal = total;
+
     return Container(
       margin: const EdgeInsets.all(8),
       decoration: BoxDecoration(
@@ -1414,7 +1272,6 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
       ),
       child: Column(
         children: [
-          // Ultra-compact header
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
@@ -1441,22 +1298,11 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
             padding: const EdgeInsets.all(12),
             child: Column(
               children: [
-                // Order Items - Ultra compact
                 _buildUltraCompactCard(
                   icon: Icons.inventory_2_outlined,
                   title: 'Items',
                   children: [
                     _buildRow('Items Total', productsGrandTotal),
-                    // if (discountAmount > 0) ...[
-                    //   SizedBox(height: 4),
-                    //   _buildOrderItem(
-                    //     'Discount Applied',
-                    //     p.discountAmount,
-                    //     Icons.local_offer_outlined,
-                    //     const Color(0xFFDC3545),
-                    //   ),
-                    // ],
-                    //if (discountAmount > 0)
                     if (p.discountAmount > 0)
                       _buildRow(
                         'Discount',
@@ -1470,14 +1316,11 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                       subtotal - discountAmount,
                       bold: true,
                     ),
-                    //if (taxAmount > 0) ...[
                     SizedBox(height: 4),
-
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Expanded(
-                          // width: 100,
                           child: Row(
                             children: [
                               Text(
@@ -1503,13 +1346,9 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                             ],
                           ),
                         ),
-                        // const SizedBox(
-                        //   width: 5,
-                        // ),
                         _buildRow("", taxAmount, color: Colors.red),
                       ],
                     ),
-                    //],
                     _buildDivider(),
                     const SizedBox(height: 4),
                     _buildRow('Total', total, bold: true),
@@ -1524,7 +1363,7 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
 
                 SizedBox(height: 8),
 
-                // Discount - Ultra compact
+                // Discount Section
                 _buildUltraCompactCard(
                   icon: Icons.local_offer_outlined,
                   title: 'Discount',
@@ -1616,27 +1455,20 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                               ),
                               validator: (value) {
                                 if (value == null || value.isEmpty) return null;
-
                                 final discountValue = double.tryParse(value);
-                                if (discountValue == null) {
+                                if (discountValue == null)
                                   return 'Invalid number';
-                                }
-
                                 if (selectedDiscountType.id == 'percentage') {
-                                  if (discountValue > 100) {
+                                  if (discountValue > 100)
                                     return 'Cannot exceed 100%';
-                                  }
-                                  if (discountValue < 0) {
+                                  if (discountValue < 0)
                                     return 'Cannot be negative';
-                                  }
                                 } else if (selectedDiscountType.id ==
                                     'amount') {
-                                  if (discountValue > subtotal) {
+                                  if (discountValue > subtotal)
                                     return 'Cannot exceed total amount';
-                                  }
-                                  if (discountValue < 0) {
+                                  if (discountValue < 0)
                                     return 'Cannot be negative';
-                                  }
                                 }
                                 return null;
                               },
@@ -1693,8 +1525,126 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                     ),
                   ],
                 ),
+
                 SizedBox(height: 8),
-                // Deposit - Ultra compact
+
+                // Employee Commission Section
+                // In _buildBookingSummarySection - Replace the commission section with:
+                _buildUltraCompactCard(
+                  icon: Icons.people_outline,
+                  title: 'Employee Commission',
+                  checkBoxIcon: Transform.scale(
+                    scale: 0.9,
+                    child: Checkbox(
+                      activeColor: AppTheme.greenColor,
+                      value: p.isCommissionEnabled,
+                      onChanged: (value) {
+                        p.setCommission(value ?? false);
+                        if (value == true) {
+                          _showEmployeeCommissionDialog(p);
+                        }
+                      },
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  ),
+                  trailing:
+                      p.isCommissionEnabled && p.selectedEmployeeIds.isNotEmpty
+                      ? Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.purple,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            '${p.selectedEmployeeIds.length} employees',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                        )
+                      : null,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Assign Commission',
+                          style: TextStyle(fontSize: 14),
+                        ),
+                        if (p.isCommissionEnabled)
+                          IconButton(
+                            icon: Icon(Icons.add, size: 18),
+                            onPressed: () => _showEmployeeCommissionDialog(p),
+                            padding: EdgeInsets.zero,
+                            constraints: BoxConstraints(),
+                          ),
+                      ],
+                    ),
+                    if (p.isCommissionEnabled) ...[
+                      SizedBox(height: 8),
+                      // Commission percentage input
+                      TextFormField(
+                        initialValue: p.commissionPercentage > 0
+                            ? p.commissionPercentage.toString()
+                            : '',
+                        decoration: InputDecoration(
+                          labelText: 'Commission Percentage (%)',
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          suffixText: '%',
+                        ),
+                        keyboardType: TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        onChanged: (value) {
+                          if (value.isNotEmpty) {
+                            final percentage = double.tryParse(value) ?? 0;
+                            p.setCommissionPercentage(percentage);
+                          }
+                        },
+                      ),
+                      SizedBox(height: 8),
+                      // Selected employees count
+                      Text(
+                        '${p.selectedEmployeeIds.length} employees selected',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.purple,
+                        ),
+                      ),
+                      // Selected employee names
+                      if (p.selectedEmployeeIds.isNotEmpty) ...[
+                        SizedBox(height: 8),
+                        ...p.selectedEmployeeIds.map((employeeId) {
+                          final employee = employees.firstWhere(
+                            (e) => e.id == employeeId,
+                            // orElse: () => EmployeeModel(id: '', fullName: 'Unknown'),
+                          );
+                          return Padding(
+                            padding: EdgeInsets.only(bottom: 4),
+                            child: Text(
+                              '• ${employee.name}',
+                              style: TextStyle(fontSize: 12),
+                            ),
+                          );
+                        }).toList(),
+                      ],
+                    ],
+                  ],
+                ),
+
+                SizedBox(height: 8),
+
+                // Deposit Section
                 if (widget.sale == null)
                   _buildUltraCompactCard(
                     icon: Icons.account_balance_wallet_outlined,
@@ -1826,35 +1776,7 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                             ),
                           ],
                         ),
-                        // SizedBox(height: 4),
-                        // _buildRow('Amount', depositAmount),
                         SizedBox(height: 4),
-                        // Row(
-                        //   // mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        //   children: [
-                        //     Text('Already Paid?', style: TextStyle(fontSize: 14)),
-                        //     const SizedBox(width: 5),
-                        //     Transform.scale(
-                        //       scale: 0.9,
-                        //       child: Checkbox(
-                        //         // checkColor: AppTheme.greenColor,
-                        //         activeColor: AppTheme.greenColor,
-                        //         value: depositAlreadyPaid,
-                        //         onChanged: (value) {
-                        //           if (mounted) {
-                        //             setState(() {
-                        //               depositAlreadyPaid = value ?? false;
-                        //               _updateAllCalculations(p);
-                        //             });
-                        //           }
-                        //         },
-                        //         materialTapTargetSize:
-                        //             MaterialTapTargetSize.shrinkWrap,
-                        //       ),
-                        //     ),
-                        //   ],
-                        // ),
-                        // Payment Configuration
                         Row(
                           children: [
                             Text(
@@ -1862,48 +1784,6 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                               style: TextStyle(fontSize: 14),
                             ),
                             const SizedBox(width: 5),
-                            // Transform.scale(
-                            //   scale: 0.9,
-                            //   child: Checkbox(
-                            //     activeColor: AppTheme.greenColor,
-                            //     value: isAlreadyPaid,
-                            //     onChanged: (value) {
-                            //       final newValue = value ?? false;
-
-                            //       WidgetsBinding.instance.addPostFrameCallback((
-                            //         _,
-                            //       ) {
-                            //         if (mounted) {
-                            //           setState(() {
-                            //             isAlreadyPaid = newValue;
-
-                            //             if (!isAlreadyPaid) {
-                            //               // Reset to default single payment
-                            //               paymentRows = [PaymentRow()];
-                            //               paymentRows.first.method = PaymentMethod
-                            //                   .methods
-                            //                   .firstWhere((m) => m.id == 'cash');
-                            //               paymentRows.first.amount = total;
-                            //               isMultiple =
-                            //                   false; // Reset multiple when turning off payment
-                            //             } else {
-                            //               // Clear deposit when payment is marked as paid
-                            //               depositAmount = 0;
-                            //               depositAlreadyPaid = false;
-                            //               requireDeposit = false;
-                            //               depositAmountController.clear();
-                            //               depositPercentage = 0;
-                            //             }
-
-                            //             _calculateRemainingAmount(total);
-                            //           });
-                            //         }
-                            //       });
-                            //     },
-                            //     materialTapTargetSize:
-                            //         MaterialTapTargetSize.shrinkWrap,
-                            //   ),
-                            // ),
                             Transform.scale(
                               scale: 0.9,
                               child: Checkbox(
@@ -1911,35 +1791,26 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                                 value: isAlreadyPaid,
                                 onChanged: (value) {
                                   final newValue = value ?? false;
-
                                   WidgetsBinding.instance.addPostFrameCallback((
                                     _,
                                   ) {
                                     if (mounted) {
                                       setState(() {
                                         isAlreadyPaid = newValue;
-
                                         if (!isAlreadyPaid) {
-                                          // Reset payment rows when turning off payment
                                           paymentRows = [PaymentRow()];
                                           paymentRows.first.method =
                                               PaymentMethod.methods.firstWhere(
                                                 (m) => m.id == 'cash',
                                               );
-                                          paymentRows.first.amount = 0;
-                                          isMultiple = false;
+                                          paymentRows.first.amount = total;
                                         } else {
-                                          // Initialize payment rows when turning on payment
-                                          _initializePaymentRows(total);
-
-                                          // Clear deposit when payment is marked as paid
                                           depositAmount = 0;
                                           depositAlreadyPaid = false;
                                           requireDeposit = false;
                                           depositAmountController.clear();
                                           depositPercentage = 0;
                                         }
-
                                         _calculateRemainingAmount(total);
                                       });
                                     }
@@ -1955,116 +1826,6 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                               style: TextStyle(fontSize: 14),
                             ),
                             const SizedBox(width: 5),
-                            // Transform.scale(
-                            //   scale: 0.9,
-                            //   child: Checkbox(
-                            //     activeColor: AppTheme.greenColor,
-                            //     value: isMultiple,
-                            //     onChanged: (value) {
-                            //       if (!isAlreadyPaid) {
-                            //         // Force false if not already paid
-                            //         ScaffoldMessenger.of(context).showSnackBar(
-                            //           SnackBar(
-                            //             content: Text(
-                            //               'Please enable "Already Paid?" first',
-                            //             ),
-                            //             backgroundColor: Colors.orange,
-                            //           ),
-                            //         );
-                            //         return;
-                            //       }
-
-                            //       final newValue = value ?? false;
-
-                            //       WidgetsBinding.instance.addPostFrameCallback((
-                            //         _,
-                            //       ) {
-                            //         if (mounted) {
-                            //           setState(() {
-                            //             isMultiple = newValue;
-
-                            //             if (isMultiple &&
-                            //                 paymentRows.length == 1) {
-                            //               // When enabling multiple, keep the existing row and allow adding more
-                            //               // Don't automatically add rows - let user add them manually
-                            //               // This preserves the existing payment data
-                            //             } else if (!isMultiple &&
-                            //                 paymentRows.length > 1) {
-                            //               // When disabling multiple, consolidate to single payment
-                            //               final totalPaid =
-                            //                   _getCurrentTotalPaid();
-                            //               paymentRows = [PaymentRow()];
-                            //               paymentRows.first.amount = totalPaid;
-                            //               // Keep the method from the first row if it exists
-                            //               if (paymentRows.isNotEmpty) {
-                            //                 paymentRows.first.method =
-                            //                     paymentRows.first.method;
-                            //               }
-                            //             }
-
-                            //             _calculateRemainingAmount(total);
-                            //           });
-                            //         }
-                            //       });
-                            //     },
-                            //     materialTapTargetSize:
-                            //         MaterialTapTargetSize.shrinkWrap,
-                            //   ),
-                            // ),
-                            // Transform.scale(
-                            //   scale: 0.9,
-                            //   child: Checkbox(
-                            //     activeColor: AppTheme.greenColor,
-                            //     value: isMultiple,
-                            //     onChanged: (value) {
-                            //       if (!isAlreadyPaid) {
-                            //         ScaffoldMessenger.of(context).showSnackBar(
-                            //           SnackBar(
-                            //             content: Text(
-                            //               'Please enable "Already Paid?" first',
-                            //             ),
-                            //             backgroundColor: Colors.orange,
-                            //           ),
-                            //         );
-                            //         return;
-                            //       }
-
-                            //       final newValue = value ?? false;
-
-                            //       WidgetsBinding.instance.addPostFrameCallback((
-                            //         _,
-                            //       ) {
-                            //         if (mounted) {
-                            //           setState(() {
-                            //             isMultiple = newValue;
-
-                            //             if (isMultiple &&
-                            //                 paymentRows.length == 1) {
-                            //               // When enabling multiple, add one more row and distribute amounts
-                            //               paymentRows.add(PaymentRow());
-                            //               _distributeAmountsEqually(total);
-                            //             } else if (!isMultiple &&
-                            //                 paymentRows.length > 1) {
-                            //               // When disabling multiple, consolidate to single payment
-                            //               final totalPaid =
-                            //                   _getCurrentTotalPaid();
-                            //               paymentRows = [PaymentRow()];
-                            //               paymentRows.first.amount = totalPaid;
-                            //               if (paymentRows.isNotEmpty) {
-                            //                 paymentRows.first.method =
-                            //                     paymentRows.first.method;
-                            //               }
-                            //             }
-
-                            //             _calculateRemainingAmount(total);
-                            //           });
-                            //         }
-                            //       });
-                            //     },
-                            //     materialTapTargetSize:
-                            //         MaterialTapTargetSize.shrinkWrap,
-                            //   ),
-                            // ),
                             Transform.scale(
                               scale: 0.9,
                               child: Checkbox(
@@ -2072,12 +1833,9 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                                 value: isMultiple,
                                 onChanged: (value) {
                                   if (!isAlreadyPaid) return;
-
                                   final newValue = value ?? false;
-
                                   setState(() {
                                     isMultiple = newValue;
-
                                     if (isMultiple && paymentRows.length == 1) {
                                       paymentRows.add(PaymentRow());
                                       _distributeAmountsEqually(total);
@@ -2086,7 +1844,6 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                                       paymentRows = [paymentRows.first];
                                       paymentRows.first.amount = total;
                                     }
-
                                     _calculateRemainingAmount(total);
                                   });
                                 },
@@ -2131,204 +1888,10 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                       ],
                     ],
                   ),
+
                 SizedBox(height: 12),
-                // Payment Details - Ultra compact
-                // _buildUltraCompactCard(
-                //   icon: Icons.payment,
-                //   title: 'Payment',
-                //   children: [
-                //     if (depositAlreadyPaid && requireDeposit)
-                //       _buildRow(
-                //         'Balance Due',
-                //         nextPaymentAmount,
-                //         color: Colors.red,
-                //         bold: true,
-                //       ),
-                //     Row(
-                //       //mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                //       children: [
-                //         Text('Already Paid?', style: TextStyle(fontSize: 14)),
-                //         const SizedBox(width: 5),
-                //         Transform.scale(
-                //           scale: 0.9,
-                //           child: Checkbox(
-                //             //checkColor: AppTheme.greenColor,
-                //             activeColor: AppTheme.greenColor,
-                //             value: isAlreadyPaid,
-                //             onChanged: (value) {
-                //               setState(() {
-                //                 isAlreadyPaid = value ?? false;
-                //                 if (!isAlreadyPaid) {
-                //                   paymentRows = [PaymentRow()];
-                //                 }
-                //                 if (isAlreadyPaid) {
-                //                   depositAmount = 0;
-                //                   depositAlreadyPaid = false;
-                //                   requireDeposit = false;
-                //                   depositAmountController.clear();
-                //                   depositPercentage = 0;
-                //                   remainingAmount = 0;
-                //                 }
-                //                 _calculateRemainingAmount(total);
-                //               });
-                //             },
-                //             materialTapTargetSize:
-                //                 MaterialTapTargetSize.shrinkWrap,
-                //           ),
-                //         ),
-                //         const SizedBox(width: 10),
-                //         Text('Multiple?', style: TextStyle(fontSize: 14)),
-                //         const SizedBox(width: 5),
-                //         Transform.scale(
-                //           scale: 0.9,
-                //           child: Checkbox(
-                //             //checkColor: AppTheme.greenColor,
-                //             activeColor: AppTheme.greenColor,
-                //             value: isMultiple,
-                //             onChanged: (value) {
-                //               // setState(() {
-                //               //   isMultiple = value ?? false;
-                //               // });
-                //               setState(() {
-                //                 if (isAlreadyPaid) {
-                //                   // allow true/false normally
-                //                   isMultiple = value ?? false;
-                //                 } else {
-                //                   // force false if not already paid
-                //                   isMultiple = false;
-                //                 }
-                //               });
-                //             },
-                //             materialTapTargetSize:
-                //                 MaterialTapTargetSize.shrinkWrap,
-                //           ),
-                //         ),
-                //       ],
-                //     ),
-                //     // if (isAlreadyPaid) ...[
-                //     //   SizedBox(height: 6),
-                //     //   Text('Methods:', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600)),
-                //     //   SizedBox(height: 4),
-                //     //   ListView.builder(
-                //     //     shrinkWrap: true,
-                //     //     physics: NeverScrollableScrollPhysics(),
-                //     //     itemCount: paymentRows.length,
-                //     //     itemBuilder: (context, index) => _buildUltraCompactPaymentRow(index, total),
-                //     //   ),
-                //     //   if (paymentRows.length > 1 ||
-                //     //       (paymentRows.isNotEmpty && paymentRows.first.method?.id == 'multiple')) ...[
-                //     //     SizedBox(height: 4),
-                //     //     SizedBox(
-                //     //       height: 28,
-                //     //       child: TextButton.icon(
-                //     //         onPressed: () {
-                //     //           setState(() {
-                //     //             paymentRows.add(PaymentRow());
-                //     //             _calculateRemainingAmount(total);
-                //     //           });
-                //     //         },
-                //     //         icon: Icon(Icons.add, size: 12),
-                //     //         label: Text('Add Payment', style: TextStyle(fontSize: 10)),
-                //     //         style: TextButton.styleFrom(
-                //     //           padding: EdgeInsets.symmetric(horizontal: 8),
-                //     //         ),
-                //     //       ),
-                //     //     ),
-                //     //   ],
-                //     //   _buildRow(
-                //     //     'Remaining',
-                //     //     remainingAmount,
-                //     //     color: remainingAmount > 0 ? Colors.red : Colors.green,
-                //     //     bold: true,
-                //     //   ),
-                //     // ],
-                //     // Payment rows
-                //     // if (isAlreadyPaid)
-                //     //   ListView.builder(
-                //     //     shrinkWrap: true,
-                //     //     physics: const NeverScrollableScrollPhysics(),
-                //     //     itemCount: paymentRows.length,
-                //     //     itemBuilder: (context, index) {
-                //     //       return _buildPaymentRow(index, total);
-                //     //     },
-                //     //   ),
-                //     // if (paymentRows.length > 1 ||
-                //     //     (paymentRows.isNotEmpty &&
-                //     //         paymentRows.first.method?.id == 'multiple')) ...[
-                //     //   const SizedBox(height: 12),
-                //     //   Row(
-                //     //     mainAxisAlignment: MainAxisAlignment.end,
-                //     //     children: [
-                //     //       ElevatedButton.icon(
-                //     //         onPressed: () {
-                //     //           setState(() {
-                //     //             paymentRows.add(PaymentRow());
-                //     //             _calculateRemainingAmount(total);
-                //     //           });
-                //     //         },
-                //     //         icon: const Icon(Icons.add, size: 16),
-                //     //         label: const Text('Add'),
-                //     //         style: ElevatedButton.styleFrom(
-                //     //           backgroundColor: AppTheme.greenColor,
-                //     //           foregroundColor: Colors.white,
-                //     //         ),
-                //     //       ),
-                //     //     ],
-                //     //   ),
-                //     // ],
-                //     // In your build method
-                //     if (isAlreadyPaid)
-                //       ListView.builder(
-                //         shrinkWrap: true,
-                //         physics: const NeverScrollableScrollPhysics(),
-                //         itemCount: paymentRows.length,
-                //         itemBuilder: (context, index) {
-                //           return _buildPaymentRow(index, total);
-                //         },
-                //       ),
 
-                //     // if (paymentRows.length > 1 ||
-                //     //     (paymentRows.isNotEmpty &&
-                //     //         paymentRows.first.method?.id == 'multiple')) ...[
-                //     const SizedBox(height: 12),
-                //     if (isMultiple)
-                //       Row(
-                //         mainAxisAlignment: MainAxisAlignment.end,
-                //         children: [
-                //           ElevatedButton.icon(
-                //             onPressed: () {
-                //               setState(() {
-                //                 paymentRows.add(PaymentRow());
-                //                 _calculateRemainingAmount(total);
-                //               });
-                //             },
-                //             icon: const Icon(Icons.add, size: 16),
-                //             label: const Text('Add'),
-                //             style: ElevatedButton.styleFrom(
-                //               backgroundColor: AppTheme.greenColor,
-                //               foregroundColor: Colors.white,
-                //             ),
-                //           ),
-                //         ],
-                //       ),
-                //     //],
-
-                //     // Add this widget to show remaining balance
-                //     const SizedBox(height: 12),
-                //     Text(
-                //       'Remaining Balance: ${_getRemainingAmount(total).toStringAsFixed(2)} OMR',
-                //       style: TextStyle(
-                //         fontSize: 16,
-                //         fontWeight: FontWeight.bold,
-                //         color: _getRemainingAmount(total) > 0
-                //             ? Colors.red
-                //             : Colors.green,
-                //       ),
-                //     ),
-                //   ],
-                // ),
-                // Payment Details - Ultra compact
-                ///if (widget.sale == null)
+                // Payment Section
                 _buildUltraCompactCard(
                   icon: Icons.payment,
                   title: 'Payment',
@@ -2340,8 +1903,6 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                         color: Colors.red,
                         bold: true,
                       ),
-
-                    // Payment Configuration
                     Row(
                       children: [
                         Text('Already Paid?', style: TextStyle(fontSize: 14)),
@@ -2353,28 +1914,23 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                             value: isAlreadyPaid,
                             onChanged: (value) {
                               final newValue = value ?? false;
-
                               WidgetsBinding.instance.addPostFrameCallback((_) {
                                 if (mounted) {
                                   setState(() {
                                     isAlreadyPaid = newValue;
-
                                     if (!isAlreadyPaid) {
-                                      // Reset to default single payment
                                       paymentRows = [PaymentRow()];
                                       paymentRows.first.method = PaymentMethod
                                           .methods
                                           .firstWhere((m) => m.id == 'cash');
                                       paymentRows.first.amount = total;
                                     } else {
-                                      // Clear deposit when payment is marked as paid
                                       depositAmount = 0;
                                       depositAlreadyPaid = false;
                                       requireDeposit = false;
                                       depositAmountController.clear();
                                       depositPercentage = 0;
                                     }
-
                                     _calculateRemainingAmount(total);
                                   });
                                 }
@@ -2396,36 +1952,24 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                             activeColor: AppTheme.greenColor,
                             value: isMultiple,
                             onChanged: (value) {
-                              if (!isAlreadyPaid) {
-                                // Force false if not already paid
-                                return;
-                              }
-
+                              if (!isAlreadyPaid) return;
                               final newValue = value ?? false;
-
                               WidgetsBinding.instance.addPostFrameCallback((_) {
                                 if (mounted) {
                                   setState(() {
                                     isMultiple = newValue;
-
-                                    // if (isMultiple && paymentRows.length == 1) {
-                                    //   // Convert to multiple payments
-                                    //   final currentAmount =
-                                    //       paymentRows.first.amount;
-                                    //   paymentRows.add(PaymentRow());
-                                    //   // Split existing amount
-                                    //   paymentRows.first.amount =
-                                    //       currentAmount / 2;
-                                    //   paymentRows.last.amount =
-                                    //       currentAmount / 2;
-                                    // } else if (!isMultiple &&
-                                    //     paymentRows.length > 1) {
-                                    //   // Convert to single payment
-                                    //   final totalPaid = _getCurrentTotalPaid();
-                                    //   paymentRows = [PaymentRow()];
-                                    //   paymentRows.first.amount = totalPaid;
-                                    // }
-
+                                    if (isMultiple && paymentRows.length == 1) {
+                                      paymentRows.add(PaymentRow());
+                                      _distributeAmountsEqually(total);
+                                    } else if (!isMultiple &&
+                                        paymentRows.length > 1) {
+                                      paymentRows = [PaymentRow()];
+                                      paymentRows.first.amount = total;
+                                      if (paymentRows.isNotEmpty) {
+                                        paymentRows.first.method =
+                                            paymentRows.first.method;
+                                      }
+                                    }
                                     _calculateRemainingAmount(total);
                                   });
                                 }
@@ -2437,53 +1981,12 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                         ),
                       ],
                     ),
-
-                    // Payment rows
                     if (isAlreadyPaid) ...[
                       const SizedBox(height: 8),
                       ...paymentRows.asMap().entries.map((entry) {
                         return _buildPaymentRow(entry.key, total);
                       }).toList(),
                     ],
-
-                    // Add payment method button
-                    // if (isMultiple && isAlreadyPaid) ...[
-                    //   const SizedBox(height: 8),
-                    //   Align(
-                    //     alignment: Alignment.centerRight,
-                    //     child: ElevatedButton.icon(
-                    //       onPressed: () {
-                    //         // Check if adding another row would exceed reasonable limits
-                    //         if (paymentRows.length >= 10) {
-                    //           ScaffoldMessenger.of(context).showSnackBar(
-                    //             SnackBar(
-                    //               content: Text(
-                    //                 'Maximum 10 payment methods allowed',
-                    //               ),
-                    //               backgroundColor: Colors.orange,
-                    //             ),
-                    //           );
-                    //           return;
-                    //         }
-
-                    //         WidgetsBinding.instance.addPostFrameCallback((_) {
-                    //           if (mounted) {
-                    //             setState(() {
-                    //               paymentRows.add(PaymentRow());
-                    //               _calculateRemainingAmount(total);
-                    //             });
-                    //           }
-                    //         });
-                    //       },
-                    //       icon: const Icon(Icons.add, size: 16),
-                    //       label: const Text('Add Payment Method'),
-                    //       style: ElevatedButton.styleFrom(
-                    //         backgroundColor: AppTheme.greenColor,
-                    //         foregroundColor: Colors.white,
-                    //       ),
-                    //     ),
-                    //   ),
-                    // ],
                     if (isMultiple && isAlreadyPaid) ...[
                       const SizedBox(height: 8),
                       Align(
@@ -2491,12 +1994,7 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                         child: ElevatedButton.icon(
                           onPressed: () {
                             if (paymentRows.length >= 10) return;
-
-                            // Add row and distribute
                             paymentRows.add(PaymentRow());
-                            // _distributeAmountsEqually(total);
-
-                            // Force ONE single update
                             if (mounted) setState(() {});
                           },
                           icon: const Icon(Icons.add, size: 16),
@@ -2508,70 +2006,6 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                         ),
                       ),
                     ],
-
-                    // Payment summary
-                    // const SizedBox(height: 12),
-                    // Container(
-                    //   padding: EdgeInsets.all(8),
-                    //   decoration: BoxDecoration(
-                    //     color: remainingAmount > 0
-                    //         ? Colors.orange.withOpacity(0.1)
-                    //         : Colors.green.withOpacity(0.1),
-                    //     borderRadius: BorderRadius.circular(4),
-                    //   ),
-                    //   child: Column(
-                    //     children: [
-                    //       Row(
-                    //         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    //         children: [
-                    //           Text(
-                    //             'Total Paid:',
-                    //             style: TextStyle(
-                    //               fontSize: 14,
-                    //               fontWeight: FontWeight.w600,
-                    //               color: Colors.grey[700],
-                    //             ),
-                    //           ),
-                    //           Text(
-                    //             '${_getCurrentTotalPaid().toStringAsFixed(2)} OMR',
-                    //             style: TextStyle(
-                    //               fontSize: 14,
-                    //               fontWeight: FontWeight.w600,
-                    //               color: Colors.grey[700],
-                    //             ),
-                    //           ),
-                    //         ],
-                    //       ),
-                    //       const SizedBox(height: 4),
-                    //       Row(
-                    //         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    //         children: [
-                    //           Text(
-                    //             'Remaining Balance:',
-                    //             style: TextStyle(
-                    //               fontSize: 14,
-                    //               fontWeight: FontWeight.bold,
-                    //               color: remainingAmount > 0
-                    //                   ? Colors.orange
-                    //                   : Colors.green,
-                    //             ),
-                    //           ),
-                    //           Text(
-                    //             '${remainingAmount.toStringAsFixed(2)} OMR',
-                    //             style: TextStyle(
-                    //               fontSize: 16,
-                    //               fontWeight: FontWeight.bold,
-                    //               color: remainingAmount > 0
-                    //                   ? Colors.orange
-                    //                   : Colors.green,
-                    //             ),
-                    //           ),
-                    //         ],
-                    //       ),
-                    //     ],
-                    //   ),
-                    // ),
-                    // Payment summary - This will update automatically when remainingAmount changes
                     const SizedBox(height: 12),
                     Container(
                       padding: EdgeInsets.all(8),
@@ -2609,7 +2043,6 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                //'Remaining Balance:',
                                 getRemaningText(p),
                                 style: TextStyle(
                                   fontSize: 14,
@@ -2621,7 +2054,6 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                               ),
                               Text(
                                 '${_getRemaining(p).toStringAsFixed(2)} OMR',
-                                //'${remainingAmount.toStringAsFixed(2)} OMR',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
@@ -2635,8 +2067,6 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                         ],
                       ),
                     ),
-
-                    // Validation message
                     if (!_validatePaymentAmounts(total) && isAlreadyPaid)
                       Container(
                         margin: EdgeInsets.only(top: 8),
@@ -2665,7 +2095,8 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                 ),
 
                 SizedBox(height: 12),
-                // Attachment
+
+                // Attachment Section
                 if (widget.sale == null)
                   _buildUltraCompactCard(
                     icon: Icons.attach_file_sharp,
@@ -2683,128 +2114,12 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                     ],
                   ),
 
-                // Action Button - Compact
+                // Create Invoice Button
                 SizedBox(
                   width: double.infinity,
                   height: 40,
                   child: ElevatedButton(
-                    onPressed: () async {
-                      if (!_validatePaymentAmounts(total) &&
-                          widget.sale == null) {
-                        return;
-                      }
-                      setState(() {
-                        p.orderLoading = true;
-                      });
-                      if (displayPicture.isNotEmpty) {
-                        await p.getImages(displayPicture);
-                      }
-                      double d = double.tryParse(discountController.text) ?? 0;
-                      List<Map<String, dynamic>> productsData = [];
-                      try {
-                        // This will throw exceptions if validation fails
-                        productsData = Constants.buildProductsData(productRows);
-                        if (productsData.isEmpty) {
-                          Constants.showValidationError(
-                            context,
-                            "Items cannot be empty",
-                          );
-                          setState(() {
-                            p.orderLoading = false;
-                          });
-                          return;
-                        }
-                        // If we get here, validation passed - proceed with API call
-                        // _sendToBackend(productsData);
-                      } catch (e) {
-                        setState(() {
-                          p.orderLoading = false;
-                        });
-                        Constants.showValidationError(context, e);
-                        return
-                        // Log technical error for debugging
-                        debugPrint('Invoice submission error: $e');
-                      }
-
-                      // final productsData = Constants.buildProductsData(
-                      //   productRows,
-                      // ); // final productsData = productRows.map((row) {
-                      //   return {
-                      //     'type': row.saleItem!.type,
-                      //     'productId': row.saleItem!.productId,
-                      //     'productName': row.saleItem?.productName,
-                      //     'sellingPrice': row.sellingPrice,
-                      //     // 'margin': row.margin,
-                      //     'quantity': row.quantity,
-                      //     'discount': row.discount,
-                      //     'applyVat': row.applyVat,
-                      //     'subtotal': row.subtotal,
-                      //     'vatAmount': row.vatAmount,
-                      //     'total': row.total,
-                      //     'profit': row.profit,
-                      //   };
-                      // }).toList();
-                      final depositData = {
-                        'requireDeposit': requireDeposit,
-                        'depositType': selectedDepositType.id,
-                        'depositAmount': depositAmount,
-                        'depositPercentage': depositPercentage,
-                        //'depositAlreadyPaid': depositAlreadyPaid,
-                        'nextPaymentAmount': nextPaymentAmount,
-                      };
-                      double t = paymentRows.fold(
-                        0.0,
-                        (sum, row) => sum + (row.amount ?? 0.0),
-                      );
-                      double r = total - t;
-                      final paymentData = isAlreadyPaid
-                          ? {
-                              'isAlreadyPaid': true,
-                              'paymentMethods': paymentRows
-                                  .map(
-                                    (row) => {
-                                      'method': row.method?.id,
-                                      'methodName': row.method?.name,
-                                      'reference': row.reference,
-                                      'amount': row.amount,
-                                    },
-                                  )
-                                  .toList(),
-                              'totalPaid': t,
-                              // paymentRows.fold(
-                              //   0.0,
-                              //   (sum, row) => sum + (row.amount ?? 0.0),
-                              // ),
-                              // paymentRows.length > 1
-                              //     ? paymentRows
-                              //         .fold(0.0, (sum, row) => sum + row.amount)
-                              //         .toInt()
-                              //     // ? paymentRows.fold(
-                              //     //     0, (sum, row) => sum + row.amount as int)
-                              //     : p.total,
-                              'remainingAmount': r,
-                            }
-                          : {
-                              'isAlreadyPaid': false,
-                              'paymentMethods': [],
-                              'totalPaid': 0,
-                              'remainingAmount': total,
-                            };
-
-                      p.saveBooking(
-                        productsData: productsData,
-                        depositData: depositData,
-                        context: context,
-                        onBack: widget.onBack!.call, //close,
-                        isEdit: widget.sale != null,
-                        total: total,
-                        discount: d,
-                        taxAmount: taxAmount,
-                        paymentData: paymentData,
-                        sale: widget.sale,
-                        statusType: "pending",
-                      );
-                    },
+                    onPressed: () => _saveInvoice(p, "pending"),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.primaryColor,
                       foregroundColor: Colors.white,
@@ -2855,7 +2170,115 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
     );
   }
 
-  // Ultra-compact card builder
+  void _saveInvoice(MaintenanceBookingProvider p, String statusType) async {
+    if (!_validatePaymentAmounts(p.grandTotal) && widget.sale == null) {
+      return;
+    }
+
+    setState(() {
+      p.orderLoading = true;
+    });
+
+    if (displayPicture.isNotEmpty) {
+      await p.getImages(displayPicture);
+    }
+
+    double d = double.tryParse(discountController.text) ?? 0;
+    List<Map<String, dynamic>> productsData = [];
+
+    try {
+      productsData = Constants.buildProductsData(productRows);
+      if (productsData.isEmpty) {
+        Constants.showValidationError(context, "Items cannot be empty");
+        setState(() {
+          p.orderLoading = false;
+        });
+        return;
+      }
+    } catch (e) {
+      setState(() {
+        p.orderLoading = false;
+      });
+      Constants.showValidationError(context, e);
+      return;
+    }
+
+    final depositData = {
+      'requireDeposit': requireDeposit,
+      'depositType': selectedDepositType.id,
+      'depositAmount': depositAmount,
+      'depositPercentage': depositPercentage,
+      'nextPaymentAmount': nextPaymentAmount,
+    };
+
+    double t = _getCurrentTotalPaid();
+    double r = p.grandTotal - t;
+
+    final paymentData = isAlreadyPaid
+        ? {
+            'isAlreadyPaid': true,
+            'paymentMethods': paymentRows
+                .map(
+                  (row) => {
+                    'method': row.method?.id,
+                    'methodName': row.method?.name,
+                    'reference': row.reference,
+                    'amount': row.amount,
+                  },
+                )
+                .toList(),
+            'totalPaid': t,
+            'remainingAmount': r,
+          }
+        : {
+            'isAlreadyPaid': false,
+            'paymentMethods': [],
+            'totalPaid': 0,
+            'remainingAmount': p.grandTotal,
+          };
+
+    // Add commission data
+    final commissionData = p.isCommissionEnabled
+        ? {
+            'isCommissionEnabled': true,
+            'commissions': p.employeeCommissions
+                .map(
+                  (commission) => {
+                    'employeeId': commission.employeeId,
+                    'type': commission.type,
+                    'value': commission.commission,
+                    'calculatedAmount': _calculateCommissionAmount(
+                      commission,
+                      p.grandTotal,
+                    ),
+                    'status': commission.status,
+                  },
+                )
+                .toList(),
+            'totalCommission': p.totalCommission,
+          }
+        : {
+            'isCommissionEnabled': false,
+            'commissions': [],
+            'totalCommission': 0,
+          };
+
+    p.saveBooking(
+      productsData: productsData,
+      depositData: depositData,
+      context: context,
+      onBack: widget.onBack!.call,
+      isEdit: widget.sale != null,
+      total: p.grandTotal,
+      discount: d,
+      taxAmount: p.taxAmount,
+      paymentData: paymentData,
+      sale: widget.sale,
+      statusType: statusType,
+    );
+  }
+
+  // Helper methods
   Widget _buildUltraCompactCard({
     required IconData icon,
     required String title,
@@ -2895,7 +2318,6 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
     );
   }
 
-  // Ultra-compact row builder
   Widget _buildRow(
     String label,
     double amount, {
@@ -2928,7 +2350,6 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
     );
   }
 
-  // Ultra-compact divider
   Widget _buildDivider() {
     return Container(
       margin: EdgeInsets.symmetric(vertical: 4),
@@ -2937,692 +2358,8 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
     );
   }
 
-  // Widget _buildPaymentRow(int index, double grandTotal) {
-  //   final paymentRow = paymentRows[index];
-  //   bool hasMultiplePaymentMethod =
-  //       paymentRows.any((row) => row.method?.name == 'Multiple');
-  //   return Container(
-  //     margin: const EdgeInsets.only(bottom: 12),
-  //     padding: const EdgeInsets.all(12),
-  //     decoration: BoxDecoration(
-  //       color: Colors.white,
-  //       borderRadius: BorderRadius.circular(8),
-  //       border: Border.all(color: Colors.grey[300]!),
-  //     ),
-  //     child: Row(
-  //       children: [
-  //         // Payment Method Dropdown
-  //         Expanded(
-  //           flex: 2,
-  //           child: CustomSearchableDropdown(
-  //             key: ValueKey('payment_method_$index'),
-  //             hintText: 'Method',
-  //             items: {for (var m in PaymentMethod.methods) m.id: m.name},
-  //             value: paymentRow.method?.id,
-  //             onChanged: (value) {
-  //               if (value.isNotEmpty) {
-  //                 setState(() {
-  //                   paymentRow.method =
-  //                       PaymentMethod.methods.firstWhere((m) => m.id == value);
-
-  //                   // If selecting "multiple", add more rows
-  //                   if (value == 'multiple' && paymentRows.length == 1) {
-  //                     paymentRows.add(PaymentRow());
-  //                   }
-
-  //                   _calculateRemainingAmount(grandTotal);
-  //                 });
-  //               }
-  //             },
-  //           ),
-  //         ),
-  //         const SizedBox(width: 8),
-
-  //         // Reference Number
-
-  //         Expanded(
-  //           flex: 2,
-  //           child: TextFormField(
-  //             key: ValueKey('payment_ref_$index'),
-  //             decoration: const InputDecoration(
-  //               labelText: 'Reference',
-  //               border: OutlineInputBorder(),
-  //               contentPadding:
-  //                   EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-  //             ),
-  //             onChanged: (value) {
-  //               paymentRow.reference = value;
-  //             },
-  //           ),
-  //         ),
-  //         const SizedBox(width: 8),
-
-  //         // Amount
-
-  //         if (hasMultiplePaymentMethod)
-  //           Expanded(
-  //             flex: 1,
-  //             child: TextFormField(
-  //               key: ValueKey('payment_amount_$index'),
-  //               decoration: const InputDecoration(
-  //                 labelText: 'Amount',
-  //                 border: OutlineInputBorder(),
-  //                 contentPadding:
-  //                     EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-  //               ),
-  //               keyboardType: TextInputType.numberWithOptions(decimal: true),
-  //               onChanged: (value) {
-  //                 paymentRow.amount = double.tryParse(value) ?? 0;
-  //                 _calculateRemainingAmount(grandTotal);
-  //               },
-  //             ),
-  //           ),
-  //         const SizedBox(width: 8),
-
-  //         // Remove button for multiple payments
-  //         if (paymentRows.length > 1)
-  //           IconButton(
-  //             icon:
-  //                 const Icon(Icons.remove_circle, color: Colors.red, size: 20),
-  //             onPressed: () {
-  //               setState(() {
-  //                 paymentRows.removeAt(index);
-  //                 _calculateRemainingAmount(grandTotal);
-  //               });
-  //             },
-  //           ),
-  //       ],
-  //     ),
-  //   );
-  // }
-  // Widget _buildPaymentRow(int index, double grandTotal) {
-  //   final paymentRow = paymentRows[index];
-
-  //   // Check if this specific row should show amount field
-  //   // bool shouldShowAmountField = paymentRows.length > 1 ||
-  //   //     paymentRows.any((row) => row.method?.id == 'multiple');
-
-  //   return Container(
-  //     margin: const EdgeInsets.only(bottom: 12),
-  //     padding: const EdgeInsets.all(12),
-  //     decoration: BoxDecoration(
-  //       color: Colors.white,
-  //       borderRadius: BorderRadius.circular(8),
-  //       border: Border.all(color: Colors.grey[300]!),
-  //     ),
-  //     child: Row(
-  //       children: [
-  //         // Payment Method Dropdown
-  //         Expanded(
-  //           flex: 2,
-  //           child: CustomSearchableDropdown(
-  //             key: ValueKey('payment_method_$index'),
-  //             hintText: 'Method',
-  //             items: {for (var m in PaymentMethod.methods) m.id: m.name},
-  //             value: paymentRow.method?.id,
-  //             onChanged: (value) {
-  //               if (value.isNotEmpty) {
-  //                 setState(() {
-  //                   paymentRow.method = PaymentMethod.methods.firstWhere(
-  //                     (m) => m.id == value,
-  //                   );
-
-  //                   // If selecting "multiple" in any row, ensure we have at least 2 rows
-  //                   if (isMultiple //value == 'multiple'
-  //                       &&
-  //                       paymentRows.length == 1) {
-  //                     paymentRows.add(PaymentRow());
-  //                   }
-
-  //                   // If changing from multiple to single method and we have multiple rows,
-  //                   // set the amount to grand total for the first row
-  //                   if (!isMultiple
-  //                       //value != 'multiple'
-  //                       &&
-  //                       index == 0 &&
-  //                       paymentRows.length > 1) {
-  //                     paymentRow.amount = grandTotal;
-  //                     // Remove extra rows if not needed
-  //                     if (paymentRows.length > 1) {
-  //                       paymentRows.removeRange(1, paymentRows.length);
-  //                     }
-  //                   }
-
-  //                   _calculateRemainingAmount(grandTotal);
-  //                 });
-  //               }
-  //             },
-  //           ),
-  //         ),
-  //         const SizedBox(width: 8),
-
-  //         // Reference Number
-  //         Expanded(
-  //           flex: 2,
-  //           child: TextFormField(
-  //             key: ValueKey('payment_ref_$index'),
-  //             decoration: const InputDecoration(
-  //               labelText: 'Reference',
-  //               border: OutlineInputBorder(),
-  //               contentPadding: EdgeInsets.symmetric(
-  //                 horizontal: 8,
-  //                 vertical: 4,
-  //               ),
-  //             ),
-  //             onChanged: (value) {
-  //               paymentRow.reference = value;
-  //             },
-  //           ),
-  //         ),
-  //         const SizedBox(width: 8),
-
-  //         // Amount field - only show when appropriate
-  //         if (isMultiple)
-  //           Expanded(
-  //             flex: 1,
-  //             child: TextFormField(
-  //               key: ValueKey('payment_amount_$index'),
-  //               decoration: const InputDecoration(
-  //                 labelText: 'Amount',
-  //                 border: OutlineInputBorder(),
-  //                 contentPadding: EdgeInsets.symmetric(
-  //                   horizontal: 8,
-  //                   vertical: 4,
-  //                 ),
-  //               ),
-  //               autovalidateMode: AutovalidateMode.onUserInteraction,
-  //               validator: ValidationUtils.price,
-  //               keyboardType: TextInputType.numberWithOptions(decimal: true),
-  //               onChanged: (value) {
-  //                 setState(() {
-  //                   paymentRow.amount = double.tryParse(value) ?? 0;
-  //                   _calculateRemainingAmount(grandTotal);
-  //                 });
-  //               },
-  //             ),
-  //           ),
-
-  //         // if (shouldShowAmountField) const SizedBox(width: 8),
-
-  //         // Remove button for multiple payments
-  //         if (paymentRows.length > 1)
-  //           IconButton(
-  //             icon: const Icon(
-  //               Icons.remove_circle,
-  //               color: Colors.red,
-  //               size: 20,
-  //             ),
-  //             onPressed: () {
-  //               setState(() {
-  //                 paymentRows.removeAt(index);
-  //                 // If we're left with one row and it's not "multiple", set its amount to grand total
-  //                 if (paymentRows.length == 1 &&
-  //                     paymentRows.first.method?.id != 'multiple') {
-  //                   paymentRows.first.amount = grandTotal;
-  //                 }
-  //                 _calculateRemainingAmount(grandTotal);
-  //               });
-  //             },
-  //           ),
-  //       ],
-  //     ),
-  //   );
-  // }
-  // Widget _buildPaymentRow(int index, double grandTotal) {
-  //   final paymentRow = paymentRows[index];
-
-  //   return Container(
-  //     margin: const EdgeInsets.only(bottom: 12),
-  //     padding: const EdgeInsets.all(12),
-  //     decoration: BoxDecoration(
-  //       color: Colors.white,
-  //       borderRadius: BorderRadius.circular(8),
-  //       border: Border.all(color: Colors.grey[300]!),
-  //     ),
-  //     child: Row(
-  //       children: [
-  //         // Payment Method Dropdown
-  //         Expanded(
-  //           flex: 2,
-  //           child: CustomSearchableDropdown(
-  //             key: ValueKey('payment_method_$index'),
-  //             hintText: 'Method',
-  //             items: {for (var m in PaymentMethod.methods) m.id: m.name},
-  //             value: paymentRow.method?.id,
-  //             onChanged: (value) {
-  //               if (value.isNotEmpty) {
-  //                 setState(() {
-  //                   paymentRow.method = PaymentMethod.methods.firstWhere(
-  //                     (m) => m.id == value,
-  //                   );
-
-  //                   // If selecting "multiple" in any row, ensure we have at least 2 rows
-  //                   if (isMultiple && paymentRows.length == 1) {
-  //                     paymentRows.add(PaymentRow());
-  //                   }
-
-  //                   // If changing from multiple to single method and we have multiple rows,
-  //                   // set the amount to grand total for the first row
-  //                   if (!isMultiple && index == 0 && paymentRows.length > 1) {
-  //                     paymentRow.amount = grandTotal;
-  //                     // Remove extra rows if not needed
-  //                     if (paymentRows.length > 1) {
-  //                       paymentRows.removeRange(1, paymentRows.length);
-  //                     }
-  //                   }
-
-  //                   _calculateRemainingAmount(grandTotal);
-  //                 });
-  //               }
-  //             },
-  //           ),
-  //         ),
-  //         const SizedBox(width: 8),
-
-  //         // Reference Number
-  //         Expanded(
-  //           flex: 2,
-  //           child: TextFormField(
-  //             key: ValueKey('payment_ref_$index'),
-  //             controller: TextEditingController(text: paymentRow.reference),
-  //             decoration: const InputDecoration(
-  //               labelText: 'Reference',
-  //               border: OutlineInputBorder(),
-  //               contentPadding: EdgeInsets.symmetric(
-  //                 horizontal: 8,
-  //                 vertical: 4,
-  //               ),
-  //             ),
-  //             onChanged: (value) {
-  //               paymentRow.reference = value;
-  //             },
-  //           ),
-  //         ),
-  //         const SizedBox(width: 8),
-
-  //         // Amount field - ALWAYS SHOW for all payment methods
-  //         Expanded(
-  //           flex: 1,
-  //           child: TextFormField(
-  //             key: ValueKey('payment_amount_$index'),
-  //             controller: TextEditingController(
-  //               text: paymentRow.amount > 0
-  //                   ? paymentRow.amount.toStringAsFixed(2)
-  //                   : '',
-  //             ),
-  //             decoration: const InputDecoration(
-  //               labelText: 'Amount',
-  //               border: OutlineInputBorder(),
-  //               contentPadding: EdgeInsets.symmetric(
-  //                 horizontal: 8,
-  //                 vertical: 4,
-  //               ),
-  //             ),
-  //             autovalidateMode: AutovalidateMode.onUserInteraction,
-  //             validator: ValidationUtils.price,
-  //             keyboardType: TextInputType.numberWithOptions(decimal: true),
-  //             onChanged: (value) {
-  //               setState(() {
-  //                 paymentRow.amount = double.tryParse(value) ?? 0.0;
-  //                 _calculateRemainingAmount(grandTotal);
-  //               });
-  //             },
-  //           ),
-  //         ),
-
-  //         // Remove button for multiple payments
-  //         if (paymentRows.length > 1)
-  //           IconButton(
-  //             icon: const Icon(
-  //               Icons.remove_circle,
-  //               color: Colors.red,
-  //               size: 20,
-  //             ),
-  //             onPressed: () {
-  //               setState(() {
-  //                 paymentRows.removeAt(index);
-  //                 // If we're left with one row and it's not "multiple", set its amount to grand total
-  //                 if (paymentRows.length == 1) {
-  //                   paymentRows.first.amount = grandTotal;
-  //                 }
-  //                 _calculateRemainingAmount(grandTotal);
-  //               });
-  //             },
-  //           ),
-  //       ],
-  //     ),
-  //   );
-  // }
-
-  // Calculate current total paid across all payment rows
-  double _getCurrentTotalPaid() {
-    double total = 0.0;
-    for (var row in paymentRows) {
-      total += row.amount;
-    }
-    return total;
-  }
-
-  String getRemaningText(MaintenanceBookingProvider p) {
-    String d = "";
-    double previousTotal = 0;
-    double paid = _getCurrentTotalPaid();
-    d = 'Remaining Balance';
-    if (widget.sale != null) {
-      previousTotal = widget.sale!.total!;
-    }
-    if (widget.sale != null && previousTotal > p.grandTotal) {
-      paid > p.grandTotal;
-      d = "Over Paid";
-    }
-    return d;
-  }
-
-  double _getRemaining(MaintenanceBookingProvider p) {
-    double paid = _getCurrentTotalPaid();
-    double remaining = 0.0;
-    // if (widget.sale != null && p.grandTotal != widget.sale!.total) {
-
-    // }
-    remaining = p.grandTotal - paid;
-    return remaining;
-  }
-
-  // Validate payment amounts don't exceed grand total
-  bool _validatePaymentAmounts(double grandTotal) {
-    final totalPaid = _getCurrentTotalPaid();
-    return totalPaid <= grandTotal;
-  }
-
-  Future<List<String>> getImages(List<AttachmentModel> dPicture) async {
-    List<String> urls = await Future.wait(
-      dPicture.map((attachment) async {
-        return await Constants.uploadAttachment(attachment);
-      }),
-    );
-    return urls;
-  }
-
-  void _updateCalculationsWithoutRebuild(double grandTotal) {
-    // Update calculations without triggering full rebuild
-    double paidAmount = _getCurrentTotalPaid();
-    remainingAmount = grandTotal - paidAmount;
-
-    if (remainingAmount < 0) {
-      remainingAmount = 0;
-    }
-
-    // Only update the summary display, not the entire payment rows
-    // This prevents the typing issues
-  }
-
-  // Widget _buildPaymentRow(int index, double grandTotal) {
-  //   final paymentRow = paymentRows[index];
-
-  //   return Container(
-  //     margin: const EdgeInsets.only(bottom: 12),
-  //     padding: const EdgeInsets.all(12),
-  //     decoration: BoxDecoration(
-  //       color: Colors.white,
-  //       borderRadius: BorderRadius.circular(8),
-  //       border: Border.all(color: Colors.grey[300]!),
-  //     ),
-  //     child: Row(
-  //       children: [
-  //         // Payment Method Dropdown
-  //         Expanded(
-  //           flex: 2,
-  //           child: CustomSearchableDropdown(
-  //             key: ValueKey('payment_method_${index}_${paymentRows.length}'),
-  //             hintText: 'Method',
-  //             items: {for (var m in PaymentMethod.methods) m.id: m.name},
-  //             value: paymentRow.method?.id,
-  //             onChanged: (value) {
-  //               if (value.isNotEmpty) {
-  //                 final newMethod = PaymentMethod.methods.firstWhere(
-  //                   (m) => m.id == value,
-  //                 );
-
-  //                 // Update the method without affecting other rows
-  //                 paymentRow.method = newMethod;
-
-  //                 // ONLY handle the special case of selecting "multiple" method
-  //                 // This should only add rows when specifically selecting "multiple"
-  //                 if (value == 'multiple' && paymentRows.length == 1) {
-  //                   // Only add one additional row when switching to multiple from single
-  //                   paymentRows.add(PaymentRow());
-  //                 }
-  //                 // DO NOT remove rows when selecting other methods
-  //                 // Let the user manage rows manually with the Add/Remove buttons
-
-  //                 // Single update at the end
-  //                 WidgetsBinding.instance.addPostFrameCallback((_) {
-  //                   if (mounted) {
-  //                     setState(() {
-  //                       _calculateRemainingAmount(grandTotal);
-  //                     });
-  //                   }
-  //                 });
-  //               }
-  //             },
-  //           ),
-  //         ),
-  //         const SizedBox(width: 8),
-
-  //         // Reference Number
-  //         Expanded(
-  //           flex: 2,
-  //           child: TextFormField(
-  //             key: ValueKey('payment_ref_$index'),
-  //             controller: TextEditingController(text: paymentRow.reference),
-  //             decoration: const InputDecoration(
-  //               labelText: 'Reference',
-  //               border: OutlineInputBorder(),
-  //               contentPadding: EdgeInsets.symmetric(
-  //                 horizontal: 8,
-  //                 vertical: 4,
-  //               ),
-  //             ),
-  //             onChanged: (value) {
-  //               paymentRow.reference = value;
-  //             },
-  //           ),
-  //         ),
-  //         const SizedBox(width: 8),
-
-  //         // Amount field
-  //         // Expanded(
-  //         //   flex: 1,
-  //         //   child: TextFormField(
-  //         //     key: ValueKey('payment_amount_$index'),
-  //         //     controller: TextEditingController(
-  //         //       text: paymentRow.amount > 0
-  //         //           ? paymentRow.amount.toStringAsFixed(2)
-  //         //           : '',
-  //         //     ),
-  //         //     decoration: const InputDecoration(
-  //         //       labelText: 'Amount',
-  //         //       border: OutlineInputBorder(),
-  //         //       contentPadding: EdgeInsets.symmetric(
-  //         //         horizontal: 8,
-  //         //         vertical: 4,
-  //         //       ),
-  //         //     ),
-  //         //     keyboardType: TextInputType.numberWithOptions(decimal: true),
-  //         //     inputFormatters: [
-  //         //       FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
-  //         //     ],
-  //         //     onChanged: (value) {
-  //         //       if (value.isNotEmpty) {
-  //         //         final newAmount = double.tryParse(value) ?? 0.0;
-
-  //         //         // Validate amount doesn't exceed remaining balance
-  //         //         final currentTotalPaid = _getCurrentTotalPaid();
-  //         //         final otherPayments =
-  //         //             currentTotalPaid - (paymentRow.amount ?? 0.0);
-  //         //         final maxAllowed = grandTotal - otherPayments;
-
-  //         //         if (newAmount > maxAllowed) {
-  //         //           // Don't update if exceeds total
-  //         //           return;
-  //         //         }
-
-  //         //         paymentRow.amount = newAmount;
-  //         //       } else {
-  //         //         paymentRow.amount = 0.0;
-  //         //       }
-
-  //         //       // Debounced update
-  //         //       _debouncedCalculation(grandTotal);
-  //         //     },
-  //         //   ),
-  //         // ),
-  //         // Amount field - Real-time updates without performance issues
-  //         Expanded(
-  //           flex: 1,
-  //           child: TextFormField(
-  //             key: ValueKey('payment_amount_$index'),
-  //             controller: TextEditingController(
-  //               text: paymentRow.amount > 0
-  //                   ? paymentRow.amount.toStringAsFixed(2)
-  //                   : '',
-  //             ),
-  //             decoration: const InputDecoration(
-  //               labelText: 'Amount',
-  //               border: OutlineInputBorder(),
-  //               contentPadding: EdgeInsets.symmetric(
-  //                 horizontal: 8,
-  //                 vertical: 4,
-  //               ),
-  //             ),
-  //             keyboardType: TextInputType.numberWithOptions(decimal: true),
-  //             inputFormatters: [
-  //               FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
-  //             ],
-  //             onChanged: (value) {
-  //               if (value.isNotEmpty) {
-  //                 final newAmount = double.tryParse(value) ?? 0.0;
-
-  //                 // Validate in real-time but don't setState immediately
-  //                 final currentTotalPaid = _getCurrentTotalPaid();
-  //                 final otherPayments =
-  //                     currentTotalPaid - (paymentRow.amount ?? 0.0);
-  //                 final maxAllowed = grandTotal - otherPayments;
-
-  //                 if (newAmount <= maxAllowed) {
-  //                   paymentRow.amount = newAmount;
-  //                 }
-  //                 // If exceeds max, don't update the value - let user see their input but it won't be accepted
-  //               } else {
-  //                 paymentRow.amount = 0.0;
-  //               }
-
-  //               // Update calculations without rebuilding the entire UI
-  //               _updateCalculationsWithoutRebuild(grandTotal);
-  //             },
-  //           ),
-  //         ),
-
-  //         // Remove button - show for all rows except the first one
-  //         if (paymentRows.length > 1)
-  //           IconButton(
-  //             icon: const Icon(
-  //               Icons.remove_circle,
-  //               color: Colors.red,
-  //               size: 20,
-  //             ),
-  //             onPressed: () {
-  //               paymentRows.removeAt(index);
-
-  //               WidgetsBinding.instance.addPostFrameCallback((_) {
-  //                 if (mounted) {
-  //                   setState(() {
-  //                     _calculateRemainingAmount(grandTotal);
-  //                   });
-  //                 }
-  //               });
-  //             },
-  //           ),
-  //       ],
-  //     ),
-  //   );
-  // }
-
-  void _validateAndRecalculate(double grandTotal) {
-    if (!isMultiple) {
-      return;
-    }
-    // No validation needed for single payment (it's locked)
-
-    // Check if total payments exceed the grand total
-    final totalPaid = _getCurrentTotalPaid();
-
-    if (totalPaid > grandTotal) {
-      double excess = totalPaid - grandTotal;
-
-      // Distribute the excess reduction proportionally
-      _adjustPaymentAmounts(grandTotal);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Total payment amount adjusted to not exceed invoice total',
-          ),
-          backgroundColor: Colors.orange,
-          duration: Duration(seconds: 2),
-        ),
-      );
-    }
-
-    _calculateRemainingAmount(grandTotal);
-
-    if (mounted) {
-      setState(() {});
-    }
-  }
-
-  void _adjustPaymentAmounts(double grandTotal) {
-    final totalPaid = _getCurrentTotalPaid();
-    if (totalPaid <= grandTotal) return;
-
-    final ratio = grandTotal / totalPaid;
-
-    for (var row in paymentRows) {
-      row.amount *= ratio;
-    }
-  }
-
-  void _distributeAmountsEqually(double grandTotal) {
-    if (!isMultiple || paymentRows.isEmpty) return;
-
-    // Calculate equal amount for ALL rows
-    final equalAmount = grandTotal / paymentRows.length;
-
-    // Update the model but DON'T call setState here
-    for (var i = 0; i < paymentRows.length; i++) {
-      paymentRows[i].amount = equalAmount;
-    }
-
-    // The UI will update naturally when the parent rebuilds
-  }
-
-  void _initializePaymentRows(double grandTotal) {
-    if (isAlreadyPaid) {
-      if (isMultiple && paymentRows.length > 1) {
-        // For multiple payments, distribute equally
-        _distributeAmountsEqually(grandTotal);
-      } else {
-        // For single payment, set to total amount
-        if (paymentRows.isNotEmpty) {
-          paymentRows.first.amount = grandTotal;
-        }
-      }
-    }
-  }
-
   Widget _buildPaymentRow(int index, double grandTotal) {
     final paymentRow = paymentRows[index];
-
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
@@ -3633,7 +2370,6 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
       ),
       child: Row(
         children: [
-          // Payment Method Dropdown
           Expanded(
             flex: 2,
             child: CustomSearchableDropdown(
@@ -3646,13 +2382,10 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                   final newMethod = PaymentMethod.methods.firstWhere(
                     (m) => m.id == value,
                   );
-
                   paymentRow.method = newMethod;
-
                   if (value == 'multiple' && paymentRows.length == 1) {
                     paymentRows.add(PaymentRow());
                     _distributeAmountsEqually(grandTotal);
-                    // Force ONE update after adding row and distributing
                     if (mounted) setState(() {});
                   }
                 }
@@ -3660,8 +2393,6 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
             ),
           ),
           const SizedBox(width: 8),
-
-          // Reference Number - This was working fine
           Expanded(
             flex: 2,
             child: TextFormField(
@@ -3675,14 +2406,10 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                   vertical: 4,
                 ),
               ),
-              onChanged: (value) {
-                paymentRow.reference = value;
-              },
+              onChanged: (value) => paymentRow.reference = value,
             ),
           ),
           const SizedBox(width: 8),
-
-          // Amount field - This was working fine
           Expanded(
             flex: 1,
             child: TextFormField(
@@ -3712,15 +2439,11 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
                 }
               },
               onEditingComplete: () {
-                if (isMultiple) {
-                  _validateAndRecalculate(grandTotal);
-                }
+                if (isMultiple) _validateAndRecalculate(grandTotal);
                 FocusScope.of(context).unfocus();
               },
             ),
           ),
-
-          // Remove button
           if (isMultiple && paymentRows.length > 1)
             IconButton(
               icon: const Icon(
@@ -3731,7 +2454,6 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
               onPressed: () {
                 paymentRows.removeAt(index);
                 _distributeAmountsEqually(grandTotal);
-                // Force ONE update after removal and distribution
                 if (mounted) setState(() {});
               },
             ),
@@ -3739,8 +2461,84 @@ class _CreateMaintenanceBookingState extends State<CreateMaintenanceBooking> {
       ),
     );
   }
+
+  void _validateAndRecalculate(double grandTotal) {
+    if (!isMultiple) return;
+    final totalPaid = _getCurrentTotalPaid();
+    if (totalPaid > grandTotal) {
+      double excess = totalPaid - grandTotal;
+      _adjustPaymentAmounts(grandTotal);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Total payment amount adjusted to not exceed invoice total',
+          ),
+          backgroundColor: Colors.orange,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+    _calculateRemainingAmount(grandTotal);
+    if (mounted) setState(() {});
+  }
+
+  void _adjustPaymentAmounts(double grandTotal) {
+    final totalPaid = _getCurrentTotalPaid();
+    if (totalPaid <= grandTotal) return;
+    final ratio = grandTotal / totalPaid;
+    for (var row in paymentRows) {
+      row.amount *= ratio;
+    }
+  }
+
+  void _distributeAmountsEqually(double grandTotal) {
+    if (!isMultiple || paymentRows.isEmpty) return;
+    final equalAmount = grandTotal / paymentRows.length;
+    for (var i = 0; i < paymentRows.length; i++) {
+      paymentRows[i].amount = equalAmount;
+    }
+  }
+
+  void _initializePaymentRows(double grandTotal) {
+    if (isAlreadyPaid) {
+      if (isMultiple && paymentRows.length > 1) {
+        _distributeAmountsEqually(grandTotal);
+      } else {
+        if (paymentRows.isNotEmpty) {
+          paymentRows.first.amount = grandTotal;
+        }
+      }
+    }
+  }
+
+  bool _validatePaymentAmounts(double grandTotal) {
+    final totalPaid = _getCurrentTotalPaid();
+    return totalPaid <= grandTotal;
+  }
+
+  String getRemaningText(MaintenanceBookingProvider p) {
+    String d = "";
+    double previousTotal = 0;
+    double paid = _getCurrentTotalPaid();
+    d = 'Remaining Balance';
+    if (widget.sale != null) {
+      previousTotal = widget.sale!.total!;
+    }
+    if (widget.sale != null && previousTotal > p.grandTotal) {
+      paid > p.grandTotal;
+      d = "Over Paid";
+    }
+    return d;
+  }
+
+  double _getRemaining(MaintenanceBookingProvider p) {
+    double paid = _getCurrentTotalPaid();
+    double remaining = p.grandTotal - paid;
+    return remaining;
+  }
 }
 
+// ProductRowWidget class remains the same as in your original code
 class ProductRowWidget extends StatefulWidget {
   final ProductRow productRow;
   final List<SaleItem> allItems;
@@ -3762,826 +2560,6 @@ class ProductRowWidget extends StatefulWidget {
   @override
   State<ProductRowWidget> createState() => _ProductRowWidgetState();
 }
-
-// class _ProductRowWidgetState extends State<ProductRowWidget> {
-//   final TextEditingController _priceController = TextEditingController();
-//   final TextEditingController _qtyController = TextEditingController();
-//   final FocusNode _priceFocusNode = FocusNode();
-//   final FocusNode _marginFocusNode = FocusNode();
-//   final FocusNode _qtyFocusNode = FocusNode();
-//   bool _isEditingPrice = true;
-//   double _originalPrice = 0;
-//   @override
-//   void initState() {
-//     super.initState();
-//     _updateControllers();
-//     _priceFocusNode.addListener(_onPriceFocusChange);
-//     _priceFocusNode.addListener(_handlePriceFocusChange);
-//     _marginFocusNode.addListener(_onMarginFocusChange);
-//     _qtyFocusNode.addListener((_onQtyFocusChange));
-//     _qtyFocusNode.addListener(_handleQtyFocusChange);
-//     _qtyController.text = widget.productRow.quantity.toString();
-//     if (widget.productRow.type == 'service') {
-//       _priceController.text =
-//           widget.productRow.selectedPrice?.toStringAsFixed(2) ?? '0';
-//     } else {
-//       _priceController.text =
-//           widget.productRow.sellingPrice?.toStringAsFixed(2) ?? '0';
-//     }
-//   }
-
-//   @override
-//   void dispose() {
-//     _priceFocusNode.removeListener(_onPriceFocusChange);
-//     _priceFocusNode.removeListener(_handlePriceFocusChange);
-//     _marginFocusNode.dispose();
-//     _marginFocusNode.removeListener(_onMarginFocusChange);
-//     _priceController.dispose();
-//     _qtyController.dispose();
-//     _qtyFocusNode.removeListener(_onQtyFocusChange);
-//     _qtyFocusNode.removeListener((_handleQtyFocusChange));
-//     _qtyFocusNode.dispose();
-//     super.dispose();
-//   }
-
-//   void _handlePriceFocusChange() {
-//     if (!_priceFocusNode.hasFocus && _isEditingPrice) {
-//       _validateAndSavePrice();
-//     }
-//   }
-
-//   // void _validateAndSavePrice() {
-//   //   final newPrice = double.tryParse(_priceController.text) ?? 0;
-//   //   final minimumPrice = widget.productRow.saleItem?.minimumPrice ?? 0;
-
-//   //   if (newPrice < minimumPrice) {
-//   //     _showMinimumPriceError(minimumPrice);
-
-//   //     // Reset to current selling price
-//   //     final currentPrice = widget.productRow.type == 'service'
-//   //         ? (widget.productRow.selectedPrice ?? minimumPrice)
-//   //         : (widget.productRow.sellingPrice ?? minimumPrice);
-
-//   //     _priceController.text = currentPrice.toStringAsFixed(2);
-
-//   //     setState(() {
-//   //       _isEditingPrice = false;
-//   //     });
-//   //   } else {
-//   //     _savePriceChanges();
-//   //   }
-//   // }
-
-//   // void _validateAndSavePrice() {
-//   //   final newPrice = double.tryParse(_priceController.text) ?? 0;
-//   //   final minimumPrice = widget.productRow.saleItem?.minimumPrice ?? 0;
-//   //   final currentSellingPrice = widget.productRow.type == 'service'
-//   //       ? (widget.productRow.selectedPrice ?? 0)
-//   //       : (widget.productRow.sellingPrice ?? 0);
-
-//   //   debugPrint(
-//   //     'Price unfocused - New: $newPrice, Min: $minimumPrice, Current: $currentSellingPrice',
-//   //   );
-
-//   //   if (newPrice < minimumPrice) {
-//   //     debugPrint('Price below minimum - resetting to selling price');
-//   //     _showMinimumPriceError(minimumPrice);
-
-//   //     // Reset to current selling price
-//   //     WidgetsBinding.instance.addPostFrameCallback((_) {
-//   //       _priceController.text = currentSellingPrice.toStringAsFixed(2);
-//   //       setState(() {
-//   //         _isEditingPrice = false;
-//   //       });
-//   //     });
-//   //   } else {
-//   //     debugPrint('Price valid - saving changes');
-//   //     // Price is valid - save changes
-//   //     _savePriceChanges();
-//   //   }
-//   // }
-
-//   void _validateAndSavePrice() {
-//     if (!_isEditingPrice) return;
-
-//     final newPrice = double.tryParse(_priceController.text) ?? 0;
-//     final minimumPrice = widget.productRow.saleItem?.minimumPrice ?? 0;
-
-//     debugPrint(
-//       'Validating price - New: $newPrice, Min: $minimumPrice, Original: $_originalPrice',
-//     );
-
-//     if (newPrice < minimumPrice) {
-//       debugPrint('Price below minimum - resetting to original price');
-//       _showMinimumPriceError(minimumPrice);
-
-//       // Reset to ORIGINAL selling price, not the last valid price
-//       WidgetsBinding.instance.addPostFrameCallback((_) {
-//         if (mounted) {
-//           setState(() {
-//             _isEditingPrice = false;
-//             if (widget.productRow.type == 'service') {
-//               widget.productRow.selectedPrice = _originalPrice;
-//               _priceController.text = _originalPrice.toStringAsFixed(2);
-//             } else {
-//               widget.productRow.sellingPrice = _originalPrice;
-//               _priceController.text = _originalPrice.toStringAsFixed(2);
-//             }
-//             widget.productRow.calculateTotals();
-//             widget.onUpdate(widget.productRow);
-//           });
-//         }
-//       });
-//     } else {
-//       debugPrint('Price valid - saving changes');
-//       // Price is valid - save changes
-//       _savePriceChanges();
-//     }
-//   }
-
-//   void _handleQtyFocusChange() {
-//     if (!_qtyFocusNode.hasFocus) {
-//       // Field lost focus and we were editing
-//       _savePriceChanges();
-//     }
-//   }
-
-//   void _focusOnQuantity() {
-//     Future.delayed(Duration(milliseconds: 100), () {
-//       if (mounted && _qtyFocusNode.hasFocus == false) {
-//         FocusScope.of(context).requestFocus(_qtyFocusNode);
-//       }
-//     });
-//   }
-
-//   // void _startEditingPrice() {
-//   //   setState(() {
-//   //     _isEditingPrice = true;
-//   //     // Store original price for validation
-//   //     _originalPrice = widget.productRow.type == 'service'
-//   //         ? (widget.productRow.selectedPrice ?? 0)
-//   //         : (widget.productRow.sellingPrice ?? 0);
-//   //   });
-
-//   //   // Focus on the price field
-//   //   FocusScope.of(context).requestFocus(_priceFocusNode);
-//   // }
-
-//   void _startEditingPrice() {
-//     setState(() {
-//       _isEditingPrice = true;
-//       // Store the ORIGINAL selling price, not the current edited price
-//       _originalPrice = widget.productRow.type == 'service'
-//           ? (widget.productRow.saleItem?.sellingPrice ?? 0)
-//           : (widget.productRow.saleItem?.sellingPrice ?? 0);
-
-//       // Set controller to current display price
-//       if (widget.productRow.type == 'service') {
-//         _priceController.text =
-//             widget.productRow.selectedPrice?.toStringAsFixed(2) ?? '0';
-//       } else {
-//         _priceController.text =
-//             widget.productRow.sellingPrice?.toStringAsFixed(2) ?? '0';
-//       }
-
-//       // Select all text for easy editing
-//       _priceController.selection = TextSelection(
-//         baseOffset: 0,
-//         extentOffset: _priceController.text.length,
-//       );
-//     });
-
-//     // Focus on the price field immediately
-//     FocusScope.of(context).requestFocus(_priceFocusNode);
-//   }
-
-//   // void _savePriceChanges() {
-//   //   if (!_isEditingPrice) return;
-
-//   //   final newPrice = double.tryParse(_priceController.text) ?? 0;
-
-//   //   setState(() {
-//   //     _isEditingPrice = false;
-//   //     if (widget.productRow.type == 'service') {
-//   //       widget.productRow.selectedPrice = newPrice;
-//   //     } else {
-//   //       widget.productRow.sellingPrice = newPrice;
-//   //     }
-//   //     // Recalculate all totals
-//   //     widget.productRow.calculateTotals();
-//   //     widget.onUpdate(widget.productRow);
-//   //   });
-//   // }
-
-//   void _savePriceChanges() {
-//     if (!_isEditingPrice) return;
-
-//     final newPrice = double.tryParse(_priceController.text) ?? 0;
-
-//     setState(() {
-//       _isEditingPrice = false;
-//       if (widget.productRow.type == 'service') {
-//         widget.productRow.selectedPrice = newPrice;
-//       } else {
-//         widget.productRow.sellingPrice = newPrice;
-
-//         // Recalculate margin for products
-//         if (widget.productRow.cost > 0) {
-//           widget.productRow.margin =
-//               ((newPrice - widget.productRow.cost) / widget.productRow.cost) *
-//               100;
-//         }
-//       }
-
-//       // Recalculate all totals
-//       widget.productRow.calculateTotals();
-//       widget.onUpdate(widget.productRow);
-//     });
-//   }
-
-//   // void _savePriceChanges() {
-//   //   if (!_isEditingPrice) return;
-
-//   //   double newPrice = double.tryParse(_priceController.text) ?? 0;
-//   //   double minimumPrice = widget.productRow.saleItem?.minimumPrice ?? 0;
-
-//   //   // Validate minimum price
-//   //   if (newPrice < minimumPrice) {
-//   //     _showMinimumPriceError(minimumPrice);
-//   //     _priceController.clear();
-//   //     _priceController.text = minimumPrice.toStringAsFixed(
-//   //       2,
-//   //     ); //_originalPrice.toStringAsFixed(2);
-//   //     setState(() {
-//   //       _isEditingPrice = false;
-//   //     });
-//   //     return;
-//   //   }
-
-//   //   setState(() {
-//   //     _isEditingPrice = false;
-//   //     if (widget.productRow.type == 'service') {
-//   //       widget.productRow.selectedPrice = newPrice;
-//   //     } else {
-//   //       widget.productRow.sellingPrice = newPrice;
-//   //     }
-//   //     // Recalculate all totals
-//   //     widget.productRow.calculateTotals();
-//   //     widget.onUpdate(widget.productRow);
-//   //   });
-//   // }
-
-//   void _showMinimumPriceError(double minimumPrice) {
-//     ScaffoldMessenger.of(context).showSnackBar(
-//       SnackBar(
-//         content: Text(
-//           'Price cannot be less than minimum price: OMR ${minimumPrice.toStringAsFixed(2)}',
-//         ),
-//         backgroundColor: Colors.red,
-//         duration: Duration(seconds: 3),
-//       ),
-//     );
-//   }
-
-//   void _cancelEditingPrice() {
-//     setState(() {
-//       _isEditingPrice = false;
-//       _priceController.text = _originalPrice.toStringAsFixed(2);
-//     });
-//   }
-
-//   void _updateControllers() {
-//     if (!_isEditingPrice) {
-//       if (widget.productRow.type == 'service') {
-//         _priceController.text =
-//             widget.productRow.selectedPrice?.toStringAsFixed(2) ?? '0';
-//       } else {
-//         _priceController.text =
-//             widget.productRow.sellingPrice?.toStringAsFixed(2) ?? '0';
-//       }
-//     }
-//   }
-
-//   Widget _buildProductDropdown() {
-//     final Map<String, String> itemMap = {};
-//     for (var item in widget.allItems) {
-//       String displayName = item.productName;
-//       if (item.type == 'service') {
-//         displayName = '⚡ $displayName (Service)';
-//       } else {
-//         displayName = '📦 $displayName (Product)';
-//       }
-//       itemMap[item.productId] = displayName;
-//     }
-
-//     return CustomSearchableDropdown(
-//       key: widget.productRow.dropdownKey,
-//       hintText: 'Select Item',
-//       items: itemMap,
-//       value: widget.productRow.saleItem?.productId,
-//       onChanged: (value) {
-//         if (value.isNotEmpty) {
-//           final selected = widget.allItems.firstWhere(
-//             (item) => item.productId == value,
-//           );
-//           if (mounted) {
-//             setState(() {
-//               widget.productRow.saleItem = selected;
-//               widget.productRow.type = selected.type;
-
-//               if (selected.type == 'service') {
-//                 // For services, use the selling price directly
-//                 widget.productRow.selectedPrice = selected.sellingPrice;
-//                 widget.productRow.sellingPrice = null;
-//                 widget.productRow.cost = selected.cost;
-//                 _priceController.text = widget.productRow.selectedPrice
-//                     .toString();
-//               } else {
-//                 // For products, set up cost and calculate margin
-//                 widget.productRow.sellingPrice = selected.sellingPrice;
-//                 _priceController.text = widget.productRow.sellingPrice
-//                     .toString();
-//                 widget.productRow.cost = selected.cost;
-//                 widget.productRow.margin = selected.cost > 0
-//                     ? ((selected.sellingPrice - selected.cost) /
-//                               selected.cost) *
-//                           100
-//                     : 0;
-//               }
-
-//               _updateControllers();
-//               widget.productRow.calculateTotals();
-//               widget.onUpdate(widget.productRow);
-//               _focusOnQuantity();
-//             });
-//           }
-//         }
-//       },
-//     );
-//   }
-
-//   void _onPriceFocusChange() {
-//     if (!_priceFocusNode.hasFocus) {
-//       // Lost focus (Tab pressed or clicked elsewhere)
-//       _updatePriceFromField();
-//     }
-//   }
-
-//   void _onMarginFocusChange() {
-//     if (!_marginFocusNode.hasFocus) {
-//       // Lost focus (Tab pressed or clicked elsewhere)
-//       //_updateMarginFromField();
-//     }
-//   }
-
-//   void _onQtyFocusChange() {
-//     if (!_qtyFocusNode.hasFocus) {
-//       // Lost focus (Tab pressed or clicked elsewhere)
-//       //_updateMarginFromField();
-//     }
-//   }
-
-//   void _updatePriceFromField() {
-//     if (widget.productRow.type == 'product' &&
-//         _priceController.text.isNotEmpty) {
-//       final newPrice = double.tryParse(_priceController.text) ?? 0;
-//       widget.productRow.sellingPrice = newPrice;
-
-//       if (widget.productRow.cost > 0) {
-//         widget.productRow.margin =
-//             ((newPrice - widget.productRow.cost) / widget.productRow.cost) *
-//             100;
-//         // _marginController.text = widget.productRow.margin.toStringAsFixed(2);
-//       }
-
-//       widget.productRow.calculateTotals();
-//       widget.onUpdate(widget.productRow);
-//     }
-//   }
-
-//   @override
-//   void didUpdateWidget(ProductRowWidget oldWidget) {
-//     super.didUpdateWidget(oldWidget);
-//     _updateControllers();
-//   }
-
-//   Widget _buildPriceInput() {
-//     // For services, show editable price if user has permission
-//     if (widget.productRow.type == 'service') {
-//       return _buildEditablePriceField();
-//     } else {
-//       // For products, show editable price field
-//       return _buildEditablePriceField();
-//     }
-//   }
-
-//   // Widget _buildEditablePriceField() {
-//   //   return GestureDetector(
-//   //     onTap: _startEditingPrice,
-//   //     child: AbsorbPointer(
-//   //       absorbing: !_isEditingPrice, // Only allow pointer when editing
-//   //       child: TextFormField(
-//   //         key: widget.productRow.priceKey,
-//   //         controller: _priceController,
-//   //         focusNode: _priceFocusNode,
-//   //         //enabled: widget.hasPriceEditPermission,
-//   //         decoration: InputDecoration(
-//   //           labelText: 'Price (OMR)',
-//   //           border: OutlineInputBorder(),
-//   //           contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-//   //           // suffixIcon: Row(
-//   //           //   mainAxisSize: MainAxisSize.min,
-//   //           //   children: [
-//   //           //     IconButton(
-//   //           //       icon: Icon(Icons.check, size: 16, color: Colors.green),
-//   //           //       onPressed: _savePriceChanges,
-//   //           //       padding: EdgeInsets.zero,
-//   //           //       constraints: BoxConstraints(),
-//   //           //     ),
-//   //           //     IconButton(
-//   //           //       icon: Icon(Icons.close, size: 16, color: Colors.red),
-//   //           //       onPressed: _cancelEditingPrice,
-//   //           //       padding: EdgeInsets.zero,
-//   //           //       constraints: BoxConstraints(),
-//   //           //     ),
-//   //           //   ],
-//   //           // ),
-//   //           // : widget.hasPriceEditPermission
-//   //           //     ? Icon(Icons.edit, size: 16, color: Colors.grey)
-//   //           //     : null,
-//   //         ),
-//   //         keyboardType: TextInputType.numberWithOptions(decimal: true),
-//   //         textInputAction: TextInputAction.done,
-//   //         // onEditingComplete: () {
-//   //         //   //_savePriceChanges();
-//   //         //   _validateAndSavePrice();
-//   //         //   _focusOnQuantity();
-//   //         // },
-//   //         // onFieldSubmitted: (value) {
-//   //         //   _savePriceChanges();
-//   //         //   //_focusOnQuantity();
-//   //         // },
-//   //         onTap: () {
-//   //           _startEditingPrice();
-//   //         },
-//   //       ),
-//   //     ),
-//   //   );
-//   // }
-
-//   Widget _buildEditablePriceField() {
-//     return TextFormField(
-//       key: widget.productRow.priceKey,
-//       controller: _priceController,
-//       focusNode: _priceFocusNode,
-//       enabled: true, // Always enabled
-//       decoration: InputDecoration(
-//         labelText: 'Price (OMR)',
-//         border: OutlineInputBorder(),
-//         contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-//         suffixIcon: _isEditingPrice
-//             ? Row(
-//                 mainAxisSize: MainAxisSize.min,
-//                 children: [
-//                   IconButton(
-//                     icon: Icon(Icons.check, size: 16, color: Colors.green),
-//                     onPressed: _savePriceChanges,
-//                     padding: EdgeInsets.zero,
-//                     constraints: BoxConstraints(),
-//                   ),
-//                   IconButton(
-//                     icon: Icon(Icons.close, size: 16, color: Colors.red),
-//                     onPressed: _cancelEditingPrice,
-//                     padding: EdgeInsets.zero,
-//                     constraints: BoxConstraints(),
-//                   ),
-//                 ],
-//               )
-//             : Icon(Icons.edit, size: 16, color: Colors.grey),
-//       ),
-//       keyboardType: TextInputType.numberWithOptions(decimal: true),
-//       textInputAction: TextInputAction.done,
-
-//       // Only validate when user is done editing, not during typing
-//       onTap: () {
-//         if (!_isEditingPrice) {
-//           _startEditingPrice();
-//         }
-//       },
-
-//       // Handle focus changes
-//       onChanged: (value) {
-//         // Just update the controller text during typing, no validation
-//         if (_isEditingPrice) {
-//           // Allow free typing without validation
-//         }
-//       },
-
-//       // Validate only when user submits/done
-//       onEditingComplete: () {
-//         _validateAndSavePrice();
-//       },
-
-//       // Handle when field loses focus
-//       onFieldSubmitted: (value) {
-//         _validateAndSavePrice();
-//       },
-//     );
-//   }
-
-//   // void _updateControllers() {
-//   //   _priceController.text =
-//   //       widget.productRow.sellingPrice?.toStringAsFixed(2) ?? '';
-//   //   //_marginController.text = widget.productRow.margin.toStringAsFixed(2);
-//   // }
-
-//   // Widget _buildPriceInput() {
-//   //   if (widget.productRow.type == 'service') {
-//   //     // For services, show the fixed price
-//   //     _priceController.text =
-//   //         widget.productRow.selectedPrice?.toStringAsFixed(2) ?? '0';
-//   //     // return Text(
-//   //     //   'OMR ${widget.productRow.selectedPrice?.toStringAsFixed(2) ?? '0.00'}',
-//   //     //   style: TextStyle(fontSize: 12),
-//   //     // );
-//   //   }
-//   //   // else {
-//   //   //   _priceController.text =
-//   //   //       widget.productRow.sellingPrice?.toStringAsFixed(2) ?? '0';
-//   //   // }
-//   //   //else {
-//   //   // For products, show editable price field
-//   //   return TextFormField(
-//   //     key: widget.productRow.priceKey,
-//   //     controller: _priceController,
-//   //     focusNode: _priceFocusNode,
-//   //     decoration: const InputDecoration(
-//   //       labelText: 'Price (OMR)',
-//   //       border: OutlineInputBorder(),
-//   //       contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-//   //     ),
-//   //     keyboardType: TextInputType.numberWithOptions(decimal: true),
-//   //     textInputAction: TextInputAction.next,
-//   //     onEditingComplete: () {
-//   //       _updatePriceFromField();
-//   //       FocusScope.of(context).requestFocus(_marginFocusNode);
-//   //     },
-//   //   );
-//   // }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Container(
-//       margin: const EdgeInsets.only(bottom: 8),
-//       padding: const EdgeInsets.all(8),
-//       decoration: BoxDecoration(
-//         color: Colors.grey[50],
-//         borderRadius: BorderRadius.circular(8),
-//         border: Border.all(color: Colors.grey[300]!),
-//       ),
-//       child: Row(
-//         children: [
-//           // Product Dropdown
-//           Expanded(flex: 2, child: _buildProductDropdown()),
-//           const SizedBox(width: 8),
-
-//           // Price Input
-//           Expanded(flex: 1, child: _buildPriceInput()),
-//           const SizedBox(width: 8),
-
-//           // Margin Input
-//           // Expanded(
-//           //   flex: 1,
-//           //   child: _buildMarginInput(),
-//           // ),
-//           // const SizedBox(width: 8),
-
-//           // Quantity Dropdown
-//           Expanded(flex: 1, child: _buildQuantityInput()),
-//           const SizedBox(width: 8),
-
-//           // Discount Dropdown
-//           Expanded(flex: 1, child: _buildDiscountInput()),
-//           const SizedBox(width: 8),
-
-//           // Subtotal
-//           Expanded(
-//             flex: 1,
-//             child: _buildAmountDisplay(
-//               'OMR ${widget.productRow.subtotal.toStringAsFixed(2)}',
-//             ),
-//           ),
-//           const SizedBox(width: 8),
-//           Expanded(
-//             flex: 1,
-//             child: _buildAmountDisplay(
-//               'OMR ${widget.productRow.total.toStringAsFixed(2)}',
-//               isTotal: true,
-//             ),
-//           ),
-//           const SizedBox(width: 8),
-
-//           // Remove Button
-//           if (widget.showRemoveButton)
-//             IconButton(
-//               icon: const Icon(
-//                 Icons.remove_circle,
-//                 color: Colors.red,
-//                 size: 20,
-//               ),
-//               onPressed: widget.onRemove,
-//             ),
-//         ],
-//       ),
-//     );
-//   }
-
-//   // Widget _buildQuantityInput() {
-//   //   return TextFormField(
-//   //     key: widget.productRow.quantityKey,
-//   //     initialValue: widget.productRow.quantity.toString(),
-//   //     focusNode: _qtyFocusNode,
-//   //     autovalidateMode: AutovalidateMode.onUserInteraction,
-//   //     decoration: const InputDecoration(
-//   //       labelText: 'Qty',
-//   //       border: OutlineInputBorder(),
-//   //       contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-//   //     ),
-//   //     inputFormatters: [
-//   //       FilteringTextInputFormatter.digitsOnly,
-//   //       LengthLimitingTextInputFormatter(5),
-//   //     ],
-//   //     //validator:
-//   //     validator: (value) {
-//   //       // Debug print to check if validator is called
-//   //       debugPrint('Validator called with value: $value');
-//   //       final error = ValidationUtils.quantity(value);
-//   //       debugPrint('Validation error: $error');
-//   //       return error;
-//   //     }, //ValidationUtils.quantity,
-//   //     keyboardType: TextInputType.number,
-//   //     onChanged: (value) {
-//   //       if (value.isNotEmpty) {
-//   //         final quantity = int.tryParse(value) ?? 0;
-//   //         // if (mounted) {
-//   //         //   setState(() {
-//   //         //     widget.productRow.quantity = quantity;
-//   //         //     widget.productRow.calculateTotals();
-//   //         //     widget.onUpdate(widget.productRow);
-//   //         //   });
-//   //         // }
-//   //         if (quantity > 0 && quantity <= 999999) {
-//   //           if (mounted) {
-//   //             setState(() {
-//   //               widget.productRow.quantity = quantity;
-//   //               widget.productRow.calculateTotals();
-//   //               widget.onUpdate(widget.productRow);
-//   //             });
-//   //           }
-//   //         } else if (quantity == 0) {
-//   //           if (mounted) {
-//   //             setState(() {
-//   //               widget.productRow.quantity = 1;
-//   //             });
-//   //           }
-//   //         }
-//   //       }
-//   //     },
-//   //     onEditingComplete: () {
-//   //       _qtyFocusNode.unfocus();
-//   //     },
-//   //   );
-//   // }
-
-//   Widget _buildQuantityInput() {
-//     return TextFormField(
-//       key: widget.productRow.quantityKey,
-//       controller: _qtyController, // Use controller instead of initialValue
-//       focusNode: _qtyFocusNode,
-//       autovalidateMode: AutovalidateMode.onUserInteraction,
-//       decoration: const InputDecoration(
-//         labelText: 'Qty',
-//         border: OutlineInputBorder(),
-//         contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-//       ),
-//       inputFormatters: [
-//         FilteringTextInputFormatter.digitsOnly,
-//         LengthLimitingTextInputFormatter(5),
-//       ],
-//       validator: (value) {
-//         debugPrint('Validator called with value: $value');
-//         final error = ValidationUtils.quantity(value);
-//         debugPrint('Validation error: $error');
-//         return error;
-//       },
-//       keyboardType: TextInputType.number,
-//       onChanged: (value) {
-//         if (value.isNotEmpty) {
-//           final quantity = int.tryParse(value) ?? 0;
-//           if (quantity == 0) {
-//             _qtyController.text = "1";
-//             widget.productRow.quantity = 1;
-//           }
-
-//           if (quantity > 0 && quantity <= 999999) {
-//             // Valid quantity - update the model
-//             if (mounted) {
-//               setState(() {
-//                 widget.productRow.quantity = quantity;
-//                 widget.productRow.calculateTotals();
-//                 widget.onUpdate(widget.productRow);
-//               });
-//             }
-//           } else {
-//             // Invalid quantity (0 or out of range) - don't update model
-//             // The field will show the invalid input but model keeps last valid value
-//           }
-//         } else {
-//           _qtyController.text = "1";
-//           widget.productRow.quantity = 1;
-//           if (mounted) {
-//             setState(() {
-//               widget.productRow.quantity = 1;
-//               widget.productRow.calculateTotals();
-//               widget.onUpdate(widget.productRow);
-//             });
-//           }
-//         }
-//       },
-//       onEditingComplete: () {
-//         // Final cleanup when user finishes editing
-//         final value = _qtyController.text;
-//         final quantity = int.tryParse(value) ?? 0;
-
-//         if (quantity < 1) {
-//           // Reset to minimum 1
-//           if (mounted) {
-//             setState(() {
-//               widget.productRow.quantity = 1;
-//               _qtyController.text = '1';
-//               widget.productRow.calculateTotals();
-//               widget.onUpdate(widget.productRow);
-//             });
-//           }
-//         }
-
-//         _qtyFocusNode.unfocus();
-//       },
-//     );
-//   }
-
-//   Widget _buildDiscountInput() {
-//     return TextFormField(
-//       key: widget.productRow.discountKey,
-//       initialValue: widget.productRow.discount.toString(),
-//       decoration: const InputDecoration(
-//         labelText: 'Discount %',
-//         border: OutlineInputBorder(),
-//         contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-//         suffixText: '%',
-//       ),
-//       autovalidateMode: AutovalidateMode.onUserInteraction,
-//       inputFormatters: [
-//         FilteringTextInputFormatter.digitsOnly,
-//         LengthLimitingTextInputFormatter(2),
-//       ],
-//       validator: (value) {
-//         // Debug print to check if validator is called
-//         debugPrint('Validator called with value: $value');
-//         final error = ValidationUtils.discount(value);
-//         debugPrint('Validation error: $error');
-//         return error;
-//       },
-//       keyboardType: TextInputType.numberWithOptions(decimal: true),
-//       onChanged: (value) {
-//         if (value.isNotEmpty) {
-//           final discount = double.tryParse(value) ?? 0;
-//           if (mounted) {
-//             setState(() {
-//               widget.productRow.discount = discount;
-//               widget.productRow.calculateTotals();
-//               widget.onUpdate(widget.productRow);
-//             });
-//           }
-//         }
-//       },
-//       onEditingComplete: () {
-//         FocusScope.of(context).unfocus();
-//       },
-//     );
-//   }
-
-//   Widget _buildAmountDisplay(String amount, {bool isTotal = false}) {
-//     return Text(
-//       amount,
-//       style: TextStyle(
-//         fontSize: 12,
-//         fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
-//         color: isTotal ? AppTheme.primaryColor : Colors.black,
-//       ),
-//     );
-//   }
-// }
 
 class _ProductRowWidgetState extends State<ProductRowWidget> {
   final TextEditingController _priceController = TextEditingController();
@@ -4608,7 +2586,6 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
   }
 
   void _initializeControllers() {
-    // Set initial price value
     if (widget.productRow.type == 'service') {
       _priceController.text =
           widget.productRow.selectedPrice?.toStringAsFixed(2) ?? '0';
@@ -4618,13 +2595,10 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
           widget.productRow.sellingPrice?.toStringAsFixed(2) ?? '0';
       _originalPrice = widget.productRow.sellingPrice ?? 0;
     }
-
-    // Set initial quantity value
     _qtyController.text = widget.productRow.quantity.toString();
   }
 
   void _onPriceFocusChange() {
-    // When price field loses focus, validate and update
     if (!_priceFocusNode.hasFocus) {
       _validateAndUpdatePrice();
     }
@@ -4635,15 +2609,8 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
     final minimumPrice = widget.productRow.saleItem?.minimumPrice ?? 0;
     final sellingPrice = widget.productRow.saleItem?.sellingPrice ?? 0;
 
-    debugPrint(
-      'Validating price - New: $newPrice, Min: $minimumPrice, Selling: $sellingPrice',
-    );
-
     if (newPrice < minimumPrice) {
-      debugPrint('Price below minimum - resetting to selling price');
       _showMinimumPriceError(minimumPrice);
-
-      // Reset to selling price
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           setState(() {
@@ -4653,7 +2620,6 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
         }
       });
     } else {
-      // Price is valid, update the model
       _updatePriceInModel(newPrice);
     }
   }
@@ -4663,15 +2629,12 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
       widget.productRow.selectedPrice = newPrice;
     } else {
       widget.productRow.sellingPrice = newPrice;
-
-      // Recalculate margin for products
       if (widget.productRow.cost > 0) {
         widget.productRow.margin =
             ((newPrice - widget.productRow.cost) / widget.productRow.cost) *
             100;
       }
     }
-
     widget.productRow.calculateTotals();
     widget.onUpdate(widget.productRow);
   }
@@ -4714,9 +2677,7 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
             setState(() {
               widget.productRow.saleItem = selected;
               widget.productRow.type = selected.type;
-
               if (selected.type == 'service') {
-                // For services, use the selling price directly
                 widget.productRow.selectedPrice = selected.sellingPrice;
                 widget.productRow.sellingPrice = null;
                 widget.productRow.cost = selected.cost;
@@ -4724,7 +2685,6 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
                   2,
                 );
               } else {
-                // For products, set up cost and calculate margin
                 widget.productRow.sellingPrice = selected.sellingPrice;
                 _priceController.text = selected.sellingPrice.toStringAsFixed(
                   2,
@@ -4736,14 +2696,9 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
                           100
                     : 0;
               }
-
-              // Update original price
               _originalPrice = selected.sellingPrice;
-
               widget.productRow.calculateTotals();
               widget.onUpdate(widget.productRow);
-
-              // Focus on quantity field
               FocusScope.of(context).requestFocus(_qtyFocusNode);
             });
           }
@@ -4765,27 +2720,19 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
       ),
       keyboardType: TextInputType.numberWithOptions(decimal: true),
       textInputAction: TextInputAction.next,
-
-      // Update in real-time as user types (for valid prices)
       onChanged: (value) {
         if (value.isNotEmpty) {
           final newPrice = double.tryParse(value) ?? 0;
           final minimumPrice = widget.productRow.saleItem?.minimumPrice ?? 0;
-
-          // Only update model if price is valid (not blocking user input)
           if (newPrice >= minimumPrice) {
             _updatePriceInModel(newPrice);
           }
         }
       },
-
-      // Final validation when moving to next field
       onEditingComplete: () {
         _validateAndUpdatePrice();
         FocusScope.of(context).requestFocus(_qtyFocusNode);
       },
-
-      // Final validation when field loses focus
       onFieldSubmitted: (value) {
         _validateAndUpdatePrice();
       },
@@ -4808,9 +2755,7 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
         LengthLimitingTextInputFormatter(5),
       ],
       validator: (value) {
-        debugPrint('Validator called with value: $value');
         final error = ValidationUtils.quantity(value);
-        debugPrint('Validation error: $error');
         return error;
       },
       keyboardType: TextInputType.number,
@@ -4821,9 +2766,7 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
             _qtyController.text = "1";
             widget.productRow.quantity = 1;
           }
-
           if (quantity > 0 && quantity <= 999999) {
-            // Valid quantity - update the model
             if (mounted) {
               setState(() {
                 widget.productRow.quantity = quantity;
@@ -4845,12 +2788,9 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
         }
       },
       onEditingComplete: () {
-        // Final cleanup when user finishes editing
         final value = _qtyController.text;
         final quantity = int.tryParse(value) ?? 0;
-
         if (quantity < 1) {
-          // Reset to minimum 1
           if (mounted) {
             setState(() {
               widget.productRow.quantity = 1;
@@ -4881,9 +2821,7 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
         LengthLimitingTextInputFormatter(2),
       ],
       validator: (value) {
-        debugPrint('Validator called with value: $value');
         final error = ValidationUtils.discount(value);
-        debugPrint('Validation error: $error');
         return error;
       },
       keyboardType: TextInputType.numberWithOptions(decimal: true),
@@ -4919,7 +2857,6 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
   @override
   void didUpdateWidget(ProductRowWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Update controllers when widget data changes
     if (oldWidget.productRow != widget.productRow) {
       _initializeControllers();
     }
@@ -4937,23 +2874,14 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
       ),
       child: Row(
         children: [
-          // Product Dropdown
           Expanded(flex: 2, child: _buildProductDropdown()),
           const SizedBox(width: 8),
-
-          // Price Input
           Expanded(flex: 1, child: _buildPriceInput()),
           const SizedBox(width: 8),
-
-          // Quantity Input
           Expanded(flex: 1, child: _buildQuantityInput()),
           const SizedBox(width: 8),
-
-          // Discount Input
           Expanded(flex: 1, child: _buildDiscountInput()),
           const SizedBox(width: 8),
-
-          // Subtotal
           Expanded(
             flex: 1,
             child: _buildAmountDisplay(
@@ -4961,8 +2889,6 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
             ),
           ),
           const SizedBox(width: 8),
-
-          // Total
           Expanded(
             flex: 1,
             child: _buildAmountDisplay(
@@ -4971,8 +2897,6 @@ class _ProductRowWidgetState extends State<ProductRowWidget> {
             ),
           ),
           const SizedBox(width: 8),
-
-          // Remove Button
           if (widget.showRemoveButton)
             IconButton(
               icon: const Icon(

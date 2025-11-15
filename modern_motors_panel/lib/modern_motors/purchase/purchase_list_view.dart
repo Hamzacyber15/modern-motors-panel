@@ -13,6 +13,8 @@ import 'package:modern_motors_panel/model/purchase_models/new_purchase_model.dar
 import 'package:modern_motors_panel/model/sales_model/sale_model.dart';
 import 'package:modern_motors_panel/model/supplier/supplier_model.dart';
 import 'package:modern_motors_panel/modern_motors/invoices/invoice_logs_timeline.dart';
+import 'package:modern_motors_panel/modern_motors/invoices/purchase_invoice_full_screen.dart';
+import 'package:modern_motors_panel/modern_motors/invoices/purchase_invoice_pdf.dart';
 import 'package:modern_motors_panel/modern_motors/purchase/purchase_coa_transactions.dart';
 import 'package:modern_motors_panel/modern_motors/purchase/purchase_payment_page.dart';
 import 'package:modern_motors_panel/modern_motors/services/data_fetch_service.dart';
@@ -23,6 +25,7 @@ import 'package:modern_motors_panel/modern_motors/widgets/simple_purchase_confir
 import 'package:modern_motors_panel/modern_motors/widgets/supplier_name_tile.dart';
 import 'package:modern_motors_panel/provider/modern_motors/mm_resource_provider.dart';
 import 'package:modern_motors_panel/widgets/loading_widget.dart';
+import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
 
 // Enum for dropdown actions
@@ -1151,7 +1154,7 @@ class PurchaseCard extends StatelessWidget {
     }
 
     return Container(
-      height: 105,
+      height: 140,
       margin: const EdgeInsets.only(bottom: 2),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -1313,7 +1316,7 @@ class PurchaseCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                   hoverColor: Colors.grey.withOpacity(0.05),
                   child: Container(
-                    height: 100,
+                    height: 140,
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(8),
@@ -3128,18 +3131,43 @@ class _PurchaseListViewState extends State<PurchaseListView> {
     }
   }
 
+  // In your button or menu action
+  void _generateInvoice(NewPurchaseModel purchase) async {
+    try {
+      final pdfBytes = await PurchaseInvoicePDF.generate(purchase);
+
+      // For printing
+      await Printing.layoutPdf(onLayout: (format) => pdfBytes);
+
+      // Or for sharing/saving
+      // await Share.shareXFiles([XFile.fromData(pdfBytes, mimeType: 'application/pdf')]);
+    } catch (e) {
+      print('Error generating PDF: $e');
+    }
+  }
+
+  void openPurchaseInvoice(BuildContext context, NewPurchaseModel purchase) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PurchaseInvoiceFullScreen(purchase: purchase),
+      ),
+    );
+  }
+
   void _handleActionSelected(NewPurchaseModel sale, SaleAction action) async {
     switch (action) {
       case SaleAction.view:
         // Navigate to sale details
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) {
-              return Container();
-              //SalesInvoiceDropdownView(type: "sale", sale: sale);
-            },
-          ),
-        );
+        // Navigator.of(context).push(
+        //   MaterialPageRoute(
+        //     builder: (_) {
+        //       return Container();
+        //       //SalesInvoiceDropdownView(type: "sale", sale: sale);
+        //     },
+        //   ),
+        // );
+        openPurchaseInvoice(context, sale);
 
         debugPrint('View sale: ${sale.id}');
         break;

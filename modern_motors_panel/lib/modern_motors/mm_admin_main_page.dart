@@ -2660,6 +2660,7 @@ class _MmAdminMainPageState extends State<MmAdminMainPage> {
         MainContainer.financialReport,
         MainContainer.journalEntries,
         MainContainer.chartOfAccounts,
+        MainContainer.employeeAdvancePayment,
       ],
       'Finance'.tr(): [
         MainContainer.expenses,

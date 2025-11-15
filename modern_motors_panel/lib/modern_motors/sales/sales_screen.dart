@@ -1,4 +1,5 @@
 // ignore_for_file: deprecated_member_use
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
@@ -25,6 +26,7 @@ import 'package:modern_motors_panel/modern_motors/widgets/employees/mm_employee_
 import 'package:modern_motors_panel/modern_motors/widgets/image_gallery_dialogue.dart';
 import 'package:modern_motors_panel/modern_motors/widgets/payment_details_dialog.dart';
 import 'package:modern_motors_panel/modern_motors/widgets/sales_invoice_dropdown_view.dart';
+import 'package:modern_motors_panel/modern_motors/widgets/simple_purchase_confirmation_dialogue.dart';
 import 'package:modern_motors_panel/provider/modern_motors/mm_resource_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -94,7 +96,17 @@ import 'sale_payment_page.dart';
 //}
 
 // Enum for dropdown actions
-enum SaleAction { view, edit, duplicate, payment, clone, refund, delete, logs }
+enum SaleAction {
+  view,
+  edit,
+  duplicate,
+  payment,
+  clone,
+  refund,
+  delete,
+  logs,
+  confirm,
+}
 
 // Filter class for managing all filter states
 class SalesFilter {
@@ -960,6 +972,20 @@ class SaleCard extends StatelessWidget {
                             ),
                             const SizedBox(width: 8),
                             Text('Clone'),
+                          ],
+                        ),
+                      ),
+                      PopupMenuItem<SaleAction>(
+                        value: SaleAction.confirm,
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.add_card_sharp,
+                              size: 18,
+                              color: Colors.green,
+                            ),
+                            const SizedBox(width: 8),
+                            Text('confirm sale'),
                           ],
                         ),
                       ),
@@ -2201,6 +2227,31 @@ class _SalesListViewState extends State<SalesListView> {
     // CreateBookingMainPage()
   }
 
+  Future<void> updatePurchaseStatus(SaleModel sale) async {
+    try {
+      // sale.status = "save";
+      setState(() {
+        //loading = true;
+      });
+      HttpsCallable callable = FirebaseFunctions.instance.httpsCallable(
+        'saveSale',
+      );
+      final results = await callable({
+        'saleId': sale.id, //'000testSale',
+        'status': "save",
+        //"purchaseData": purchase,
+        ///'expenseData': purchase.expenseData,
+      });
+      debugPrint("${"confirm sale"}${results.data.toString()}");
+    } catch (e) {
+      debugPrint('Error updating purchase status: $e');
+    } finally {
+      setState(() {
+        //  loading = true;
+      });
+    }
+  }
+
   void _handleActionSelected(SaleModel sale, SaleAction action) async {
     switch (action) {
       case SaleAction.view:
@@ -2237,6 +2288,23 @@ class _SalesListViewState extends State<SalesListView> {
         );
         debugPrint('Print receipt: ${sale.createdAt}');
         break;
+      case SaleAction.confirm:
+        // Navigate to sale details
+        // updatePurchaseStatus(sale);
+        //  getList();
+        final bool? shouldConfirm = await SimplePurchaseConfirmationDialog.show(
+          context: context,
+          message: 'Are you sure you want to confirm this purchase?',
+        );
+
+        // If user confirmed (pressed Confirm button), update purchase status
+        if (shouldConfirm == true) {
+          await updatePurchaseStatus(sale);
+          getList();
+          debugPrint('Purchase confirmed: ${sale.id}');
+        } else {
+          debugPrint('Purchase confirmation cancelled: ${sale.id}');
+        }
       case SaleAction.duplicate:
         // Duplicate sale
         debugPrint('Add Payment : ${sale.createdBy}');

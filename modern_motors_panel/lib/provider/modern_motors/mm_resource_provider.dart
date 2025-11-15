@@ -10,6 +10,7 @@ import 'package:modern_motors_panel/model/branches/branch_model.dart';
 import 'package:modern_motors_panel/model/chartoAccounts_model.dart';
 import 'package:modern_motors_panel/model/customer_models/customer_models.dart';
 import 'package:modern_motors_panel/model/hr_models/allowance_model.dart';
+import 'package:modern_motors_panel/model/hr_models/employees/advance_payment_employee_model.dart';
 import 'package:modern_motors_panel/model/hr_models/employees/emlpoyee_model.dart';
 import 'package:modern_motors_panel/model/hr_models/nationality_model.dart';
 import 'package:modern_motors_panel/model/hr_models/role_model.dart';
@@ -35,6 +36,7 @@ class MmResourceProvider with ChangeNotifier {
   List<VendorModel> vendorsList = [];
   List<BrandModel> brandsList = [];
   List<ServiceTypeModel> serviceList = [];
+  List<AdvanceEmployeePaymentModel> advanceEmployeePaymentList = [];
   List<CategoryModel> categoryList = [];
   List<ProductModel> productsList = [];
   List<ProductCategoryModel> productCategoryList = [];
@@ -157,6 +159,26 @@ class MmResourceProvider with ChangeNotifier {
       _assetAccounts = [];
       notifyListeners();
     }
+  }
+
+  void updateEmployeeAdvancePayment({
+    String? id,
+    required AdvanceEmployeePaymentModel model,
+  }) {
+    if (id == null) {
+      advanceEmployeePaymentList.insert(0, model);
+    } else {
+      final index = advanceEmployeePaymentList.indexWhere(
+        (adv) => adv.id == id,
+      );
+      if (index != -1) {
+        final oldVendor = advanceEmployeePaymentList[index];
+        model.createdAt = oldVendor.createdAt;
+        model.id = oldVendor.id;
+        advanceEmployeePaymentList[index] = model;
+      }
+    }
+    notifyListeners();
   }
 
   Future<bool> start() async {

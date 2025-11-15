@@ -25,6 +25,7 @@ import 'package:modern_motors_panel/modern_motors/widgets/page_header_widget.dar
 import 'package:modern_motors_panel/modern_motors/widgets/sales_invoice_dropdown_view.dart';
 import 'package:modern_motors_panel/modern_motors/widgets/selected_items_page.dart';
 import 'package:modern_motors_panel/provider/maintenance_booking_provider.dart';
+import 'package:modern_motors_panel/provider/maintenance_booking_provider1.dart';
 import 'package:modern_motors_panel/widgets/dialogue_box_picker.dart';
 import 'package:modern_motors_panel/widgets/overlay_loader.dart';
 import 'package:provider/provider.dart';
@@ -665,9 +666,9 @@ class _CreateEstimateState extends State<CreateEstimate> {
           .limit(1)
           .get();
       if (commSnap.docs.isNotEmpty) {
-        final comm = EmployeeCommissionModel.fromDoc(commSnap.docs.first);
-        p.setEmployeeCommissionModel(comm);
-        p.setCommission(true);
+        //  final comm = EmployeeCommissionModel.fromDoc(commSnap.docs.first);
+        // p.setEmployeeCommissionModel(comm);
+        // p.setCommission(true);
       }
     } catch (e) {
       debugPrint('Error fetching commission: $e');

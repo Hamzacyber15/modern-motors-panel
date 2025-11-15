@@ -7,6 +7,7 @@ import 'package:modern_motors_panel/constants.dart';
 import 'package:modern_motors_panel/extensions.dart';
 import 'package:modern_motors_panel/model/attachment_model.dart';
 import 'package:modern_motors_panel/model/discount_models/discount_model.dart';
+import 'package:modern_motors_panel/model/hr_models/employees/commissions_model/commission_transaction_model.dart';
 import 'package:modern_motors_panel/model/hr_models/employees/commissions_model/employees_commision_model.dart';
 import 'package:modern_motors_panel/model/inventory_models/inventory_model.dart';
 import 'package:modern_motors_panel/model/product_models/product_model.dart';
@@ -31,7 +32,10 @@ class MaintenanceBookingProvider extends ChangeNotifier {
   final TextEditingController generateBookingNumberController =
       TextEditingController();
   final TextEditingController bookingDateController = TextEditingController();
-  EmployeeCommissionModel? employeeCommissionModel;
+  List<String> selectedEmployeeIds = [];
+  double commissionPercentage = 0;
+  bool isCommissionEnabled = false;
+  CommissionTransactionModel? employeeCommissionModel;
   DateTime saleDate = DateTime.now();
   double _servicesTotal = 0;
   double _productsTotal = 0;
@@ -59,6 +63,78 @@ class MaintenanceBookingProvider extends ChangeNotifier {
   double get discountPercent => _discountPercent;
   DateTime? paymentDate;
   List<String> urls = [];
+  // In MaintenanceBookingProvider class
+  List<CommissionTransactionModel> employeeCommissions = [];
+  double totalCommission = 0;
+
+  // void setCommission(bool enabled) {
+  //   isCommissionEnabled = enabled;
+  //   if (!enabled) {
+  //     employeeCommissions.clear();
+  //     totalCommission = 0;
+  //   }
+  //   notifyListeners();
+  // }
+
+  void addEmployeeCommission({
+    required String employeeId,
+    required String type,
+    required double value,
+    required double amount,
+  }) {
+    employeeCommissions.add(
+      //   CommissionTransactionModel(
+      //   employeeId: employeeId,
+      //   type: type,
+      //   value: value,
+      //   amount: amount,
+      // )
+      CommissionTransactionModel(
+        id: "",
+        commission: amount,
+        employeeId: employeeId,
+        orderId: "",
+        timestamp: Timestamp.now(),
+        type: type,
+        status: "assigned",
+        notes: "",
+        packageId: "",
+        invoice: "",
+      ),
+    );
+    notifyListeners();
+  }
+
+  void updateEmployeeCommission(
+    int index, {
+    String? employeeId,
+    String? type,
+    double? value,
+  }) {
+    if (employeeId != null) {
+      employeeCommissions[index].employeeId = employeeId;
+    }
+    if (type != null) {
+      employeeCommissions[index].type = type;
+    }
+    if (value != null) {
+      employeeCommissions[index].commission = value;
+    }
+    notifyListeners();
+  }
+
+  void removeEmployeeCommission(int index) {
+    employeeCommissions.removeAt(index);
+    calculateTotalCommission();
+    notifyListeners();
+  }
+
+  void calculateTotalCommission() {
+    totalCommission = employeeCommissions.fold(
+      0,
+      (sum, commission) => sum + commission.commission,
+    );
+  }
 
   // void updateServiceLines(List<ServiceLineItem> serviceLines) {
   //   _selectedServiceLines = serviceLines;
@@ -70,6 +146,18 @@ class MaintenanceBookingProvider extends ChangeNotifier {
   //   _selectedServiceLines.clear();
   //   notifyListeners();
   // }
+
+  void _recalculateCommission(MaintenanceBookingProvider p, double grandTotal) {
+    // Recalculate commission amounts based on current total
+    for (var commission in p.employeeCommissions) {
+      if (commission.type == 'percentage') {
+        // For percentage commissions, recalculate the actual amount
+        commission.commission = grandTotal * (commission.commission / 100);
+      }
+      // For fixed amount commissions, keep the existing value
+    }
+    p.calculateTotalCommission();
+  }
 
   void setServicesTotal(double value) {
     _servicesTotal = value;
@@ -121,7 +209,7 @@ class MaintenanceBookingProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setEmployeeCommissionModel(EmployeeCommissionModel? model) {
+  void setEmployeeCommissionModel(CommissionTransactionModel? model) {
     employeeCommissionModel = model;
   }
 
@@ -174,8 +262,22 @@ class MaintenanceBookingProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setCommission(bool value) {
-    _isCommissionApply = value;
+  void setCommission(bool enabled) {
+    isCommissionEnabled = enabled;
+    if (!enabled) {
+      selectedEmployeeIds.clear();
+      commissionPercentage = 0;
+    }
+    notifyListeners();
+  }
+
+  void setSelectedEmployees(List<String> employeeIds) {
+    selectedEmployeeIds = employeeIds;
+    notifyListeners();
+  }
+
+  void setCommissionPercentage(double percentage) {
+    commissionPercentage = percentage;
     notifyListeners();
   }
 
@@ -1013,6 +1115,11 @@ class MaintenanceBookingProvider extends ChangeNotifier {
         };
       } else {
         saleData = {
+          "employees": [
+            "MdhQv5eoPEcZLrR8UqYwGsZ8Y992",
+            "GVlNpzqWnKQ4RXa5lCPIcyi1xkj1",
+          ], //employeeIDs,
+          "employeeCommission": 30,
           'dueDate': paymentDate,
           'branchId': branch.id,
           'invoice': isEdit ? sale!.invoice : invoiceNumber,
@@ -1030,7 +1137,7 @@ class MaintenanceBookingProvider extends ChangeNotifier {
           //'profit': 0,
           'customerName': customerId,
           // 'notes': notesController.text.isNotEmpty ? notesController.text : '',
-          'status': statusType, //'pending',
+          //'pending',
           'previousStock':
               0, //selectedSaleItems.first.product.totalStockOnHand,
           'batchAllocations': [],
@@ -1065,6 +1172,7 @@ class MaintenanceBookingProvider extends ChangeNotifier {
         final results = await callable({
           'saleId': saleDocId, //'000testSale',
           "saleData": saleData,
+          'status': statusType,
         });
         debugPrint(results.data.toString());
       } else if (isEdit) {
@@ -1074,6 +1182,7 @@ class MaintenanceBookingProvider extends ChangeNotifier {
         final results = await callable({
           'saleId': sale!.id, //'000testSale',
           "saleData": saleData,
+          'status': statusType,
         });
         debugPrint(results.data.toString());
       }
@@ -1129,8 +1238,8 @@ class MaintenanceBookingProvider extends ChangeNotifier {
       Constants.showMessage(
         context,
         isEdit
-            ? 'Booking updated successfully'
-            : 'Booking created successfully',
+            ? 'Invoice updated successfully'
+            : 'Invoice created successfully',
       );
 
       clearData();

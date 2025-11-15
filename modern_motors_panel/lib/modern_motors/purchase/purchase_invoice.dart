@@ -109,7 +109,7 @@ class BillExpense {
   SupplierModel? supplier;
   double amount = 0;
   String description = '';
-  bool includeInProductCost = false;
+  bool includeInProductCost = true;
   String? vatType;
   double vatAmount = 0;
 
@@ -1364,7 +1364,7 @@ class _PurchaseInvoiceState extends State<PurchaseInvoice>
         'supplierId': expense.supplier?.id ?? '',
         'vatType': expense.vatType ?? 'none',
         'vatAmount': expense.vatAmount,
-        'includeInProductCost': false, //expense.includeInProductCost,
+        'includeInProductCost': expense.includeInProductCost,
       };
     }).toList();
   }

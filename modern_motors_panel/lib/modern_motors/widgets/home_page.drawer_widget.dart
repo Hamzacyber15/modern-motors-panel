@@ -5,6 +5,7 @@ import 'package:modern_motors_panel/modern_motors/accounts/financial_reports_pag
 import 'package:modern_motors_panel/modern_motors/branch/branches_page.dart';
 import 'package:modern_motors_panel/modern_motors/customers/customers_main_page.dart';
 import 'package:modern_motors_panel/modern_motors/dashboard/coming_soon.dart';
+import 'package:modern_motors_panel/modern_motors/employees/advance_payment/employee_advance_payment.dart';
 import 'package:modern_motors_panel/modern_motors/employees/employee_page.dart';
 import 'package:modern_motors_panel/modern_motors/employees/roles_main_page.dart';
 import 'package:modern_motors_panel/modern_motors/estimations/create_estimate_main_page.dart';
@@ -27,6 +28,7 @@ import 'package:modern_motors_panel/modern_motors/sales/sales_main_page.dart';
 import 'package:modern_motors_panel/modern_motors/sales/sales_settings.dart';
 import 'package:modern_motors_panel/modern_motors/services_maintenance/create_booking_main_page.dart';
 import 'package:modern_motors_panel/modern_motors/services_maintenance/create_maintenance_booking.dart';
+import 'package:modern_motors_panel/modern_motors/services_maintenance/create_maintenance_booking1.dart';
 import 'package:modern_motors_panel/modern_motors/services_maintenance/services_main_page.dart';
 import 'package:modern_motors_panel/modern_motors/supplier/manage_supplier.dart';
 import 'package:modern_motors_panel/modern_motors/trucks/manage_heavy_equipment.dart';
@@ -203,5 +205,7 @@ Widget getSelectedPageWidget({
       return ExpenseCategoryPage();
     case MainContainer.financialReport:
       return FinancialReportsPage();
+    case MainContainer.employeeAdvancePayment:
+      return EmployeeAdvancePaymentPage();
   }
 }

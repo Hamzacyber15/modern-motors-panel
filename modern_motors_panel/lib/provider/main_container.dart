@@ -32,6 +32,13 @@ enum MainContainer {
       iconPath: "assets/images/dashboard.png",
     ),
   ),
+  employeeAdvancePayment(
+    ContainerData(
+      key: "employeeAdvancePayment",
+      label: 'Advance Payments',
+      iconPath: "assets/images/dashboard.png",
+    ),
+  ),
   goodsReceiveNotes(
     ContainerData(
       key: "goodReceivedNotes",

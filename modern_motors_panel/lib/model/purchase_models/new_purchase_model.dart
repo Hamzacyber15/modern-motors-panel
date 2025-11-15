@@ -1909,7 +1909,7 @@ class NewPurchaseModel {
       items: items,
       expenseData: expenseData,
       status: data['status']?.toString() ?? "",
-      createdBy: data['createdBy']?.toString() ?? "",
+      createdBy: data['createBy']?.toString() ?? "",
       createBy: data['createBy']?.toString() ?? "",
       invoice: data['invoice']?.toString() ?? "",
       taxAmount: (data['taxAmount'] ?? 0).toDouble(),

@@ -32,7 +32,7 @@ class PurchaseInvoiceProvider extends ChangeNotifier {
   final TextEditingController generateBookingNumberController =
       TextEditingController();
   final TextEditingController bookingDateController = TextEditingController();
-  EmployeeCommissionModel? employeeCommissionModel;
+  //EmployeeCommissionModel? employeeCommissionModel;
   DateTime purchaseDate = DateTime.now();
   double _servicesTotal = 0;
   double billExpenseTotal = 0;
@@ -100,9 +100,9 @@ class PurchaseInvoiceProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setEmployeeCommissionModel(EmployeeCommissionModel? model) {
-    employeeCommissionModel = model;
-  }
+  // void setEmployeeCommissionModel(EmployeeCommissionModel? model) {
+  //   employeeCommissionModel = model;
+  // }
 
   BillingParty _billingParty = BillingParty.others;
 
@@ -1302,7 +1302,7 @@ class PurchaseInvoiceProvider extends ChangeNotifier {
     //  discountAmount = 0;
     taxAmount = 0;
     _isCommissionApply = false;
-    employeeCommissionModel = null;
+    //employeeCommissionModel = null;
     selectedDiscount = DiscountModel.getDiscount();
 
     notifyListeners();

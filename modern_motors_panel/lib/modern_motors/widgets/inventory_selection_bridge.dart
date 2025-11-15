@@ -3,6 +3,7 @@ import 'package:modern_motors_panel/model/inventory_models/inventory_model.dart'
 import 'package:modern_motors_panel/model/product_models/product_model.dart';
 import 'package:modern_motors_panel/provider/estimation_provider.dart';
 import 'package:modern_motors_panel/provider/maintenance_booking_provider.dart';
+import 'package:modern_motors_panel/provider/maintenance_booking_provider1.dart';
 import 'package:modern_motors_panel/provider/selected_inventories_provider.dart';
 
 class InventorySelectionBridge {
